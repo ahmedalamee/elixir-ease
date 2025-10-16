@@ -134,7 +134,7 @@
 @layer components {
   /* أزرار طبية */
   .btn-medical {
-    @apply bg-gradient-to-r from-primary to-primary-hover text-primary-foreground;
+    @apply bg-primary text-primary-foreground;
     @apply rounded-lg px-6 py-3 font-semibold shadow-md hover:shadow-lg;
     @apply transition-all duration-300 hover:scale-[1.02];
   }

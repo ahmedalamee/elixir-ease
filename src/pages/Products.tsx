@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { productSchema } from "@/lib/validation";
+import { z } from "zod";
 import {
   Search,
   Plus,
@@ -94,16 +96,21 @@ const Products = () => {
     e.preventDefault();
 
     try {
-      const productData = {
-        name: formData.name,
-        name_en: formData.name_en || null,
-        barcode: formData.barcode || null,
+      // Validate input data using zod schema
+      const validatedData = productSchema.parse({
+        name: formData.name.trim(),
+        name_en: formData.name_en.trim() || null,
+        barcode: formData.barcode.trim() || null,
         price: parseFloat(formData.price),
         cost_price: parseFloat(formData.cost_price),
         quantity: parseInt(formData.quantity),
         min_quantity: parseInt(formData.min_quantity),
         expiry_date: formData.expiry_date || null,
-        description: formData.description || null,
+        description: formData.description.trim() || null,
+      });
+
+      const productData: any = {
+        ...validatedData,
         is_active: true,
       };
 
@@ -116,7 +123,7 @@ const Products = () => {
         if (error) throw error;
         toast({ title: "تم تحديث المنتج بنجاح" });
       } else {
-        const { error } = await supabase.from("products").insert(productData);
+        const { error } = await supabase.from("products").insert([productData]);
 
         if (error) throw error;
         toast({ title: "تم إضافة المنتج بنجاح" });
@@ -126,11 +133,19 @@ const Products = () => {
       resetForm();
       fetchProducts();
     } catch (error: any) {
-      toast({
-        title: "خطأ",
-        description: error.message,
-        variant: "destructive",
-      });
+      if (error instanceof z.ZodError) {
+        toast({
+          title: "خطأ في التحقق من البيانات",
+          description: error.errors[0].message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "خطأ",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
     }
   };
 

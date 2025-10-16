@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import Navbar from "@/components/Navbar";
 import {
   ShoppingCart,
   Search,
   Trash2,
   Plus,
   Minus,
-  ArrowRight,
   CreditCard,
   Banknote,
 } from "lucide-react";
@@ -195,26 +195,9 @@ const POS = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background" dir="rtl">
-      {/* Header */}
-      <header className="bg-card border-b border-border shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate("/dashboard")}
-              >
-                <ArrowRight className="w-5 h-5" />
-              </Button>
-              <h1 className="text-2xl font-bold">نقاط البيع</h1>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Products Section */}
           <div className="lg:col-span-2 space-y-4">

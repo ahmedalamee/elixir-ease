@@ -1,15 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import Navbar from "@/components/Navbar";
 import {
   ShoppingCart,
   Package,
   Users,
   TrendingUp,
-  Pill,
-  LogOut,
   AlertTriangle,
   DollarSign,
 } from "lucide-react";
@@ -63,10 +61,6 @@ const Dashboard = () => {
     }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/auth");
-  };
 
   const statCards = [
     {
@@ -110,7 +104,7 @@ const Dashboard = () => {
     {
       title: "إدارة المنتجات",
       description: "عرض وتعديل المنتجات",
-      icon: Pill,
+      icon: Package,
       color: "from-blue-500 to-blue-600",
       path: "/products",
     },
@@ -131,36 +125,9 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background" dir="rtl">
-      {/* Header */}
-      <header className="bg-card border-b border-border shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-gradient-to-r from-primary to-primary-hover p-2 rounded-lg">
-                <Pill className="w-8 h-8 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">
-                  نظام إدارة الصيدلية
-                </h1>
-                <p className="text-sm text-muted-foreground">لوحة التحكم الرئيسية</p>
-              </div>
-            </div>
-            <Button
-              onClick={handleLogout}
-              variant="outline"
-              className="gap-2"
-            >
-              <LogOut className="w-4 h-4" />
-              تسجيل الخروج
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      <main className="container mx-auto px-4 py-8">
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {statCards.map((stat, index) => {

@@ -1,0 +1,352 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
+import Navbar from "@/components/Navbar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Plus, Edit, Trash, Search } from "lucide-react";
+
+interface Customer {
+  id: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  credit_limit: number;
+  balance: number;
+  loyalty_points: number;
+  created_at: string;
+}
+
+const Customers = () => {
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    address: "",
+    credit_limit: 0,
+  });
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    checkAuth();
+    fetchCustomers();
+  }, []);
+
+  const checkAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      navigate("/auth");
+    }
+  };
+
+  const fetchCustomers = async () => {
+    const { data, error } = await supabase
+      .from("customers")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      toast({
+        title: "خطأ في تحميل البيانات",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      setCustomers(data || []);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (editingCustomer) {
+      const { error } = await supabase
+        .from("customers")
+        .update(formData)
+        .eq("id", editingCustomer.id);
+
+      if (error) {
+        toast({
+          title: "خطأ في التحديث",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "تم التحديث بنجاح",
+        });
+        fetchCustomers();
+        resetForm();
+      }
+    } else {
+      const { error } = await supabase.from("customers").insert([formData]);
+
+      if (error) {
+        toast({
+          title: "خطأ في الإضافة",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "تم الإضافة بنجاح",
+        });
+        fetchCustomers();
+        resetForm();
+      }
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from("customers").delete().eq("id", id);
+
+    if (error) {
+      toast({
+        title: "خطأ في الحذف",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "تم الحذف بنجاح",
+      });
+      fetchCustomers();
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      phone: "",
+      email: "",
+      address: "",
+      credit_limit: 0,
+    });
+    setEditingCustomer(null);
+    setIsDialogOpen(false);
+  };
+
+  const handleEdit = (customer: Customer) => {
+    setEditingCustomer(customer);
+    setFormData({
+      name: customer.name,
+      phone: customer.phone || "",
+      email: customer.email || "",
+      address: customer.address || "",
+      credit_limit: customer.credit_limit,
+    });
+    setIsDialogOpen(true);
+  };
+
+  const filteredCustomers = customers.filter(
+    (customer) =>
+      customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      customer.phone?.includes(searchTerm) ||
+      customer.email?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      <div className="container mx-auto py-8 px-4">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>إدارة العملاء</CardTitle>
+                <CardDescription>
+                  إضافة وتعديل وحذف بيانات العملاء
+                </CardDescription>
+              </div>
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="gap-2" onClick={() => resetForm()}>
+                    <Plus className="h-4 w-4" />
+                    إضافة عميل جديد
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>
+                      {editingCustomer ? "تعديل عميل" : "إضافة عميل جديد"}
+                    </DialogTitle>
+                    <DialogDescription>
+                      أدخل بيانات العميل بشكل صحيح
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">الاسم *</Label>
+                      <Input
+                        id="name"
+                        value={formData.name}
+                        onChange={(e) =>
+                          setFormData({ ...formData, name: e.target.value })
+                        }
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">رقم الهاتف</Label>
+                      <Input
+                        id="phone"
+                        value={formData.phone}
+                        onChange={(e) =>
+                          setFormData({ ...formData, phone: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">البريد الإلكتروني</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) =>
+                          setFormData({ ...formData, email: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="address">العنوان</Label>
+                      <Input
+                        id="address"
+                        value={formData.address}
+                        onChange={(e) =>
+                          setFormData({ ...formData, address: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="credit_limit">حد الائتمان</Label>
+                      <Input
+                        id="credit_limit"
+                        type="number"
+                        step="0.01"
+                        value={formData.credit_limit}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            credit_limit: parseFloat(e.target.value),
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button type="submit" className="flex-1">
+                        {editingCustomer ? "تحديث" : "إضافة"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={resetForm}
+                      >
+                        إلغاء
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-4">
+              <div className="relative">
+                <Search className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="البحث بالاسم، الهاتف أو البريد الإلكتروني..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pr-10"
+                />
+              </div>
+            </div>
+
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>الاسم</TableHead>
+                    <TableHead>الهاتف</TableHead>
+                    <TableHead>البريد الإلكتروني</TableHead>
+                    <TableHead>الرصيد</TableHead>
+                    <TableHead>نقاط الولاء</TableHead>
+                    <TableHead>حد الائتمان</TableHead>
+                    <TableHead className="text-left">الإجراءات</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredCustomers.map((customer) => (
+                    <TableRow key={customer.id}>
+                      <TableCell className="font-medium">
+                        {customer.name}
+                      </TableCell>
+                      <TableCell>{customer.phone || "-"}</TableCell>
+                      <TableCell>{customer.email || "-"}</TableCell>
+                      <TableCell>{customer.balance.toFixed(2)} ر.س</TableCell>
+                      <TableCell>{customer.loyalty_points}</TableCell>
+                      <TableCell>
+                        {customer.credit_limit.toFixed(2)} ر.س
+                      </TableCell>
+                      <TableCell className="text-left">
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEdit(customer)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDelete(customer.id)}
+                          >
+                            <Trash className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+export default Customers;

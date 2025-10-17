@@ -128,7 +128,7 @@ const UserManagement = () => {
     }
   };
 
-  const assignRole = async (userId: string, role: AppRole) => {
+  const assignRole = async (userId: string, role: string) => {
     try {
       const user = users.find(u => u.id === userId);
       
@@ -136,20 +136,18 @@ const UserManagement = () => {
         // Update existing role
         const { error } = await supabase
           .from("user_roles")
-          .update({ role: role })
+          .update({ role: role as AppRole })
           .eq("id", user.role_id);
 
         if (error) throw error;
       } else {
         // Insert new role
-        const insertData: Database["public"]["Tables"]["user_roles"]["Insert"] = {
-          user_id: userId,
-          role: role
-        };
-        
         const { error } = await supabase
           .from("user_roles")
-          .insert(insertData);
+          .insert({ 
+            user_id: userId,
+            role: role as AppRole
+          });
 
         if (error) throw error;
       }
@@ -259,7 +257,7 @@ const UserManagement = () => {
                       <TableCell>
                         <Select
                           value={user.role || ""}
-                          onValueChange={(value) => assignRole(user.id, value as AppRole)}
+                          onValueChange={(value) => assignRole(user.id, value)}
                         >
                           <SelectTrigger className="w-[180px]">
                             <SelectValue placeholder="اختر الصلاحية" />

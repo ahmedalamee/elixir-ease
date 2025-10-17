@@ -10,6 +10,7 @@ import {
   FileText,
   Settings,
   LogOut,
+  Warehouse,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -32,6 +33,8 @@ const Navbar = () => {
     { path: "/dashboard", icon: LayoutDashboard, label: "لوحة التحكم" },
     { path: "/pos", icon: ShoppingCart, label: "نقطة البيع" },
     { path: "/products", icon: Package, label: "المنتجات" },
+    { path: "/warehouses", icon: Warehouse, label: "المخازن" },
+    { path: "/purchase-orders", icon: FileText, label: "أوامر الشراء" },
     { path: "/customers", icon: Users, label: "العملاء" },
     { path: "/suppliers", icon: Truck, label: "الموردين" },
     { path: "/categories", icon: FolderTree, label: "التصنيفات" },
@@ -78,3 +81,4 @@ const Navbar = () => {
 };
 
 export default Navbar;
+export { Navbar };

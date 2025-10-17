@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
@@ -39,11 +40,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+type AppRole = Database["public"]["Enums"]["app_role"];
+
 interface User {
   id: string;
   email: string;
   created_at: string;
-  role?: string;
+  role?: AppRole;
   role_id?: string;
 }
 
@@ -125,7 +128,7 @@ const UserManagement = () => {
     }
   };
 
-  const assignRole = async (userId: string, role: string) => {
+  const assignRole = async (userId: string, role: AppRole) => {
     try {
       const user = users.find(u => u.id === userId);
       
@@ -133,7 +136,7 @@ const UserManagement = () => {
         // Update existing role
         const { error } = await supabase
           .from("user_roles")
-          .update({ role: role as any })
+          .update({ role })
           .eq("id", user.role_id);
 
         if (error) throw error;
@@ -141,7 +144,7 @@ const UserManagement = () => {
         // Insert new role
         const { error } = await supabase
           .from("user_roles")
-          .insert([{ user_id: userId, role: role as any }]);
+          .insert({ user_id: userId, role });
 
         if (error) throw error;
       }
@@ -251,7 +254,7 @@ const UserManagement = () => {
                       <TableCell>
                         <Select
                           value={user.role || ""}
-                          onValueChange={(value) => assignRole(user.id, value)}
+                          onValueChange={(value) => assignRole(user.id, value as AppRole)}
                         >
                           <SelectTrigger className="w-[180px]">
                             <SelectValue placeholder="اختر الصلاحية" />

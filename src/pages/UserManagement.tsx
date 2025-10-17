@@ -136,15 +136,20 @@ const UserManagement = () => {
         // Update existing role
         const { error } = await supabase
           .from("user_roles")
-          .update({ role })
+          .update({ role: role })
           .eq("id", user.role_id);
 
         if (error) throw error;
       } else {
         // Insert new role
+        const insertData: Database["public"]["Tables"]["user_roles"]["Insert"] = {
+          user_id: userId,
+          role: role
+        };
+        
         const { error } = await supabase
           .from("user_roles")
-          .insert({ user_id: userId, role });
+          .insert(insertData);
 
         if (error) throw error;
       }

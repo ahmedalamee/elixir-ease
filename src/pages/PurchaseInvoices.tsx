@@ -15,6 +15,7 @@ import { format } from 'date-fns';
 export default function PurchaseInvoices() {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [grns, setGRNs] = useState<any[]>([]);
+  const [taxes, setTaxes] = useState<any[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
@@ -22,12 +23,20 @@ export default function PurchaseInvoices() {
   const [grnId, setGrnId] = useState('');
   const [invoiceDate, setInvoiceDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [supplierInvoiceNo, setSupplierInvoiceNo] = useState('');
+  const [selectedTaxId, setSelectedTaxId] = useState('');
   const [items, setItems] = useState<any[]>([]);
 
   useEffect(() => {
     fetchInvoices();
     fetchPostedGRNs();
+    fetchTaxes();
   }, []);
+
+  const fetchTaxes = async () => {
+    const { data } = await supabase.from('taxes').select('*').eq('is_active', true);
+    setTaxes(data || []);
+    if (data && data.length > 0) setSelectedTaxId(data[0].id);
+  };
 
   const fetchInvoices = async () => {
     const { data } = await supabase
@@ -49,7 +58,7 @@ export default function PurchaseInvoices() {
   const fetchGRNItems = async (grnId: string) => {
     const { data } = await supabase
       .from('grn_items')
-      .select(`*, products(name)`)
+      .select(`*, products(name, default_tax_id)`)
       .eq('grn_id', grnId);
     
     if (data) {
@@ -60,13 +69,14 @@ export default function PurchaseInvoices() {
         qty: item.qty_received,
         price: item.unit_cost,
         discount: 0,
+        tax_id: item.products.default_tax_id || selectedTaxId,
         line_total: item.qty_received * item.unit_cost,
       })));
     }
   };
 
   const handleCreateInvoice = async () => {
-    if (!grnId || !supplierInvoiceNo) {
+    if (!grnId || !supplierInvoiceNo || !selectedTaxId) {
       toast.error('يرجى ملء الحقول المطلوبة');
       return;
     }
@@ -80,19 +90,9 @@ export default function PurchaseInvoices() {
     const subtotal = items.reduce((sum, item) => sum + item.line_total, 0);
     const taxAmount = subtotal * 0.15;
     const totalAmount = subtotal + taxAmount;
-
-    const { data: lastPI } = await supabase
-      .from('purchase_invoices')
-      .select('pi_number')
-      .order('created_at', { ascending: false })
-      .limit(1);
-
-    let nextNumber = 1;
-    if (lastPI && lastPI.length > 0) {
-      const match = lastPI[0].pi_number.match(/\d+/);
-      if (match) nextNumber = parseInt(match[0]) + 1;
-    }
-    const piNumber = `PI-${String(nextNumber).padStart(6, '0')}`;
+    
+    const { count } = await supabase.from('purchase_invoices').select('*', { count: 'exact', head: true });
+    const piNumber = `PI-${String((count || 0) + 1).padStart(6, '0')}`;
 
     const { data: user } = await supabase.auth.getUser();
 
@@ -104,7 +104,7 @@ export default function PurchaseInvoices() {
         supplier_id: grn?.supplier_id,
         invoice_date: invoiceDate,
         subtotal,
-        tax_amount: taxAmount,
+        tax_amount: taxAmount || 0,
         total_amount: totalAmount,
         status: 'draft',
         created_by: user?.user?.id,
@@ -126,25 +126,15 @@ export default function PurchaseInvoices() {
   };
 
   const handlePostInvoice = async (invoiceId: string) => {
-    const { data: user } = await supabase.auth.getUser();
-
-    const { error } = await supabase
-      .from('purchase_invoices')
-      .update({
-        status: 'posted',
-        posted_by: user?.user?.id,
-        posted_at: new Date().toISOString(),
-      })
-      .eq('id', invoiceId);
-
-    if (error) {
-      toast.error('خطأ في ترحيل الفاتورة');
-      return;
+    try {
+      const { error } = await supabase.rpc('post_purchase_invoice' as any, { p_pi_id: invoiceId });
+      if (error) throw error;
+      toast.success('تم ترحيل الفاتورة بنجاح');
+      fetchInvoices();
+      if (isViewDialogOpen) setIsViewDialogOpen(false);
+    } catch (error: any) {
+      toast.error(`خطأ: ${error.message}`);
     }
-
-    toast.success('تم ترحيل الفاتورة وإنشاء القيود المحاسبية');
-    fetchInvoices();
-    if (isViewDialogOpen) setIsViewDialogOpen(false);
   };
 
   const handleViewInvoice = async (invoice: any) => {
@@ -217,20 +207,44 @@ export default function PurchaseInvoices() {
               <DialogTitle>فاتورة شراء جديدة</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <Select value={grnId} onValueChange={(v) => { setGrnId(v); fetchGRNItems(v); }}>
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر استلام البضائع" />
-                </SelectTrigger>
-                <SelectContent>
-                  {grns.map((grn) => (
-                    <SelectItem key={grn.id} value={grn.id}>
-                      {grn.grn_number} - {grn.suppliers?.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Input placeholder="رقم فاتورة المورد *" value={supplierInvoiceNo} onChange={(e) => setSupplierInvoiceNo(e.target.value)} />
-              <Input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} />
+              <div>
+                <Label>استلام البضائع *</Label>
+                <Select value={grnId} onValueChange={(v) => { setGrnId(v); fetchGRNItems(v); }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="اختر استلام البضائع" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {grns.map((grn) => (
+                      <SelectItem key={grn.id} value={grn.id}>
+                        {grn.grn_number} - {grn.suppliers?.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>رقم فاتورة المورد *</Label>
+                <Input placeholder="رقم فاتورة المورد" value={supplierInvoiceNo} onChange={(e) => setSupplierInvoiceNo(e.target.value)} />
+              </div>
+              <div>
+                <Label>التاريخ *</Label>
+                <Input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} />
+              </div>
+              <div>
+                <Label>الضريبة *</Label>
+                <Select value={selectedTaxId} onValueChange={setSelectedTaxId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="اختر الضريبة" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {taxes.map((tax) => (
+                      <SelectItem key={tax.id} value={tax.id}>
+                        {tax.name} ({tax.rate}%)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <DialogFooter>
               <Button onClick={handleCreateInvoice}>حفظ الفاتورة</Button>

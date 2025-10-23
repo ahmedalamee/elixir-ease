@@ -170,21 +170,11 @@ export default function GoodsReceipts() {
       return;
     }
 
-    // Get next GRN number
-    const { data: lastGRN } = await supabase
+    // Generate GRN number
+    const { count } = await supabase
       .from('goods_receipts')
-      .select('grn_number')
-      .order('created_at', { ascending: false })
-      .limit(1);
-
-    let nextNumber = 1;
-    if (lastGRN && lastGRN.length > 0) {
-      const match = lastGRN[0].grn_number.match(/\d+/);
-      if (match) {
-        nextNumber = parseInt(match[0]) + 1;
-      }
-    }
-    const grnNumber = `GRN-${String(nextNumber).padStart(6, '0')}`;
+      .select('*', { count: 'exact', head: true });
+    const grnNumber = `GRN-${String((count || 0) + 1).padStart(6, '0')}`;
 
     const { data: user } = await supabase.auth.getUser();
 
@@ -231,100 +221,15 @@ export default function GoodsReceipts() {
     fetchReceipts();
   };
 
-  const handlePostReceipt = async (receiptId: string, receipt: GoodsReceipt) => {
-    const { data: user } = await supabase.auth.getUser();
-
-    // Get GRN items
-    const { data: grnItems } = await supabase
-      .from('grn_items')
-      .select('*')
-      .eq('grn_id', receiptId);
-
-    if (!grnItems || grnItems.length === 0) {
-      toast.error('لا توجد بنود للترحيل');
-      return;
-    }
-
-    // Update GRN status
-    const { error: grnError } = await supabase
-      .from('goods_receipts')
-      .update({
-        status: 'posted',
-        posted_by: user?.user?.id,
-        posted_at: new Date().toISOString(),
-      })
-      .eq('id', receiptId);
-
-    if (grnError) {
-      toast.error('خطأ في ترحيل الاستلام');
-      console.error(grnError);
-      return;
-    }
-
-    // Update product batches and inventory
-    for (const item of grnItems) {
-      // Add to product_batches
-      await supabase.from('product_batches').insert({
-        product_id: item.item_id,
-        batch_number: item.lot_no,
-        quantity: Math.floor(item.qty_received),
-        expiry_date: item.expiry_date,
-        cost_price: item.unit_cost,
-      });
-
-      // Update products quantity
-      const { data: product } = await supabase
-        .from('products')
-        .select('quantity')
-        .eq('id', item.item_id)
-        .single();
-
-      if (product) {
-        await supabase
-          .from('products')
-          .update({ quantity: product.quantity + Math.floor(item.qty_received) })
-          .eq('id', item.item_id);
-      }
-
-      // Update PO items qty_received
-      if (item.po_item_id) {
-        const { data: poItem } = await supabase
-          .from('po_items')
-          .select('qty_received')
-          .eq('id', item.po_item_id)
-          .single();
-
-        if (poItem) {
-          await supabase
-            .from('po_items')
-            .update({ qty_received: (poItem.qty_received || 0) + item.qty_received })
-            .eq('id', item.po_item_id);
-        }
-      }
-    }
-
-    // Update PO status
-    if (receipt.po_id) {
-      const { data: poItems } = await supabase
-        .from('po_items')
-        .select('qty_ordered, qty_received')
-        .eq('po_id', receipt.po_id);
-
-      if (poItems) {
-        const allReceived = poItems.every(item => item.qty_received >= item.qty_ordered);
-        const partialReceived = poItems.some(item => (item.qty_received || 0) > 0);
-
-        await supabase
-          .from('purchase_orders')
-          .update({ status: allReceived ? 'completed' : partialReceived ? 'partial' : 'approved' })
-          .eq('id', receipt.po_id);
-      }
-    }
-
-    toast.success('تم ترحيل الاستلام وتحديث المخزون بنجاح');
-    fetchReceipts();
-    if (isViewDialogOpen) {
-      setIsViewDialogOpen(false);
+  const handlePostReceipt = async (receiptId: string) => {
+    try {
+      const { error } = await supabase.rpc('post_goods_receipt' as any, { p_grn_id: receiptId });
+      if (error) throw error;
+      toast.success('تم ترحيل الاستلام بنجاح');
+      fetchReceipts();
+      if (isViewDialogOpen) setIsViewDialogOpen(false);
+    } catch (error: any) {
+      toast.error(`خطأ: ${error.message}`);
     }
   };
 

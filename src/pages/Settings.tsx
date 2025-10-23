@@ -113,7 +113,7 @@ const Settings = () => {
     setLoading(true);
     const updates = Object.entries(settings).map(([key, value]) => ({ key, value }));
     for (const update of updates) {
-      await supabase.from("system_settings").update({ setting_value: update.value as Json }).eq("setting_key", update.key);
+      await supabase.from("system_settings").update({ setting_value: update.value as unknown as Json }).eq("setting_key", update.key);
     }
     setLoading(false);
     toast({ title: "تم الحفظ بنجاح" });

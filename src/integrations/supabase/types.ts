@@ -2736,6 +2736,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_document_posted: { Args: { doc_status: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "pharmacist" | "cashier" | "inventory_manager"

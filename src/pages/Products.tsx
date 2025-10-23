@@ -15,6 +15,7 @@ import {
   Trash2,
   Package,
   AlertTriangle,
+  Upload,
 } from "lucide-react";
 import {
   Dialog,
@@ -31,6 +32,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Product {
   id: string;
@@ -94,11 +98,13 @@ const Products = () => {
   const [formData, setFormData] = useState({
     name: "",
     name_en: "",
+    sku: "",
     barcode: "",
     price: "",
     cost_price: "",
     quantity: "",
     min_quantity: "10",
+    reorder_level: "",
     expiry_date: "",
     alert_months_before_expiry: "3",
     description: "",
@@ -106,6 +112,12 @@ const Products = () => {
     category_id: "",
     manufacturer_id: "",
     default_tax: "",
+    discount_type: "percentage",
+    discount_value: "",
+    min_price: "",
+    profit_margin: "",
+    track_inventory: true,
+    image_url: "",
   });
 
   useEffect(() => {
@@ -231,11 +243,13 @@ const Products = () => {
     setFormData({
       name: product.name,
       name_en: product.name_en || "",
+      sku: (product as any).sku || "",
       barcode: product.barcode || "",
       price: product.price.toString(),
       cost_price: product.cost_price.toString(),
       quantity: product.quantity.toString(),
       min_quantity: product.min_quantity.toString(),
+      reorder_level: (product as any).reorder_level?.toString() || "",
       expiry_date: product.expiry_date || "",
       alert_months_before_expiry: "3",
       description: product.description || "",
@@ -243,6 +257,12 @@ const Products = () => {
       category_id: product.category_id || "",
       manufacturer_id: product.manufacturer_id || "",
       default_tax: "",
+      discount_type: "percentage",
+      discount_value: "",
+      min_price: "",
+      profit_margin: "",
+      track_inventory: true,
+      image_url: (product as any).image_url || "",
     });
     setIsDialogOpen(true);
   };
@@ -269,11 +289,13 @@ const Products = () => {
     setFormData({
       name: "",
       name_en: "",
+      sku: "",
       barcode: "",
       price: "",
       cost_price: "",
       quantity: "",
       min_quantity: "10",
+      reorder_level: "",
       expiry_date: "",
       alert_months_before_expiry: "3",
       description: "",
@@ -281,6 +303,12 @@ const Products = () => {
       category_id: "",
       manufacturer_id: "",
       default_tax: "",
+      discount_type: "percentage",
+      discount_value: "",
+      min_price: "",
+      profit_margin: "",
+      track_inventory: true,
+      image_url: "",
     });
     setEditingProduct(null);
   };
@@ -303,221 +331,394 @@ const Products = () => {
                   إضافة منتج جديد
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" dir="rtl">
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" dir="rtl">
                 <DialogHeader>
                   <DialogTitle>
                     {editingProduct ? "تعديل المنتج" : "إضافة منتج جديد"}
                   </DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>اسم المنتج (عربي) *</Label>
-                      <Input
-                        required
-                        value={formData.name}
-                        onChange={(e) =>
-                          setFormData({ ...formData, name: e.target.value })
-                        }
-                        className="input-medical"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>اسم المنتج (إنجليزي)</Label>
-                      <Input
-                        value={formData.name_en}
-                        onChange={(e) =>
-                          setFormData({ ...formData, name_en: e.target.value })
-                        }
-                        className="input-medical"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>الباركود</Label>
-                      <Input
-                        value={formData.barcode}
-                        onChange={(e) =>
-                          setFormData({ ...formData, barcode: e.target.value })
-                        }
-                        className="input-medical"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>سعر البيع (ر.س) *</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        required
-                        value={formData.price}
-                        onChange={(e) =>
-                          setFormData({ ...formData, price: e.target.value })
-                        }
-                        className="input-medical"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>سعر التكلفة (ر.س) *</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        required
-                        value={formData.cost_price}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            cost_price: e.target.value,
-                          })
-                        }
-                        className="input-medical"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>الكمية *</Label>
-                      <Input
-                        type="number"
-                        required
-                        value={formData.quantity}
-                        onChange={(e) =>
-                          setFormData({ ...formData, quantity: e.target.value })
-                        }
-                        className="input-medical"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>الحد الأدنى للمخزون *</Label>
-                      <Input
-                        type="number"
-                        required
-                        value={formData.min_quantity}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            min_quantity: e.target.value,
-                          })
-                        }
-                        className="input-medical"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>تاريخ انتهاء الصلاحية</Label>
-                      <Input
-                        type="date"
-                        value={formData.expiry_date}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            expiry_date: e.target.value,
-                          })
-                        }
-                        className="input-medical"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>وحدة القياس الأساسية</Label>
-                      <Select
-                        value={formData.base_uom_id}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, base_uom_id: value })
-                        }
-                      >
-                        <SelectTrigger className="input-medical">
-                          <SelectValue placeholder="اختر وحدة القياس" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {uoms.map((uom) => (
-                            <SelectItem key={uom.id} value={uom.id}>
-                              {uom.name} {uom.symbol && `(${uom.symbol})`}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>فترة التنبيه قبل الانتهاء (بالأشهر)</Label>
-                      <Input
-                        type="number"
-                        min="1"
-                        value={formData.alert_months_before_expiry}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            alert_months_before_expiry: e.target.value,
-                          })
-                        }
-                        className="input-medical"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>التصنيف</Label>
-                      <Select
-                        value={formData.category_id}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, category_id: value })
-                        }
-                      >
-                        <SelectTrigger className="input-medical">
-                          <SelectValue placeholder="اختر التصنيف" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {categories.map((cat) => (
-                            <SelectItem key={cat.id} value={cat.id}>
-                              {cat.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>الماركة</Label>
-                      <Select
-                        value={formData.manufacturer_id}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, manufacturer_id: value })
-                        }
-                      >
-                        <SelectTrigger className="input-medical">
-                          <SelectValue placeholder="اختر الماركة" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {manufacturers.map((man) => (
-                            <SelectItem key={man.id} value={man.id}>
-                              {man.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>الضريبة الافتراضية</Label>
-                      <Select
-                        value={formData.default_tax}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, default_tax: value })
-                        }
-                      >
-                        <SelectTrigger className="input-medical">
-                          <SelectValue placeholder="اختر الضريبة" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {taxes.map((tax) => (
-                            <SelectItem key={tax.tax_code} value={tax.tax_code}>
-                              {tax.name} ({tax.rate}%)
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>الوصف</Label>
-                    <Input
-                      value={formData.description}
-                      onChange={(e) =>
-                        setFormData({ ...formData, description: e.target.value })
-                      }
-                      className="input-medical"
-                    />
-                  </div>
+                  <Tabs defaultValue="details" className="w-full">
+                    <TabsList className="grid w-full grid-cols-3">
+                      <TabsTrigger value="details">تفاصيل البند</TabsTrigger>
+                      <TabsTrigger value="pricing">تفاصيل التسعير</TabsTrigger>
+                      <TabsTrigger value="inventory">إدارة المخزون</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="details" className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>
+                            الاسم <span className="text-destructive">*</span>
+                          </Label>
+                          <Input
+                            required
+                            value={formData.name}
+                            onChange={(e) =>
+                              setFormData({ ...formData, name: e.target.value })
+                            }
+                            placeholder="ادخل اسم المنتج بالعربية"
+                            className="input-medical"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>الرقم التسلسلي SKU</Label>
+                          <Input
+                            value={formData.sku}
+                            onChange={(e) =>
+                              setFormData({ ...formData, sku: e.target.value })
+                            }
+                            placeholder="000001"
+                            className="input-medical"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>الوصف</Label>
+                        <Textarea
+                          value={formData.description}
+                          onChange={(e) =>
+                            setFormData({ ...formData, description: e.target.value })
+                          }
+                          placeholder="أدخل وصف المنتج"
+                          className="input-medical min-h-[100px]"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>الصور</Label>
+                        <div className="flex items-center gap-4">
+                          <div className="flex-1">
+                            <Input
+                              type="url"
+                              value={formData.image_url}
+                              onChange={(e) =>
+                                setFormData({ ...formData, image_url: e.target.value })
+                              }
+                              placeholder="رابط الصورة"
+                              className="input-medical"
+                            />
+                          </div>
+                          <Button type="button" variant="outline" className="gap-2">
+                            <Upload className="w-4 h-4" />
+                            رفع صورة
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>التصنيف</Label>
+                          <Select
+                            value={formData.category_id}
+                            onValueChange={(value) =>
+                              setFormData({ ...formData, category_id: value })
+                            }
+                          >
+                            <SelectTrigger className="input-medical">
+                              <SelectValue placeholder="اختر التصنيف" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {categories.map((cat) => (
+                                <SelectItem key={cat.id} value={cat.id}>
+                                  {cat.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>الماركة</Label>
+                          <Select
+                            value={formData.manufacturer_id}
+                            onValueChange={(value) =>
+                              setFormData({ ...formData, manufacturer_id: value })
+                            }
+                          >
+                            <SelectTrigger className="input-medical">
+                              <SelectValue placeholder="اختر الماركة" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {manufacturers.map((man) => (
+                                <SelectItem key={man.id} value={man.id}>
+                                  {man.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="pricing" className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>سعر الشراء</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={formData.cost_price}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                cost_price: e.target.value,
+                              })
+                            }
+                            placeholder="0.00"
+                            className="input-medical"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>
+                            سعر البيع <span className="text-destructive">*</span>
+                          </Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            required
+                            value={formData.price}
+                            onChange={(e) =>
+                              setFormData({ ...formData, price: e.target.value })
+                            }
+                            placeholder="0.00"
+                            className="input-medical"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label>الضريبة 1</Label>
+                          <Select
+                            value={formData.default_tax}
+                            onValueChange={(value) =>
+                              setFormData({ ...formData, default_tax: value })
+                            }
+                          >
+                            <SelectTrigger className="input-medical">
+                              <SelectValue placeholder="اختر ضريبة" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {taxes.map((tax) => (
+                                <SelectItem key={tax.tax_code} value={tax.tax_code}>
+                                  {tax.name} ({tax.rate}%)
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>متقدم</Label>
+                          <Input
+                            disabled
+                            placeholder="متقدم"
+                            className="input-medical"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>نوع الخصم</Label>
+                          <Select
+                            value={formData.discount_type}
+                            onValueChange={(value) =>
+                              setFormData({ ...formData, discount_type: value })
+                            }
+                          >
+                            <SelectTrigger className="input-medical">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="percentage">%</SelectItem>
+                              <SelectItem value="fixed">ر.س</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label>الخصم</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={formData.discount_value}
+                            onChange={(e) =>
+                              setFormData({ ...formData, discount_value: e.target.value })
+                            }
+                            placeholder="0"
+                            className="input-medical"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>أقل سعر بيع</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={formData.min_price}
+                            onChange={(e) =>
+                              setFormData({ ...formData, min_price: e.target.value })
+                            }
+                            placeholder="0.00"
+                            className="input-medical"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>هامش الربح نسبة مئوية</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={formData.profit_margin}
+                            onChange={(e) =>
+                              setFormData({ ...formData, profit_margin: e.target.value })
+                            }
+                            placeholder="0.00"
+                            className="input-medical"
+                          />
+                        </div>
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="inventory" className="space-y-4">
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label>باركود</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              value={formData.barcode}
+                              onChange={(e) =>
+                                setFormData({ ...formData, barcode: e.target.value })
+                              }
+                              placeholder="ادخل الباركود"
+                              className="input-medical flex-1"
+                            />
+                            <Button type="button" variant="outline" size="icon">
+                              <Package className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          <div className="font-semibold">إدارة المخزون</div>
+                          <div className="flex items-center space-x-2 space-x-reverse">
+                            <Checkbox
+                              id="track_inventory"
+                              checked={formData.track_inventory}
+                              onCheckedChange={(checked) =>
+                                setFormData({
+                                  ...formData,
+                                  track_inventory: checked as boolean,
+                                })
+                              }
+                            />
+                            <Label htmlFor="track_inventory" className="cursor-pointer">
+                              تتبع المخزون
+                            </Label>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>الكمية بالمخزون؟</Label>
+                            <Input
+                              type="number"
+                              value={formData.quantity}
+                              onChange={(e) =>
+                                setFormData({ ...formData, quantity: e.target.value })
+                              }
+                              placeholder="0"
+                              className="input-medical"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>تنبيه عند وصول الكمية إلى أقل من؟</Label>
+                            <Input
+                              type="number"
+                              value={formData.min_quantity}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  min_quantity: e.target.value,
+                                })
+                              }
+                              placeholder="0"
+                              className="input-medical"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>نقطة إعادة الطلب</Label>
+                            <Input
+                              type="number"
+                              value={formData.reorder_level}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  reorder_level: e.target.value,
+                                })
+                              }
+                              placeholder="0"
+                              className="input-medical"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>وحدة القياس</Label>
+                            <Select
+                              value={formData.base_uom_id}
+                              onValueChange={(value) =>
+                                setFormData({ ...formData, base_uom_id: value })
+                              }
+                            >
+                              <SelectTrigger className="input-medical">
+                                <SelectValue placeholder="اختر وحدة القياس" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {uoms.map((uom) => (
+                                  <SelectItem key={uom.id} value={uom.id}>
+                                    {uom.name} {uom.symbol && `(${uom.symbol})`}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>تاريخ انتهاء الصلاحية</Label>
+                            <Input
+                              type="date"
+                              value={formData.expiry_date}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  expiry_date: e.target.value,
+                                })
+                              }
+                              className="input-medical"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>فترة التنبيه (بالأشهر)</Label>
+                            <Input
+                              type="number"
+                              min="1"
+                              value={formData.alert_months_before_expiry}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  alert_months_before_expiry: e.target.value,
+                                })
+                              }
+                              placeholder="3"
+                              className="input-medical"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
                   <div className="flex gap-2 justify-end">
                     <Button
                       type="button"

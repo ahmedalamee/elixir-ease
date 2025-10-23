@@ -21,6 +21,8 @@ import PurchaseOrders from "./pages/PurchaseOrders";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import UserManagement from "./pages/UserManagement";
+import ProductSettings from "./pages/ProductSettings";
+import UOMTemplates from "./pages/ProductSettings/UOMTemplates";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -71,6 +73,8 @@ const AppContent = () => {
           <Route path="/reports" element={<Reports />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/user-management" element={<UserManagement />} />
+          <Route path="/product-settings" element={<ProductSettings />} />
+          <Route path="/product-settings/uom-templates" element={<UOMTemplates />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

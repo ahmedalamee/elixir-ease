@@ -89,7 +89,7 @@ const menuItems: MenuItem[] = [
       { title: "المستودعات", path: "/warehouses" },
       { title: "إدارة الجرد", path: "/inventory/stock-count" },
       { title: "إعدادات المخزون", path: "/inventory/settings" },
-      { title: "إعدادات المنتجات", path: "/products-advanced" },
+      { title: "إعدادات المنتجات", path: "/product-settings" },
     ],
   },
   {

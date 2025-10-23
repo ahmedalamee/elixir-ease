@@ -23,6 +23,10 @@ import Settings from "./pages/Settings";
 import UserManagement from "./pages/UserManagement";
 import ProductSettings from "./pages/ProductSettings";
 import UOMTemplates from "./pages/ProductSettings/UOMTemplates";
+import Classifications from "./pages/ProductSettings/Classifications";
+import Brands from "./pages/ProductSettings/Brands";
+import DefaultTaxes from "./pages/ProductSettings/DefaultTaxes";
+import BarcodeSettings from "./pages/ProductSettings/BarcodeSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -75,6 +79,10 @@ const AppContent = () => {
           <Route path="/user-management" element={<UserManagement />} />
           <Route path="/product-settings" element={<ProductSettings />} />
           <Route path="/product-settings/uom-templates" element={<UOMTemplates />} />
+          <Route path="/product-settings/classifications" element={<Classifications />} />
+          <Route path="/product-settings/brands" element={<Brands />} />
+          <Route path="/product-settings/default-taxes" element={<DefaultTaxes />} />
+          <Route path="/product-settings/barcode-settings" element={<BarcodeSettings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

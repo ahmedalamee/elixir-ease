@@ -28,6 +28,7 @@ import Brands from "./pages/ProductSettings/Brands";
 import DefaultTaxes from "./pages/ProductSettings/DefaultTaxes";
 import BarcodeSettings from "./pages/ProductSettings/BarcodeSettings";
 import NotFound from "./pages/NotFound";
+import Accounting from "./pages/Accounting";
 
 const queryClient = new QueryClient();
 
@@ -83,6 +84,7 @@ const AppContent = () => {
           <Route path="/product-settings/brands" element={<Brands />} />
           <Route path="/product-settings/default-taxes" element={<DefaultTaxes />} />
           <Route path="/product-settings/barcode-settings" element={<BarcodeSettings />} />
+          <Route path="/accounting" element={<Accounting />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -39,6 +39,7 @@ const Navbar = () => {
     { path: "/suppliers", icon: Truck, label: "الموردين" },
     { path: "/categories", icon: FolderTree, label: "التصنيفات" },
     { path: "/inventory", icon: Package, label: "المخزون" },
+    { path: "/accounting", icon: FileText, label: "المحاسبة" },
     { path: "/reports", icon: FileText, label: "التقارير" },
     { path: "/settings", icon: Settings, label: "الإعدادات" },
   ];

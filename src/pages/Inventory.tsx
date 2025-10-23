@@ -20,7 +20,8 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, AlertTriangle, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Search, AlertTriangle, Calendar, Plus } from "lucide-react";
 
 interface InventoryProduct {
   id: string;
@@ -163,10 +164,21 @@ const Inventory = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>تقرير المخزون</CardTitle>
-            <CardDescription>
-              متابعة حالة المخزون والمنتجات منتهية الصلاحية
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>تقرير المخزون</CardTitle>
+                <CardDescription>
+                  متابعة حالة المخزون والمنتجات منتهية الصلاحية
+                </CardDescription>
+              </div>
+              <Button 
+                className="btn-medical gap-2"
+                onClick={() => navigate("/inventory")}
+              >
+                <Plus className="w-4 h-4" />
+                إضافة
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col md:flex-row gap-4 mb-4">

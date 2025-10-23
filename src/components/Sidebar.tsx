@@ -163,7 +163,18 @@ const menuItems: MenuItem[] = [
   {
     title: "الإعدادات",
     icon: Settings,
-    path: "/settings",
+    children: [
+      { title: "معلومات الحساب", path: "/settings/account-info" },
+      { title: "إعدادات الحساب", path: "/settings/account" },
+      { title: "إعدادات الـ SMTP", path: "/settings/smtp" },
+      { title: "طرق الدفع", path: "/settings/payment-methods" },
+      { title: "إعدادات الـ SMS", path: "/settings/sms" },
+      { title: "إعدادات الترقيم المتسلسل", path: "/settings/numbering" },
+      { title: "إعدادات الضرائب", path: "/settings/taxes" },
+      { title: "إدارة التطبيقات", path: "/settings/apps" },
+      { title: "شعار وألوان النظام", path: "/settings/branding" },
+      { title: "API", path: "/settings/api" },
+    ],
   },
 ];
 

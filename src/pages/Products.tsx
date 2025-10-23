@@ -24,6 +24,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Product {
   id: string;
@@ -37,12 +44,21 @@ interface Product {
   expiry_date?: string;
   description?: string;
   is_active: boolean;
+  base_uom_id?: string;
+}
+
+interface UOM {
+  id: string;
+  name: string;
+  name_en?: string;
+  symbol?: string;
 }
 
 const Products = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
+  const [uoms, setUoms] = useState<UOM[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -57,11 +73,13 @@ const Products = () => {
     min_quantity: "10",
     expiry_date: "",
     description: "",
+    base_uom_id: "",
   });
 
   useEffect(() => {
     checkAuth();
     fetchProducts();
+    fetchUOMs();
   }, []);
 
   const checkAuth = async () => {
@@ -82,6 +100,20 @@ const Products = () => {
       setProducts(data || []);
     } catch (error) {
       console.error("Error fetching products:", error);
+    }
+  };
+
+  const fetchUOMs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("uoms")
+        .select("*")
+        .order("name", { ascending: true });
+
+      if (error) throw error;
+      setUoms(data || []);
+    } catch (error) {
+      console.error("Error fetching UOMs:", error);
     }
   };
 
@@ -112,6 +144,7 @@ const Products = () => {
       const productData: any = {
         ...validatedData,
         is_active: true,
+        base_uom_id: formData.base_uom_id || null,
       };
 
       if (editingProduct) {
@@ -161,6 +194,7 @@ const Products = () => {
       min_quantity: product.min_quantity.toString(),
       expiry_date: product.expiry_date || "",
       description: product.description || "",
+      base_uom_id: product.base_uom_id || "",
     });
     setIsDialogOpen(true);
   };
@@ -194,6 +228,7 @@ const Products = () => {
       min_quantity: "10",
       expiry_date: "",
       description: "",
+      base_uom_id: "",
     });
     setEditingProduct(null);
   };
@@ -324,6 +359,26 @@ const Products = () => {
                         }
                         className="input-medical"
                       />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>وحدة القياس الأساسية</Label>
+                      <Select
+                        value={formData.base_uom_id}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, base_uom_id: value })
+                        }
+                      >
+                        <SelectTrigger className="input-medical">
+                          <SelectValue placeholder="اختر وحدة القياس" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {uoms.map((uom) => (
+                            <SelectItem key={uom.id} value={uom.id}>
+                              {uom.name} {uom.symbol && `(${uom.symbol})`}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                   <div className="space-y-2">

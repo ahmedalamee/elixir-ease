@@ -45,6 +45,8 @@ interface Product {
   description?: string;
   is_active: boolean;
   base_uom_id?: string;
+  category_id?: string;
+  manufacturer_id?: string;
 }
 
 interface UOM {
@@ -54,12 +56,38 @@ interface UOM {
   symbol?: string;
 }
 
+interface Category {
+  id: string;
+  name: string;
+  name_en?: string;
+}
+
+interface Manufacturer {
+  id: string;
+  name: string;
+  name_en?: string;
+}
+
+interface Tax {
+  tax_code: string;
+  name: string;
+  name_en?: string;
+  rate: number;
+  is_active: boolean;
+}
+
 const Products = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [uoms, setUoms] = useState<UOM[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
+  const [taxes, setTaxes] = useState<Tax[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedManufacturer, setSelectedManufacturer] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
@@ -72,14 +100,17 @@ const Products = () => {
     quantity: "",
     min_quantity: "10",
     expiry_date: "",
+    alert_months_before_expiry: "3",
     description: "",
     base_uom_id: "",
+    category_id: "",
+    manufacturer_id: "",
+    default_tax: "",
   });
 
   useEffect(() => {
     checkAuth();
-    fetchProducts();
-    fetchUOMs();
+    fetchData();
   }, []);
 
   const checkAuth = async () => {
@@ -89,40 +120,51 @@ const Products = () => {
     }
   };
 
-  const fetchProducts = async () => {
+  const fetchData = async () => {
     try {
-      const { data, error } = await supabase
-        .from("products")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const [productsRes, uomsRes, categoriesRes, manufacturersRes, taxesRes] = await Promise.all([
+        supabase.from("products").select("*").order("created_at", { ascending: false }),
+        supabase.from("uoms").select("*").order("name", { ascending: true }),
+        supabase.from("categories").select("*").order("name", { ascending: true }),
+        supabase.from("manufacturers").select("*").eq("is_active", true).order("name", { ascending: true }),
+        supabase.from("taxes").select("*").eq("is_active", true),
+      ]);
 
-      if (error) throw error;
-      setProducts(data || []);
+      if (productsRes.error) throw productsRes.error;
+      if (uomsRes.error) throw uomsRes.error;
+      if (categoriesRes.error) throw categoriesRes.error;
+      if (manufacturersRes.error) throw manufacturersRes.error;
+      if (taxesRes.error) throw taxesRes.error;
+
+      setProducts(productsRes.data || []);
+      setUoms(uomsRes.data || []);
+      setCategories(categoriesRes.data || []);
+      setManufacturers(manufacturersRes.data || []);
+      setTaxes(taxesRes.data || []);
     } catch (error) {
-      console.error("Error fetching products:", error);
+      console.error("Error fetching data:", error);
+      toast({
+        title: "خطأ",
+        description: "فشل تحميل البيانات",
+        variant: "destructive",
+      });
     }
   };
 
-  const fetchUOMs = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("uoms")
-        .select("*")
-        .order("name", { ascending: true });
-
-      if (error) throw error;
-      setUoms(data || []);
-    } catch (error) {
-      console.error("Error fetching UOMs:", error);
-    }
-  };
-
-  const filteredProducts = products.filter(
-    (p) =>
+  const filteredProducts = products.filter((p) => {
+    const matchesSearch = 
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.barcode?.includes(searchQuery) ||
-      p.name_en?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      p.name_en?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesCategory = !selectedCategory || p.category_id === selectedCategory;
+    const matchesManufacturer = !selectedManufacturer || p.manufacturer_id === selectedManufacturer;
+    const matchesStatus = !selectedStatus || 
+      (selectedStatus === "active" && p.is_active) ||
+      (selectedStatus === "inactive" && !p.is_active);
+
+    return matchesSearch && matchesCategory && matchesManufacturer && matchesStatus;
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -145,6 +187,8 @@ const Products = () => {
         ...validatedData,
         is_active: true,
         base_uom_id: formData.base_uom_id || null,
+        category_id: formData.category_id || null,
+        manufacturer_id: formData.manufacturer_id || null,
       };
 
       if (editingProduct) {
@@ -164,7 +208,7 @@ const Products = () => {
 
       setIsDialogOpen(false);
       resetForm();
-      fetchProducts();
+      fetchData();
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         toast({
@@ -193,8 +237,12 @@ const Products = () => {
       quantity: product.quantity.toString(),
       min_quantity: product.min_quantity.toString(),
       expiry_date: product.expiry_date || "",
+      alert_months_before_expiry: "3",
       description: product.description || "",
       base_uom_id: product.base_uom_id || "",
+      category_id: product.category_id || "",
+      manufacturer_id: product.manufacturer_id || "",
+      default_tax: "",
     });
     setIsDialogOpen(true);
   };
@@ -207,7 +255,7 @@ const Products = () => {
 
       if (error) throw error;
       toast({ title: "تم حذف المنتج بنجاح" });
-      fetchProducts();
+      fetchData();
     } catch (error: any) {
       toast({
         title: "خطأ",
@@ -227,8 +275,12 @@ const Products = () => {
       quantity: "",
       min_quantity: "10",
       expiry_date: "",
+      alert_months_before_expiry: "3",
       description: "",
       base_uom_id: "",
+      category_id: "",
+      manufacturer_id: "",
+      default_tax: "",
     });
     setEditingProduct(null);
   };
@@ -380,6 +432,81 @@ const Products = () => {
                         </SelectContent>
                       </Select>
                     </div>
+                    <div className="space-y-2">
+                      <Label>فترة التنبيه قبل الانتهاء (بالأشهر)</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        value={formData.alert_months_before_expiry}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            alert_months_before_expiry: e.target.value,
+                          })
+                        }
+                        className="input-medical"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>التصنيف</Label>
+                      <Select
+                        value={formData.category_id}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, category_id: value })
+                        }
+                      >
+                        <SelectTrigger className="input-medical">
+                          <SelectValue placeholder="اختر التصنيف" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((cat) => (
+                            <SelectItem key={cat.id} value={cat.id}>
+                              {cat.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>الماركة</Label>
+                      <Select
+                        value={formData.manufacturer_id}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, manufacturer_id: value })
+                        }
+                      >
+                        <SelectTrigger className="input-medical">
+                          <SelectValue placeholder="اختر الماركة" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {manufacturers.map((man) => (
+                            <SelectItem key={man.id} value={man.id}>
+                              {man.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>الضريبة الافتراضية</Label>
+                      <Select
+                        value={formData.default_tax}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, default_tax: value })
+                        }
+                      >
+                        <SelectTrigger className="input-medical">
+                          <SelectValue placeholder="اختر الضريبة" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {taxes.map((tax) => (
+                            <SelectItem key={tax.tax_code} value={tax.tax_code}>
+                              {tax.name} ({tax.rate}%)
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label>الوصف</Label>
@@ -408,18 +535,86 @@ const Products = () => {
             </Dialog>
             </div>
             
-            <div className="mb-6">
-          <div className="relative">
-            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="ابحث عن منتج..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pr-10 input-medical"
-            />
-          </div>
-        </div>
+            <div className="mb-6 space-y-4">
+              <div className="relative">
+                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="البحث بكلمة مفتاحية - ادخل الاسم أو الكود"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pr-10 input-medical"
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label>التصنيف</Label>
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger className="input-medical">
+                      <SelectValue placeholder="[جميع التصنيفات]" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">جميع التصنيفات</SelectItem>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>الماركة</Label>
+                  <Select value={selectedManufacturer} onValueChange={setSelectedManufacturer}>
+                    <SelectTrigger className="input-medical">
+                      <SelectValue placeholder="[جميع الماركات]" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">جميع الماركات</SelectItem>
+                      {manufacturers.map((man) => (
+                        <SelectItem key={man.id} value={man.id}>
+                          {man.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>الحالة</Label>
+                  <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                    <SelectTrigger className="input-medical">
+                      <SelectValue placeholder="الكل" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">الكل</SelectItem>
+                      <SelectItem value="active">نشط</SelectItem>
+                      <SelectItem value="inactive">غير نشط</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-end gap-2">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => {
+                      setSearchQuery("");
+                      setSelectedCategory("");
+                      setSelectedManufacturer("");
+                      setSelectedStatus("");
+                    }}
+                  >
+                    إلغاء الفلتر
+                  </Button>
+                  <Button className="flex-1 btn-medical">
+                    بحث
+                  </Button>
+                </div>
+              </div>
+            </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProducts.map((product) => (

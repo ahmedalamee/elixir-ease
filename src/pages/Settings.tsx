@@ -135,13 +135,144 @@ const Settings = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Building className="h-5 w-5" />معلومات الشركة</CardTitle>
+                <CardDescription>المعلومات الأساسية للشركة والفرع</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div><Label>اسم الشركة</Label><Input value={settings.company_info.name} onChange={(e) => setSettings({...settings, company_info: {...settings.company_info, name: e.target.value}})} disabled={!isAdmin} /></div>
-                  <div><Label>الرقم الضريبي</Label><Input value={settings.company_info.tax_number} onChange={(e) => setSettings({...settings, company_info: {...settings.company_info, tax_number: e.target.value}})} disabled={!isAdmin} /></div>
+                  <div>
+                    <Label>اسم الشركة</Label>
+                    <Input 
+                      value={settings.company_info.name} 
+                      onChange={(e) => setSettings({...settings, company_info: {...settings.company_info, name: e.target.value}})} 
+                      disabled={!isAdmin}
+                      placeholder="أدخل اسم الشركة"
+                    />
+                  </div>
+                  <div>
+                    <Label>الرقم الضريبي</Label>
+                    <Input 
+                      value={settings.company_info.tax_number} 
+                      onChange={(e) => setSettings({...settings, company_info: {...settings.company_info, tax_number: e.target.value}})} 
+                      disabled={!isAdmin}
+                      placeholder="مثال: 300000000000003"
+                    />
+                  </div>
+                  <div>
+                    <Label>رقم الهاتف</Label>
+                    <Input 
+                      value={settings.company_info.phone} 
+                      onChange={(e) => setSettings({...settings, company_info: {...settings.company_info, phone: e.target.value}})} 
+                      disabled={!isAdmin}
+                      placeholder="مثال: +966 50 123 4567"
+                    />
+                  </div>
+                  <div>
+                    <Label>البريد الإلكتروني</Label>
+                    <Input 
+                      type="email"
+                      value={settings.company_info.email} 
+                      onChange={(e) => setSettings({...settings, company_info: {...settings.company_info, email: e.target.value}})} 
+                      disabled={!isAdmin}
+                      placeholder="info@company.com"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label>العنوان</Label>
+                    <Input 
+                      value={settings.company_info.address} 
+                      onChange={(e) => setSettings({...settings, company_info: {...settings.company_info, address: e.target.value}})} 
+                      disabled={!isAdmin}
+                      placeholder="العنوان الكامل للشركة"
+                    />
+                  </div>
                 </div>
-                {isAdmin && <Button onClick={saveSettings} disabled={loading}><Save className="h-4 w-4 ml-2" />حفظ</Button>}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>الإعدادات الافتراضية</CardTitle>
+                <CardDescription>العملة والضريبة والمستودع الافتراضي</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label>العملة الافتراضية</Label>
+                    <Select 
+                      value={settings.default_currency?.code || "SAR"} 
+                      onValueChange={(code) => {
+                        const currency = currencies.find(c => c.code === code);
+                        setSettings({...settings, default_currency: { code: currency?.code, symbol: currency?.symbol }});
+                      }}
+                      disabled={!isAdmin}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {currencies.map((cur) => (
+                          <SelectItem key={cur.code} value={cur.code}>
+                            {cur.name} ({cur.symbol})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label>الضريبة الافتراضية</Label>
+                    <Select 
+                      value={settings.default_tax?.tax_code || "VAT"} 
+                      onValueChange={(tax_code) => {
+                        const tax = taxes.find(t => t.tax_code === tax_code);
+                        setSettings({...settings, default_tax: { tax_code: tax?.tax_code, rate: tax?.rate }});
+                      }}
+                      disabled={!isAdmin}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {taxes.map((tax) => (
+                          <SelectItem key={tax.tax_code} value={tax.tax_code}>
+                            {tax.name} ({tax.rate}%)
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label>المستودع/الفرع الافتراضي</Label>
+                    <Select 
+                      value={settings.default_warehouse?.warehouse_id || ""} 
+                      onValueChange={(warehouse_id) => {
+                        setSettings({...settings, default_warehouse: { warehouse_id }});
+                      }}
+                      disabled={!isAdmin}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر المستودع" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {warehouses.map((wh) => (
+                          <SelectItem key={wh.id} value={wh.id}>
+                            {wh.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {isAdmin && (
+                  <div className="flex justify-end pt-4">
+                    <Button onClick={saveSettings} disabled={loading}>
+                      <Save className="h-4 w-4 ml-2" />
+                      حفظ الإعدادات
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

@@ -35,7 +35,7 @@ export default function PurchaseInvoices() {
   const fetchTaxes = async () => {
     const { data } = await supabase.from('taxes').select('*').eq('is_active', true);
     setTaxes(data || []);
-    if (data && data.length > 0) setSelectedTaxId(data[0].id);
+    if (data && data.length > 0) setSelectedTaxId(data[0].tax_code);
   };
 
   const fetchInvoices = async () => {
@@ -238,7 +238,7 @@ export default function PurchaseInvoices() {
                   </SelectTrigger>
                   <SelectContent>
                     {taxes.map((tax) => (
-                      <SelectItem key={tax.id} value={tax.id}>
+                      <SelectItem key={tax.tax_code} value={tax.tax_code}>
                         {tax.name} ({tax.rate}%)
                       </SelectItem>
                     ))}

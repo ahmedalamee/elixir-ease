@@ -533,7 +533,7 @@ export default function GoodsReceipts() {
 
                 {selectedReceipt.status === 'draft' && (
                   <div className="flex gap-2 justify-end">
-                    <Button onClick={() => handlePostReceipt(selectedReceipt.id, selectedReceipt)}>
+                    <Button onClick={() => handlePostReceipt(selectedReceipt.id)}>
                       <Check className="h-4 w-4 ml-1" />
                       ترحيل وتحديث المخزون
                     </Button>

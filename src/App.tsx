@@ -35,6 +35,7 @@ import GoodsReceipts from "./pages/GoodsReceipts";
 import PurchaseInvoices from "./pages/PurchaseInvoices";
 import Taxes from "./pages/Taxes";
 import Currencies from "./pages/Currencies";
+import InventorySettings from "./pages/InventorySettings";
 
 const queryClient = new QueryClient();
 
@@ -97,6 +98,7 @@ const AppContent = () => {
           <Route path="/purchase-invoices" element={<PurchaseInvoices />} />
           <Route path="/settings/taxes" element={<Taxes />} />
           <Route path="/settings/currencies" element={<Currencies />} />
+          <Route path="/inventory/settings" element={<InventorySettings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

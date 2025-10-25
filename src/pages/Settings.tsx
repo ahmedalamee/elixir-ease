@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Settings as SettingsIcon, Users, Shield, Building, Save, Hash, FileText } from "lucide-react";
+import { Settings as SettingsIcon, Users, Shield, Building, Save, Hash, FileText, DollarSign, Receipt } from "lucide-react";
 
 const Settings = () => {
   const [settings, setSettings] = useState<any>({
@@ -273,6 +273,33 @@ const Settings = () => {
                     </Button>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>الإعدادات الإضافية</CardTitle>
+                <CardDescription>إدارة العملات والضرائب والإعدادات الأخرى</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  <Button 
+                    variant="outline" 
+                    className="h-20 flex flex-col items-center justify-center gap-2"
+                    onClick={() => navigate("/settings/currencies")}
+                  >
+                    <DollarSign className="h-6 w-6" />
+                    <span>إدارة العملات</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="h-20 flex flex-col items-center justify-center gap-2"
+                    onClick={() => navigate("/settings/taxes")}
+                  >
+                    <Receipt className="h-6 w-6" />
+                    <span>إدارة الضرائب</span>
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

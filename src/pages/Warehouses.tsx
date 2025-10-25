@@ -323,14 +323,14 @@ export default function Warehouses() {
                       <div>
                         <Label htmlFor="parent_warehouse_id">المخزن الرئيسي (للفروع)</Label>
                         <Select
-                          value={formData.parent_warehouse_id || ''}
-                          onValueChange={(value) => setFormData({ ...formData, parent_warehouse_id: value })}
+                          value={formData.parent_warehouse_id || 'none'}
+                          onValueChange={(value) => setFormData({ ...formData, parent_warehouse_id: value === 'none' ? undefined : value })}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="اختر المخزن الرئيسي" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">بدون</SelectItem>
+                            <SelectItem value="none">بدون</SelectItem>
                             {warehouses
                               .filter(w => w.type === 'main' && w.id !== editingWarehouse?.id)
                               .map((wh) => (

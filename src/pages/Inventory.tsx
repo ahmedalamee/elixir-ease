@@ -21,7 +21,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, AlertTriangle, Calendar, Plus, Package, RotateCw } from "lucide-react";
+import { Search, AlertTriangle, Calendar, Plus, Package, RotateCw, Edit, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -89,6 +89,7 @@ const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filter, setFilter] = useState<"all" | "low" | "expired">("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<InventoryProduct | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -201,12 +202,15 @@ const Inventory = () => {
           .eq("barcode", formData.barcode.trim());
 
         if (existingProducts && existingProducts.length > 0) {
-          toast({
-            title: "خطأ",
-            description: "الباركود موجود بالفعل لمنتج آخر",
-            variant: "destructive",
-          });
-          return;
+          // Allow same barcode if editing the same product
+          if (!editingProduct || existingProducts[0].id !== editingProduct.id) {
+            toast({
+              title: "خطأ",
+              description: "الباركود موجود بالفعل لمنتج آخر",
+              variant: "destructive",
+            });
+            return;
+          }
         }
       }
 
@@ -227,20 +231,85 @@ const Inventory = () => {
         is_active: true,
       };
 
-      const { error } = await supabase.from("products").insert([productData]);
+      if (editingProduct) {
+        const { error } = await supabase
+          .from("products")
+          .update(productData)
+          .eq("id", editingProduct.id);
 
-      if (error) throw error;
+        if (error) throw error;
+        toast({ 
+          title: "تم تحديث المنتج بنجاح",
+          description: `تم تحديث ${formData.name}`
+        });
+      } else {
+        const { error } = await supabase.from("products").insert([productData]);
 
-      toast({ 
-        title: "تم إضافة المنتج بنجاح",
-        description: `تم إضافة ${formData.name} إلى المخزون`
-      });
+        if (error) throw error;
+        toast({ 
+          title: "تم إضافة المنتج بنجاح",
+          description: `تم إضافة ${formData.name} إلى المخزون`
+        });
+      }
+
       setIsDialogOpen(false);
       resetForm();
       fetchData();
     } catch (error: any) {
       toast({
-        title: "خطأ في الإضافة",
+        title: "خطأ",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEdit = (product: InventoryProduct) => {
+    setEditingProduct(product);
+    setFormData({
+      name: product.name,
+      sku: "",
+      description: "",
+      category_id: "",
+      manufacturer_id: "",
+      cost_price: product.cost_price.toString(),
+      price: product.price.toString(),
+      default_tax: "",
+      discount_type: "percentage",
+      discount_value: "",
+      min_price: "",
+      profit_margin: "",
+      barcode: product.barcode || "",
+      track_inventory: true,
+      quantity: product.quantity.toString(),
+      min_quantity: product.min_quantity.toString(),
+      reorder_level: "",
+      base_uom_id: "",
+      expiry_date: product.expiry_date || "",
+      alert_months_before_expiry: "3",
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`هل أنت متأكد من حذف المنتج "${name}"؟`)) return;
+
+    try {
+      const { error } = await supabase
+        .from("products")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast({ 
+        title: "تم حذف المنتج بنجاح",
+        description: `تم حذف ${name} من المخزون`
+      });
+      fetchData();
+    } catch (error: any) {
+      toast({
+        title: "خطأ في الحذف",
         description: error.message,
         variant: "destructive",
       });
@@ -270,6 +339,7 @@ const Inventory = () => {
       expiry_date: "",
       alert_months_before_expiry: "3",
     });
+    setEditingProduct(null);
   };
 
   const filteredProducts = products.filter((product) => {
@@ -407,6 +477,7 @@ const Inventory = () => {
                     <TableHead>الحالة</TableHead>
                     <TableHead>تاريخ الانتهاء</TableHead>
                     <TableHead>القيمة الإجمالية</TableHead>
+                    <TableHead className="text-center">الإجراءات</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -454,6 +525,26 @@ const Inventory = () => {
                           {(product.cost_price * product.quantity).toFixed(2)}{" "}
                           ر.س
                         </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEdit(product)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(product.id, product.name)}
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
                       </TableRow>
                     );
                   })}
@@ -466,7 +557,9 @@ const Inventory = () => {
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" dir="rtl">
             <DialogHeader>
-              <DialogTitle>إضافة منتج جديد</DialogTitle>
+              <DialogTitle>
+                {editingProduct ? "تعديل المنتج" : "إضافة منتج جديد"}
+              </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <Tabs defaultValue="details" className="w-full">

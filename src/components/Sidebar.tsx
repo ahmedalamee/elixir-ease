@@ -123,6 +123,7 @@ const menuItems: MenuItem[] = [
     title: "الحسابات العامة",
     icon: FileStack,
     children: [
+      { title: "المحاسبة العامة", path: "/accounting" },
       { title: "دليل الحسابات", path: "/accounts/chart" },
       { title: "القيود اليومية", path: "/accounts/journal" },
       { title: "الأستاذ العام", path: "/accounts/ledger" },

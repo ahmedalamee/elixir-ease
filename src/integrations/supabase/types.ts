@@ -2667,41 +2667,77 @@ export type Database = {
       warehouses: {
         Row: {
           address: string | null
+          capacity: number | null
+          city: string | null
           code: string
+          country: string | null
           created_at: string | null
+          email: string | null
           id: string
           is_active: boolean | null
+          manager_name: string | null
           name: string
           name_en: string | null
+          notes: string | null
+          parent_warehouse_id: string | null
           phone: string | null
           type: string | null
           updated_at: string | null
         }
         Insert: {
           address?: string | null
+          capacity?: number | null
+          city?: string | null
           code: string
+          country?: string | null
           created_at?: string | null
+          email?: string | null
           id?: string
           is_active?: boolean | null
+          manager_name?: string | null
           name: string
           name_en?: string | null
+          notes?: string | null
+          parent_warehouse_id?: string | null
           phone?: string | null
           type?: string | null
           updated_at?: string | null
         }
         Update: {
           address?: string | null
+          capacity?: number | null
+          city?: string | null
           code?: string
+          country?: string | null
           created_at?: string | null
+          email?: string | null
           id?: string
           is_active?: boolean | null
+          manager_name?: string | null
           name?: string
           name_en?: string | null
+          notes?: string | null
+          parent_warehouse_id?: string | null
           phone?: string | null
           type?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "warehouses_parent_warehouse_id_fkey"
+            columns: ["parent_warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "warehouses_parent_warehouse_id_fkey"
+            columns: ["parent_warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

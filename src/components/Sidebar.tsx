@@ -173,6 +173,7 @@ const menuItems: MenuItem[] = [
       { title: "إعدادات الترقيم المتسلسل", path: "/settings/numbering" },
       { title: "إدارة العملات", path: "/settings/currencies" },
       { title: "إعدادات الضرائب", path: "/settings/taxes" },
+      { title: "إعدادات الحسابات", path: "/settings/account" },
       { title: "إدارة التطبيقات", path: "/settings/apps" },
       { title: "شعار وألوان النظام", path: "/settings/branding" },
       { title: "API", path: "/settings/api" },

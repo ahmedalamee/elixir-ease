@@ -82,6 +82,7 @@ const menuItems: MenuItem[] = [
     icon: Package,
     children: [
       { title: "المنتجات والخدمات الطبية", path: "/inventory" },
+      { title: "إدارة المخزون بالمستودعات", path: "/warehouse-stock" },
       { title: "إدارة الأذون المخزنية", path: "/inventory/permissions" },
       { title: "الطلبات المخزنية", path: "/inventory/orders" },
       { title: "تتبع المنتجات", path: "/inventory/tracking" },

@@ -12,19 +12,31 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Settings as SettingsIcon, Users, Shield, Building, Save, Hash, FileText, DollarSign, Receipt } from "lucide-react";
+import { Settings as SettingsIcon, Users, Shield, Building, Save, Hash, FileText, DollarSign, Receipt, Package, AlertCircle } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 const Settings = () => {
   const [settings, setSettings] = useState<any>({
     default_currency: { code: "SAR", symbol: "ر.س" },
     default_tax: { tax_code: "VAT", rate: 15 },
     default_warehouse: { warehouse_id: null },
+    default_price_list: { price_list_id: null },
     company_info: { name: "", address: "", phone: "", email: "", tax_number: "" },
     inventory_valuation_method: "FIFO",
+    allow_negative_stock: false,
+    enable_advanced_pricing: true,
+    track_expiry_dates: true,
+    track_barcodes: true,
+    enable_multiple_uoms: true,
+    show_stock_alerts: true,
+    low_stock_alert_days: 30,
+    expiry_alert_days: 30,
+    inventory_account_id: null,
   });
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [currencies, setCurrencies] = useState<any[]>([]);
   const [taxes, setTaxes] = useState<any[]>([]);
+  const [priceLists, setPriceLists] = useState<any[]>([]);
   const [numberingRules, setNumberingRules] = useState<any[]>([]);
   const [postingRules, setPostingRules] = useState<any[]>([]);
   const [glAccounts, setGLAccounts] = useState<any[]>([]);
@@ -53,6 +65,7 @@ const Settings = () => {
       fetchWarehouses(),
       fetchCurrencies(),
       fetchTaxes(),
+      fetchPriceLists(),
       fetchNumberingRules(),
       fetchPostingRules(),
       fetchGLAccounts(),
@@ -68,8 +81,18 @@ const Settings = () => {
         default_currency: settingsObj.default_currency || { code: "SAR", symbol: "ر.س" },
         default_tax: settingsObj.default_tax || { tax_code: "VAT", rate: 15 },
         default_warehouse: settingsObj.default_warehouse || { warehouse_id: null },
+        default_price_list: settingsObj.default_price_list || { price_list_id: null },
         company_info: settingsObj.company_info || { name: "", address: "", phone: "", email: "", tax_number: "" },
         inventory_valuation_method: settingsObj.inventory_valuation_method || "FIFO",
+        allow_negative_stock: settingsObj.allow_negative_stock || false,
+        enable_advanced_pricing: settingsObj.enable_advanced_pricing !== false,
+        track_expiry_dates: settingsObj.track_expiry_dates !== false,
+        track_barcodes: settingsObj.track_barcodes !== false,
+        enable_multiple_uoms: settingsObj.enable_multiple_uoms !== false,
+        show_stock_alerts: settingsObj.show_stock_alerts !== false,
+        low_stock_alert_days: settingsObj.low_stock_alert_days || 30,
+        expiry_alert_days: settingsObj.expiry_alert_days || 30,
+        inventory_account_id: settingsObj.inventory_account_id || null,
       });
       setValuationLocked(settingsObj.inventory_valuation_locked === true);
     }
@@ -88,6 +111,11 @@ const Settings = () => {
   const fetchTaxes = async () => {
     const { data } = await supabase.from("taxes").select("*").eq("is_active", true).order("name");
     setTaxes(data || []);
+  };
+
+  const fetchPriceLists = async () => {
+    const { data } = await supabase.from("price_lists").select("*").eq("is_active", true).order("name");
+    setPriceLists(data || []);
   };
 
   const fetchNumberingRules = async () => {
@@ -331,21 +359,245 @@ const Settings = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="inventory">
+          <TabsContent value="inventory" className="space-y-6 mt-6">
+            {/* الإعدادات الافتراضية */}
             <Card>
-              <CardHeader><CardTitle>تقييم المخزون</CardTitle></CardHeader>
-              <CardContent>
-                <Label>الطريقة</Label>
-                <Select value={settings.inventory_valuation_method} onValueChange={(v) => setSettings({...settings, inventory_valuation_method: v})} disabled={!isAdmin || valuationLocked}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="FIFO">FIFO</SelectItem>
-                    <SelectItem value="WEIGHTED_AVERAGE">المتوسط المرجّح</SelectItem>
-                  </SelectContent>
-                </Select>
-                {valuationLocked && <p className="text-sm text-amber-600 mt-2">⚠️ تم القفل بعد بدء الحركات</p>}
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Package className="h-5 w-5" />
+                  الإعدادات الافتراضية للمخزون
+                </CardTitle>
+                <CardDescription>تحديد الخيارات الافتراضية لإدارة المخزون</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>المستودع الافتراضي</Label>
+                    <Select 
+                      value={settings.default_warehouse?.warehouse_id || ""} 
+                      onValueChange={(warehouse_id) => {
+                        setSettings({...settings, default_warehouse: { warehouse_id }});
+                      }}
+                      disabled={!isAdmin}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر المستودع" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {warehouses.map((wh) => (
+                          <SelectItem key={wh.id} value={wh.id}>
+                            {wh.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label>قائمة الأسعار الافتراضية</Label>
+                    <Select 
+                      value={settings.default_price_list?.price_list_id || ""} 
+                      onValueChange={(price_list_id) => {
+                        setSettings({...settings, default_price_list: { price_list_id }});
+                      }}
+                      disabled={!isAdmin}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر قائمة الأسعار" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {priceLists.map((pl) => (
+                          <SelectItem key={pl.id} value={pl.id}>
+                            {pl.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label>طريقة تقييم المخزون</Label>
+                    <Select 
+                      value={settings.inventory_valuation_method} 
+                      onValueChange={(v) => setSettings({...settings, inventory_valuation_method: v})} 
+                      disabled={!isAdmin || valuationLocked}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="FIFO">FIFO - الوارد أولاً صادر أولاً</SelectItem>
+                        <SelectItem value="WEIGHTED_AVERAGE">المتوسط المرجّح</SelectItem>
+                        <SelectItem value="STANDARD_COST">التكلفة المعيارية</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {valuationLocked && (
+                      <p className="text-sm text-amber-600 mt-2 flex items-center gap-1">
+                        <AlertCircle className="h-4 w-4" />
+                        تم القفل بعد بدء الحركات
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label>حساب المخزون الرئيسي</Label>
+                    <Select 
+                      value={settings.inventory_account_id || ""} 
+                      onValueChange={(inventory_account_id) => {
+                        setSettings({...settings, inventory_account_id});
+                      }}
+                      disabled={!isAdmin}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر الحساب" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {glAccounts
+                          .filter(acc => acc.account_type === 'asset')
+                          .map((acc) => (
+                            <SelectItem key={acc.id} value={acc.id}>
+                              {acc.account_code} - {acc.account_name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </CardContent>
             </Card>
+
+            {/* الإعدادات العامة */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <SettingsIcon className="h-5 w-5" />
+                  الإعدادات العامة للمخزون
+                </CardTitle>
+                <CardDescription>تفعيل أو تعطيل الميزات الخاصة بإدارة المخزون</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>السماح بالمخزون السالب</Label>
+                    <p className="text-sm text-muted-foreground">السماح بالبيع حتى لو كانت الكمية المتاحة صفر</p>
+                  </div>
+                  <Switch
+                    checked={settings.allow_negative_stock}
+                    onCheckedChange={(checked) => setSettings({...settings, allow_negative_stock: checked})}
+                    disabled={!isAdmin}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>تفعيل خيارات التسعير المتقدمة</Label>
+                    <p className="text-sm text-muted-foreground">استخدام قوائم أسعار متعددة وتسعير حسب الكمية</p>
+                  </div>
+                  <Switch
+                    checked={settings.enable_advanced_pricing}
+                    onCheckedChange={(checked) => setSettings({...settings, enable_advanced_pricing: checked})}
+                    disabled={!isAdmin}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>تتبع تاريخ الصلاحية</Label>
+                    <p className="text-sm text-muted-foreground">تفعيل إدارة المنتجات حسب تاريخ الصلاحية</p>
+                  </div>
+                  <Switch
+                    checked={settings.track_expiry_dates}
+                    onCheckedChange={(checked) => setSettings({...settings, track_expiry_dates: checked})}
+                    disabled={!isAdmin}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>تتبع الباركود</Label>
+                    <p className="text-sm text-muted-foreground">تفعيل إدارة الباركود للمنتجات</p>
+                  </div>
+                  <Switch
+                    checked={settings.track_barcodes}
+                    onCheckedChange={(checked) => setSettings({...settings, track_barcodes: checked})}
+                    disabled={!isAdmin}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>تفعيل وحدات القياس المتعددة</Label>
+                    <p className="text-sm text-muted-foreground">السماح باستخدام أكثر من وحدة قياس للمنتج الواحد</p>
+                  </div>
+                  <Switch
+                    checked={settings.enable_multiple_uoms}
+                    onCheckedChange={(checked) => setSettings({...settings, enable_multiple_uoms: checked})}
+                    disabled={!isAdmin}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>إظهار تنبيهات المخزون</Label>
+                    <p className="text-sm text-muted-foreground">عرض تنبيهات عند انخفاض الكمية أو قرب انتهاء الصلاحية</p>
+                  </div>
+                  <Switch
+                    checked={settings.show_stock_alerts}
+                    onCheckedChange={(checked) => setSettings({...settings, show_stock_alerts: checked})}
+                    disabled={!isAdmin}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* إعدادات التنبيهات */}
+            {settings.show_stock_alerts && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertCircle className="h-5 w-5" />
+                    إعدادات التنبيهات
+                  </CardTitle>
+                  <CardDescription>تخصيص متى يتم عرض التنبيهات للمستخدمين</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>عدد الأيام للتنبيه بالمخزون المنخفض</Label>
+                      <Input
+                        type="number"
+                        value={settings.low_stock_alert_days}
+                        onChange={(e) => setSettings({...settings, low_stock_alert_days: parseInt(e.target.value) || 30})}
+                        disabled={!isAdmin}
+                        min="1"
+                        max="365"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">عدد الأيام المتبقية للوصول إلى الحد الأدنى</p>
+                    </div>
+
+                    <div>
+                      <Label>عدد الأيام للتنبيه بقرب انتهاء الصلاحية</Label>
+                      <Input
+                        type="number"
+                        value={settings.expiry_alert_days}
+                        onChange={(e) => setSettings({...settings, expiry_alert_days: parseInt(e.target.value) || 30})}
+                        disabled={!isAdmin}
+                        min="1"
+                        max="365"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">عدد الأيام قبل انتهاء صلاحية المنتج</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {isAdmin && (
+              <div className="flex justify-end">
+                <Button onClick={saveSettings} disabled={loading}>
+                  <Save className="h-4 w-4 ml-2" />
+                  حفظ إعدادات المخزون
+                </Button>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>

@@ -183,6 +183,33 @@ const Inventory = () => {
     e.preventDefault();
 
     try {
+      // Validate required fields
+      if (!formData.name || !formData.price) {
+        toast({
+          title: "خطأ",
+          description: "الرجاء إدخال الاسم والسعر",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Check for duplicate barcode
+      if (formData.barcode && formData.barcode.trim()) {
+        const { data: existingProducts } = await supabase
+          .from("products")
+          .select("id, barcode")
+          .eq("barcode", formData.barcode.trim());
+
+        if (existingProducts && existingProducts.length > 0) {
+          toast({
+            title: "خطأ",
+            description: "الباركود موجود بالفعل لمنتج آخر",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+
       const productData: any = {
         name: formData.name,
         sku: formData.sku || null,
@@ -193,8 +220,8 @@ const Inventory = () => {
         price: parseFloat(formData.price),
         barcode: formData.barcode || null,
         quantity: parseInt(formData.quantity) || 0,
-        min_quantity: parseInt(formData.min_quantity) || 0,
-        reorder_level: formData.reorder_level ? parseInt(formData.reorder_level) : null,
+        min_quantity: parseInt(formData.min_quantity) || 10,
+        reorder_level: formData.reorder_level ? parseFloat(formData.reorder_level) : null,
         base_uom_id: formData.base_uom_id || null,
         expiry_date: formData.expiry_date || null,
         is_active: true,
@@ -204,13 +231,16 @@ const Inventory = () => {
 
       if (error) throw error;
 
-      toast({ title: "تم إضافة المنتج بنجاح" });
+      toast({ 
+        title: "تم إضافة المنتج بنجاح",
+        description: `تم إضافة ${formData.name} إلى المخزون`
+      });
       setIsDialogOpen(false);
       resetForm();
       fetchData();
     } catch (error: any) {
       toast({
-        title: "خطأ",
+        title: "خطأ في الإضافة",
         description: error.message,
         variant: "destructive",
       });

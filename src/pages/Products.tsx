@@ -195,12 +195,34 @@ const Products = () => {
         description: formData.description.trim() || null,
       });
 
+      // Check for duplicate barcode/SKU
+      if (validatedData.barcode) {
+        const { data: existingProducts } = await supabase
+          .from("products")
+          .select("id, barcode")
+          .eq("barcode", validatedData.barcode);
+
+        if (existingProducts && existingProducts.length > 0) {
+          // If editing, allow same barcode for the same product
+          if (!editingProduct || existingProducts[0].id !== editingProduct.id) {
+            toast({
+              title: "خطأ",
+              description: "الباركود موجود بالفعل لمنتج آخر",
+              variant: "destructive",
+            });
+            return;
+          }
+        }
+      }
+
       const productData: any = {
         ...validatedData,
         is_active: true,
         base_uom_id: formData.base_uom_id || null,
         category_id: formData.category_id || null,
         manufacturer_id: formData.manufacturer_id || null,
+        sku: formData.sku.trim() || null,
+        reorder_level: formData.reorder_level ? parseFloat(formData.reorder_level) : null,
       };
 
       if (editingProduct) {

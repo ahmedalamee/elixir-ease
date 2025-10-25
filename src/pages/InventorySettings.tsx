@@ -119,10 +119,12 @@ const InventorySettings = () => {
     setLoading(true);
     
     try {
-      const updates = Object.entries(settings).map(([key, value]) => ({
-        setting_key: key,
-        setting_value: value as unknown as Json
-      }));
+      const updates = Object.entries(settings)
+        .filter(([_, value]) => value !== null && value !== undefined)
+        .map(([key, value]) => ({
+          setting_key: key,
+          setting_value: value as unknown as Json
+        }));
 
       for (const update of updates) {
         const { error } = await supabase

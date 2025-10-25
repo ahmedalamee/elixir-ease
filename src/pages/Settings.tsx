@@ -139,12 +139,37 @@ const Settings = () => {
       return;
     }
     setLoading(true);
-    const updates = Object.entries(settings).map(([key, value]) => ({ key, value }));
-    for (const update of updates) {
-      await supabase.from("system_settings").update({ setting_value: update.value as unknown as Json }).eq("setting_key", update.key);
+    
+    try {
+      // Use upsert to insert or update settings
+      const updates = Object.entries(settings).map(([key, value]) => ({
+        setting_key: key,
+        setting_value: value as unknown as Json
+      }));
+
+      for (const update of updates) {
+        const { error } = await supabase
+          .from("system_settings")
+          .upsert(update, { onConflict: 'setting_key' });
+        
+        if (error) {
+          console.error("Error saving setting:", update.setting_key, error);
+          throw error;
+        }
+      }
+
+      toast({ title: "✅ تم الحفظ بنجاح", description: "تم حفظ جميع الإعدادات" });
+      await fetchSystemSettings(); // Reload settings
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      toast({ 
+        title: "❌ خطأ في الحفظ", 
+        description: "حدث خطأ أثناء حفظ الإعدادات",
+        variant: "destructive" 
+      });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-    toast({ title: "تم الحفظ بنجاح" });
   };
 
   return (

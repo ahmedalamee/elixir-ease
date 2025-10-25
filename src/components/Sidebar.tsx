@@ -171,6 +171,7 @@ const menuItems: MenuItem[] = [
       { title: "طرق الدفع", path: "/settings/payment-methods" },
       { title: "إعدادات الـ SMS", path: "/settings/sms" },
       { title: "إعدادات الترقيم المتسلسل", path: "/settings/numbering" },
+      { title: "إدارة العملات", path: "/settings/currencies" },
       { title: "إعدادات الضرائب", path: "/settings/taxes" },
       { title: "إدارة التطبيقات", path: "/settings/apps" },
       { title: "شعار وألوان النظام", path: "/settings/branding" },

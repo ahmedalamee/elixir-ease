@@ -686,6 +686,212 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_attendance: {
+        Row: {
+          check_in: string
+          check_out: string | null
+          created_at: string | null
+          created_by: string | null
+          employee_id: string
+          id: string
+          notes: string | null
+          status: string | null
+          updated_at: string | null
+          work_hours: number | null
+        }
+        Insert: {
+          check_in: string
+          check_out?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          employee_id: string
+          id?: string
+          notes?: string | null
+          status?: string | null
+          updated_at?: string | null
+          work_hours?: number | null
+        }
+        Update: {
+          check_in?: string
+          check_out?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          employee_id?: string
+          id?: string
+          notes?: string | null
+          status?: string | null
+          updated_at?: string | null
+          work_hours?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_attendance_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_leaves: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string | null
+          days_count: number
+          employee_id: string
+          end_date: string
+          id: string
+          leave_type: string
+          notes: string | null
+          reason: string | null
+          start_date: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          days_count: number
+          employee_id: string
+          end_date: string
+          id?: string
+          leave_type: string
+          notes?: string | null
+          reason?: string | null
+          start_date: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          days_count?: number
+          employee_id?: string
+          end_date?: string
+          id?: string
+          leave_type?: string
+          notes?: string | null
+          reason?: string | null
+          start_date?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_leaves_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_performance: {
+        Row: {
+          attendance_score: number | null
+          comments: string | null
+          created_at: string | null
+          employee_id: string
+          evaluated_by: string | null
+          evaluation_date: string
+          id: string
+          overall_rating: number | null
+          productivity_score: number | null
+          quality_score: number | null
+          teamwork_score: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          attendance_score?: number | null
+          comments?: string | null
+          created_at?: string | null
+          employee_id: string
+          evaluated_by?: string | null
+          evaluation_date: string
+          id?: string
+          overall_rating?: number | null
+          productivity_score?: number | null
+          quality_score?: number | null
+          teamwork_score?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          attendance_score?: number | null
+          comments?: string | null
+          created_at?: string | null
+          employee_id?: string
+          evaluated_by?: string | null
+          evaluation_date?: string
+          id?: string
+          overall_rating?: number | null
+          productivity_score?: number | null
+          quality_score?: number | null
+          teamwork_score?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_performance_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_tasks: {
+        Row: {
+          assigned_by: string | null
+          completed_at: string | null
+          created_at: string | null
+          due_date: string | null
+          employee_id: string
+          id: string
+          priority: string | null
+          status: string | null
+          task_description: string | null
+          task_title: string
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_by?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          due_date?: string | null
+          employee_id: string
+          id?: string
+          priority?: string | null
+          status?: string | null
+          task_description?: string | null
+          task_title: string
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_by?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          due_date?: string | null
+          employee_id?: string
+          id?: string
+          priority?: string | null
+          status?: string | null
+          task_description?: string | null
+          task_title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_tasks_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           created_at: string | null

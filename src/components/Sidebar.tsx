@@ -145,7 +145,11 @@ const menuItems: MenuItem[] = [
   {
     title: "الموظفين",
     icon: UserCog,
-    path: "/user-management",
+    children: [
+      { title: "إدارة الموظفين", path: "/user-management" },
+      { title: "الأدوار والصلاحيات", path: "/roles-management" },
+      { title: "تقارير الموظفين", path: "/employee-reports" },
+    ],
   },
   {
     title: "الإعدادات",

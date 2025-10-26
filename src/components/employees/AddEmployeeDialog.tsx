@@ -63,7 +63,13 @@ export default function AddEmployeeDialog({
         password: formData.password,
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        // Handle specific error cases
+        if (authError.message.includes("already registered")) {
+          throw new Error("البريد الإلكتروني مسجل بالفعل. يرجى استخدام بريد إلكتروني آخر.");
+        }
+        throw new Error(authError.message);
+      }
       if (!authData.user) throw new Error("فشل في إنشاء المستخدم");
 
       // 2. Generate employee code

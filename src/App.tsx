@@ -47,6 +47,9 @@ import UnitOfMeasures from "./pages/UnitOfMeasures";
 import StockMovements from "./pages/StockMovements";
 import InsuranceCompanies from "./pages/InsuranceCompanies";
 import PaymentMethods from "./pages/PaymentMethods";
+import SalesInvoices from "./pages/SalesInvoices";
+import NewSalesInvoice from "./pages/NewSalesInvoice";
+import Expenses from "./pages/Expenses";
 
 const queryClient = new QueryClient();
 
@@ -121,6 +124,9 @@ const AppContent = () => {
           <Route path="/stock-movements" element={<StockMovements />} />
           <Route path="/insurance-companies" element={<InsuranceCompanies />} />
           <Route path="/settings/payment-methods" element={<PaymentMethods />} />
+          <Route path="/sales/invoices" element={<SalesInvoices />} />
+          <Route path="/sales/new-invoice" element={<NewSalesInvoice />} />
+          <Route path="/finance/expenses" element={<Expenses />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

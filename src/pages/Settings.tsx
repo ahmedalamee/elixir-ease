@@ -335,7 +335,15 @@ const Settings = () => {
                 <CardDescription>إدارة العملات والضرائب والإعدادات الأخرى</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <Button 
+                    variant="outline" 
+                    className="h-20 flex flex-col items-center justify-center gap-2"
+                    onClick={() => navigate("/company-profile")}
+                  >
+                    <Building className="h-6 w-6" />
+                    <span>الملف التعريفي للشركة</span>
+                  </Button>
                   <Button 
                     variant="outline" 
                     className="h-20 flex flex-col items-center justify-center gap-2"

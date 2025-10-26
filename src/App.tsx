@@ -37,6 +37,7 @@ import Taxes from "./pages/Taxes";
 import Currencies from "./pages/Currencies";
 import InventorySettings from "./pages/InventorySettings";
 import WarehouseStock from "./pages/WarehouseStock";
+import CompanyProfile from "./pages/CompanyProfile";
 
 const queryClient = new QueryClient();
 
@@ -101,6 +102,7 @@ const AppContent = () => {
           <Route path="/settings/currencies" element={<Currencies />} />
           <Route path="/inventory/settings" element={<InventorySettings />} />
           <Route path="/warehouse-stock" element={<WarehouseStock />} />
+          <Route path="/company-profile" element={<CompanyProfile />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

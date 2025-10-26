@@ -369,6 +369,62 @@ export type Database = {
           },
         ]
       }
+      customer_health_records: {
+        Row: {
+          allergies: string[] | null
+          blood_type: string | null
+          chronic_diseases: string[] | null
+          created_at: string | null
+          created_by: string | null
+          current_medications: string[] | null
+          customer_id: string
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          id: string
+          medical_history: string | null
+          notes: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          allergies?: string[] | null
+          blood_type?: string | null
+          chronic_diseases?: string[] | null
+          created_at?: string | null
+          created_by?: string | null
+          current_medications?: string[] | null
+          customer_id: string
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          id?: string
+          medical_history?: string | null
+          notes?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          allergies?: string[] | null
+          blood_type?: string | null
+          chronic_diseases?: string[] | null
+          created_at?: string | null
+          created_by?: string | null
+          current_medications?: string[] | null
+          customer_id?: string
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          id?: string
+          medical_history?: string | null
+          notes?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_health_records_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: true
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_insurance: {
         Row: {
           coverage_percentage: number | null
@@ -603,6 +659,65 @@ export type Database = {
           },
         ]
       }
+      doctors: {
+        Row: {
+          created_at: string | null
+          doctor_code: string
+          email: string | null
+          employee_id: string | null
+          full_name: string
+          full_name_en: string | null
+          hospital_clinic: string | null
+          id: string
+          is_active: boolean | null
+          license_number: string
+          notes: string | null
+          phone: string | null
+          specialization: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          doctor_code: string
+          email?: string | null
+          employee_id?: string | null
+          full_name: string
+          full_name_en?: string | null
+          hospital_clinic?: string | null
+          id?: string
+          is_active?: boolean | null
+          license_number: string
+          notes?: string | null
+          phone?: string | null
+          specialization: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          doctor_code?: string
+          email?: string | null
+          employee_id?: string | null
+          full_name?: string
+          full_name_en?: string | null
+          hospital_clinic?: string | null
+          id?: string
+          is_active?: boolean | null
+          license_number?: string
+          notes?: string | null
+          phone?: string | null
+          specialization?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctors_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_gl_entries: {
         Row: {
           created_at: string | null
@@ -685,6 +800,203 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      dosage_guidelines: {
+        Row: {
+          age_group: string
+          created_at: string | null
+          frequency: string
+          id: string
+          is_active: boolean | null
+          max_age: number | null
+          max_dose: number
+          min_age: number | null
+          min_dose: number
+          product_id: string
+          recommended_dose: number | null
+          route: string | null
+          special_instructions: string | null
+          updated_at: string | null
+          weight_range: string | null
+        }
+        Insert: {
+          age_group: string
+          created_at?: string | null
+          frequency: string
+          id?: string
+          is_active?: boolean | null
+          max_age?: number | null
+          max_dose: number
+          min_age?: number | null
+          min_dose: number
+          product_id: string
+          recommended_dose?: number | null
+          route?: string | null
+          special_instructions?: string | null
+          updated_at?: string | null
+          weight_range?: string | null
+        }
+        Update: {
+          age_group?: string
+          created_at?: string | null
+          frequency?: string
+          id?: string
+          is_active?: boolean | null
+          max_age?: number | null
+          max_dose?: number
+          min_age?: number | null
+          min_dose?: number
+          product_id?: string
+          recommended_dose?: number | null
+          route?: string | null
+          special_instructions?: string | null
+          updated_at?: string | null
+          weight_range?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dosage_guidelines_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dosage_guidelines_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["product_id"]
+          },
+        ]
+      }
+      drug_interactions: {
+        Row: {
+          clinical_effects: string | null
+          created_at: string | null
+          description: string
+          drug1_id: string
+          drug2_id: string
+          id: string
+          interaction_type: string
+          is_active: boolean | null
+          management: string | null
+          severity: string
+          updated_at: string | null
+        }
+        Insert: {
+          clinical_effects?: string | null
+          created_at?: string | null
+          description: string
+          drug1_id: string
+          drug2_id: string
+          id?: string
+          interaction_type: string
+          is_active?: boolean | null
+          management?: string | null
+          severity: string
+          updated_at?: string | null
+        }
+        Update: {
+          clinical_effects?: string | null
+          created_at?: string | null
+          description?: string
+          drug1_id?: string
+          drug2_id?: string
+          id?: string
+          interaction_type?: string
+          is_active?: boolean | null
+          management?: string | null
+          severity?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drug_interactions_drug1_id_fkey"
+            columns: ["drug1_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drug_interactions_drug1_id_fkey"
+            columns: ["drug1_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "drug_interactions_drug2_id_fkey"
+            columns: ["drug2_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drug_interactions_drug2_id_fkey"
+            columns: ["drug2_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["product_id"]
+          },
+        ]
+      }
+      drug_warnings: {
+        Row: {
+          contraindications: string | null
+          created_at: string | null
+          description: string
+          id: string
+          is_active: boolean | null
+          precautions: string | null
+          product_id: string
+          severity: string
+          target_population: string | null
+          updated_at: string | null
+          warning_type: string
+        }
+        Insert: {
+          contraindications?: string | null
+          created_at?: string | null
+          description: string
+          id?: string
+          is_active?: boolean | null
+          precautions?: string | null
+          product_id: string
+          severity: string
+          target_population?: string | null
+          updated_at?: string | null
+          warning_type: string
+        }
+        Update: {
+          contraindications?: string | null
+          created_at?: string | null
+          description?: string
+          id?: string
+          is_active?: boolean | null
+          precautions?: string | null
+          product_id?: string
+          severity?: string
+          target_population?: string | null
+          updated_at?: string | null
+          warning_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drug_warnings_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drug_warnings_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["product_id"]
+          },
+        ]
       }
       employee_attendance: {
         Row: {
@@ -1547,6 +1859,69 @@ export type Database = {
           },
         ]
       }
+      lab_tests: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          customer_id: string
+          id: string
+          interpretation: string | null
+          notes: string | null
+          ordered_by: string | null
+          reference_range: string | null
+          results: string | null
+          test_date: string
+          test_name: string
+          test_type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          customer_id: string
+          id?: string
+          interpretation?: string | null
+          notes?: string | null
+          ordered_by?: string | null
+          reference_range?: string | null
+          results?: string | null
+          test_date: string
+          test_name: string
+          test_type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          customer_id?: string
+          id?: string
+          interpretation?: string | null
+          notes?: string | null
+          ordered_by?: string | null
+          reference_range?: string | null
+          results?: string | null
+          test_date?: string
+          test_name?: string
+          test_type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lab_tests_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lab_tests_ordered_by_fkey"
+            columns: ["ordered_by"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loyalty_accounts: {
         Row: {
           created_at: string | null
@@ -1733,6 +2108,86 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      medication_history: {
+        Row: {
+          created_at: string | null
+          customer_id: string
+          dosage: string
+          effectiveness: string | null
+          end_date: string | null
+          frequency: string | null
+          id: string
+          notes: string | null
+          prescription_id: string | null
+          product_id: string
+          reason: string | null
+          side_effects: string | null
+          start_date: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_id: string
+          dosage: string
+          effectiveness?: string | null
+          end_date?: string | null
+          frequency?: string | null
+          id?: string
+          notes?: string | null
+          prescription_id?: string | null
+          product_id: string
+          reason?: string | null
+          side_effects?: string | null
+          start_date: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_id?: string
+          dosage?: string
+          effectiveness?: string | null
+          end_date?: string | null
+          frequency?: string | null
+          id?: string
+          notes?: string | null
+          prescription_id?: string | null
+          product_id?: string
+          reason?: string | null
+          side_effects?: string | null
+          start_date?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medication_history_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medication_history_prescription_id_fkey"
+            columns: ["prescription_id"]
+            isOneToOne: false
+            referencedRelation: "prescriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medication_history_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medication_history_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["product_id"]
+          },
+        ]
       }
       payment_allocations: {
         Row: {
@@ -2167,6 +2622,127 @@ export type Database = {
             columns: ["debit_account_id"]
             isOneToOne: false
             referencedRelation: "gl_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prescription_items: {
+        Row: {
+          created_at: string | null
+          dosage: string
+          duration_days: number
+          frequency: string
+          id: string
+          instructions: string | null
+          prescription_id: string
+          product_id: string
+          quantity: number
+        }
+        Insert: {
+          created_at?: string | null
+          dosage: string
+          duration_days: number
+          frequency: string
+          id?: string
+          instructions?: string | null
+          prescription_id: string
+          product_id: string
+          quantity: number
+        }
+        Update: {
+          created_at?: string | null
+          dosage?: string
+          duration_days?: number
+          frequency?: string
+          id?: string
+          instructions?: string | null
+          prescription_id?: string
+          product_id?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prescription_items_prescription_id_fkey"
+            columns: ["prescription_id"]
+            isOneToOne: false
+            referencedRelation: "prescriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prescription_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prescription_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["product_id"]
+          },
+        ]
+      }
+      prescriptions: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          customer_id: string
+          diagnosis: string | null
+          dispensed_at: string | null
+          dispensed_by: string | null
+          doctor_id: string
+          id: string
+          notes: string | null
+          prescription_date: string
+          prescription_number: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          customer_id: string
+          diagnosis?: string | null
+          dispensed_at?: string | null
+          dispensed_by?: string | null
+          doctor_id: string
+          id?: string
+          notes?: string | null
+          prescription_date?: string
+          prescription_number: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          customer_id?: string
+          diagnosis?: string | null
+          dispensed_at?: string | null
+          dispensed_by?: string | null
+          doctor_id?: string
+          id?: string
+          notes?: string | null
+          prescription_date?: string
+          prescription_number?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prescriptions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prescriptions_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
             referencedColumns: ["id"]
           },
         ]
@@ -3450,6 +4026,65 @@ export type Database = {
         }
         Relationships: []
       }
+      vaccinations: {
+        Row: {
+          administered_by: string | null
+          adverse_reactions: string | null
+          batch_number: string | null
+          created_at: string | null
+          customer_id: string
+          dose_number: number | null
+          id: string
+          next_dose_date: string | null
+          notes: string | null
+          site_of_injection: string | null
+          updated_at: string | null
+          vaccination_date: string
+          vaccine_name: string
+          vaccine_type: string | null
+        }
+        Insert: {
+          administered_by?: string | null
+          adverse_reactions?: string | null
+          batch_number?: string | null
+          created_at?: string | null
+          customer_id: string
+          dose_number?: number | null
+          id?: string
+          next_dose_date?: string | null
+          notes?: string | null
+          site_of_injection?: string | null
+          updated_at?: string | null
+          vaccination_date: string
+          vaccine_name: string
+          vaccine_type?: string | null
+        }
+        Update: {
+          administered_by?: string | null
+          adverse_reactions?: string | null
+          batch_number?: string | null
+          created_at?: string | null
+          customer_id?: string
+          dose_number?: number | null
+          id?: string
+          next_dose_date?: string | null
+          notes?: string | null
+          site_of_injection?: string | null
+          updated_at?: string | null
+          vaccination_date?: string
+          vaccine_name?: string
+          vaccine_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vaccinations_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       warehouse_batches: {
         Row: {
           created_at: string | null
@@ -3728,7 +4363,9 @@ export type Database = {
     Functions: {
       generate_campaign_number: { Args: never; Returns: string }
       generate_complaint_number: { Args: never; Returns: string }
+      generate_doctor_code: { Args: never; Returns: string }
       generate_employee_code: { Args: never; Returns: string }
+      generate_prescription_number: { Args: never; Returns: string }
       has_any_role: {
         Args: {
           _roles: Database["public"]["Enums"]["app_role"][]

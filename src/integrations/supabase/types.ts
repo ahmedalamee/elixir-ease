@@ -71,12 +71,70 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_insurance: {
+        Row: {
+          coverage_percentage: number | null
+          created_at: string | null
+          customer_id: string
+          id: string
+          insurance_company_id: string
+          is_active: boolean | null
+          notes: string | null
+          policy_number: string
+          updated_at: string | null
+          valid_from: string | null
+          valid_to: string | null
+        }
+        Insert: {
+          coverage_percentage?: number | null
+          created_at?: string | null
+          customer_id: string
+          id?: string
+          insurance_company_id: string
+          is_active?: boolean | null
+          notes?: string | null
+          policy_number: string
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Update: {
+          coverage_percentage?: number | null
+          created_at?: string | null
+          customer_id?: string
+          id?: string
+          insurance_company_id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          policy_number?: string
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_insurance_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_insurance_insurance_company_id_fkey"
+            columns: ["insurance_company_id"]
+            isOneToOne: false
+            referencedRelation: "insurance_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           address: string | null
           balance: number | null
           created_at: string | null
           credit_limit: number | null
+          currency_code: string | null
           email: string | null
           id: string
           loyalty_points: number | null
@@ -93,6 +151,7 @@ export type Database = {
           balance?: number | null
           created_at?: string | null
           credit_limit?: number | null
+          currency_code?: string | null
           email?: string | null
           id?: string
           loyalty_points?: number | null
@@ -109,6 +168,7 @@ export type Database = {
           balance?: number | null
           created_at?: string | null
           credit_limit?: number | null
+          currency_code?: string | null
           email?: string | null
           id?: string
           loyalty_points?: number | null
@@ -121,6 +181,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "customers_currency_code_fkey"
+            columns: ["currency_code"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
           {
             foreignKeyName: "customers_price_list_id_fkey"
             columns: ["price_list_id"]
@@ -376,6 +443,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      insurance_companies: {
+        Row: {
+          address: string | null
+          code: string
+          contact_person: string | null
+          created_at: string | null
+          credit_limit: number | null
+          discount_percentage: number | null
+          email: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          name_en: string | null
+          notes: string | null
+          payment_terms: string | null
+          phone: string | null
+          tax_number: string | null
+          updated_at: string | null
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          code: string
+          contact_person?: string | null
+          created_at?: string | null
+          credit_limit?: number | null
+          discount_percentage?: number | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          name_en?: string | null
+          notes?: string | null
+          payment_terms?: string | null
+          phone?: string | null
+          tax_number?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          code?: string
+          contact_person?: string | null
+          created_at?: string | null
+          credit_limit?: number | null
+          discount_percentage?: number | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          name_en?: string | null
+          notes?: string | null
+          payment_terms?: string | null
+          phone?: string | null
+          tax_number?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Relationships: []
       }
       item_barcodes: {
         Row: {
@@ -850,6 +977,59 @@ export type Database = {
             columns: ["payment_id"]
             isOneToOne: false
             referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_methods: {
+        Row: {
+          account_id: string | null
+          code: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          max_transaction_amount: number | null
+          method_type: string
+          name: string
+          name_en: string | null
+          requires_reference: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          code: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_transaction_amount?: number | null
+          method_type: string
+          name: string
+          name_en?: string | null
+          requires_reference?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          code?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_transaction_amount?: number | null
+          method_type?: string
+          name?: string
+          name_en?: string | null
+          requires_reference?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_methods_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "gl_accounts"
             referencedColumns: ["id"]
           },
         ]

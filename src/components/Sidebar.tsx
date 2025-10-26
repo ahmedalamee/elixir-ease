@@ -51,8 +51,7 @@ const menuItems: MenuItem[] = [
     title: "وكلاء التأمين",
     icon: Shield,
     children: [
-      { title: "إدارة وكلاء التأمين", path: "/insurance/agents" },
-      { title: "أضف شركة تأمين", path: "/insurance/new" },
+      { title: "إدارة شركات التأمين", path: "/insurance-companies" },
     ],
   },
   {

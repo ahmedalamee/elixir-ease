@@ -30,6 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Plus, Edit, Trash, Search } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Customer {
   id: string;
@@ -40,11 +41,19 @@ interface Customer {
   credit_limit: number;
   balance: number;
   loyalty_points: number;
+  currency_code?: string;
   created_at: string;
+}
+
+interface Currency {
+  code: string;
+  name: string;
+  symbol: string;
 }
 
 const Customers = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
@@ -54,6 +63,7 @@ const Customers = () => {
     email: "",
     address: "",
     credit_limit: 0,
+    currency_code: "SAR",
   });
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -61,6 +71,7 @@ const Customers = () => {
   useEffect(() => {
     checkAuth();
     fetchCustomers();
+    fetchCurrencies();
   }, []);
 
   const checkAuth = async () => {
@@ -84,6 +95,24 @@ const Customers = () => {
       });
     } else {
       setCustomers(data || []);
+    }
+  };
+
+  const fetchCurrencies = async () => {
+    const { data, error } = await supabase
+      .from("currencies")
+      .select("code, name, symbol")
+      .eq("is_active", true)
+      .order("code");
+
+    if (error) {
+      toast({
+        title: "خطأ في تحميل العملات",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      setCurrencies(data || []);
     }
   };
 
@@ -152,6 +181,7 @@ const Customers = () => {
       email: "",
       address: "",
       credit_limit: 0,
+      currency_code: "SAR",
     });
     setEditingCustomer(null);
     setIsDialogOpen(false);
@@ -165,6 +195,7 @@ const Customers = () => {
       email: customer.email || "",
       address: customer.address || "",
       credit_limit: customer.credit_limit,
+      currency_code: customer.currency_code || "SAR",
     });
     setIsDialogOpen(true);
   };
@@ -263,6 +294,26 @@ const Customers = () => {
                         }
                       />
                     </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="currency_code">العملة</Label>
+                      <Select
+                        value={formData.currency_code}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, currency_code: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="اختر العملة" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {currencies.map((currency) => (
+                            <SelectItem key={currency.code} value={currency.code}>
+                              {currency.code} - {currency.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <div className="flex gap-2">
                       <Button type="submit" className="flex-1">
                         {editingCustomer ? "تحديث" : "إضافة"}
@@ -300,6 +351,7 @@ const Customers = () => {
                     <TableHead>الاسم</TableHead>
                     <TableHead>الهاتف</TableHead>
                     <TableHead>البريد الإلكتروني</TableHead>
+                    <TableHead>العملة</TableHead>
                     <TableHead>الرصيد</TableHead>
                     <TableHead>نقاط الولاء</TableHead>
                     <TableHead>حد الائتمان</TableHead>
@@ -314,10 +366,11 @@ const Customers = () => {
                       </TableCell>
                       <TableCell>{customer.phone || "-"}</TableCell>
                       <TableCell>{customer.email || "-"}</TableCell>
-                      <TableCell>{customer.balance.toFixed(2)} ر.س</TableCell>
+                      <TableCell>{customer.currency_code || "SAR"}</TableCell>
+                      <TableCell>{customer.balance.toFixed(2)}</TableCell>
                       <TableCell>{customer.loyalty_points}</TableCell>
                       <TableCell>
-                        {customer.credit_limit.toFixed(2)} ر.س
+                        {customer.credit_limit.toFixed(2)}
                       </TableCell>
                       <TableCell className="text-left">
                         <div className="flex gap-2">

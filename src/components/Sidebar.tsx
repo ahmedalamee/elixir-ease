@@ -57,9 +57,12 @@ const menuItems: MenuItem[] = [
     ],
   },
   {
-    title: "نقاط البيع",
+    title: "نقطة البيع",
     icon: ShoppingCart,
-    path: "/pos",
+    children: [
+      { title: "البيع السريع", path: "/pos" },
+      { title: "تقارير POS", path: "/pos/reports" },
+    ],
   },
   {
     title: "المخزون",

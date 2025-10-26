@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import POS from "./pages/POS";
+import POSReports from "./pages/POSReports";
 import Products from "./pages/Products";
 import ProductsAdvanced from "./pages/ProductsAdvanced";
 import Customers from "./pages/Customers";
@@ -89,7 +90,8 @@ const AppContent = () => {
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/pos" element={<POS />} />
+            <Route path="/pos" element={<POS />} />
+            <Route path="/pos/reports" element={<POSReports />} />
           <Route path="/products" element={<Products />} />
           <Route path="/products-advanced" element={<ProductsAdvanced />} />
           <Route path="/customers" element={<Customers />} />

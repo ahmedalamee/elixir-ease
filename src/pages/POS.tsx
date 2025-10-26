@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -6,15 +6,28 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
+import { POSSessionDialog } from "@/components/pos/POSSessionDialog";
+import { POSReceipt } from "@/components/pos/POSReceipt";
+import { useReactToPrint } from "react-to-print";
 import {
   ShoppingCart,
   Search,
   Trash2,
   Plus,
   Minus,
-  CreditCard,
-  Banknote,
+  Printer,
+  DoorOpen,
+  DoorClosed,
+  AlertCircle,
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface Product {
   id: string;
@@ -26,20 +39,49 @@ interface Product {
 
 interface CartItem extends Product {
   cartQuantity: number;
+  uom_id?: string;
+  tax_code?: string;
+}
+
+interface PaymentMethod {
+  id: string;
+  code: string;
+  name: string;
+  name_en: string;
+  is_active: boolean;
 }
 
 const POS = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const receiptRef = useRef<HTMLDivElement>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "card">("cash");
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
+  const [currentSession, setCurrentSession] = useState<any>(null);
+  const [sessionDialogOpen, setSessionDialogOpen] = useState(false);
+  const [companyInfo, setCompanyInfo] = useState<any>(null);
+  const [lastInvoice, setLastInvoice] = useState<any>(null);
+
+  const handlePrint = useReactToPrint({
+    contentRef: receiptRef,
+  });
 
   useEffect(() => {
     checkAuth();
-    fetchProducts();
+    fetchData();
   }, []);
+
+  const fetchData = async () => {
+    await Promise.all([
+      fetchProducts(),
+      fetchPaymentMethods(),
+      fetchCurrentSession(),
+      fetchCompanyInfo(),
+    ]);
+  };
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -60,6 +102,61 @@ const POS = () => {
       setProducts(data || []);
     } catch (error) {
       console.error("Error fetching products:", error);
+    }
+  };
+
+  const fetchPaymentMethods = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("payment_methods")
+        .select("*")
+        .eq("is_active", true)
+        .order("name");
+
+      if (error) throw error;
+      setPaymentMethods(data || []);
+      if (data && data.length > 0) {
+        setSelectedPaymentMethod(data[0].id);
+      }
+    } catch (error) {
+      console.error("Error fetching payment methods:", error);
+    }
+  };
+
+  const fetchCurrentSession = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data, error } = await supabase
+        .from("pos_sessions")
+        .select("*")
+        .eq("cashier_id", user?.id)
+        .eq("status", "open")
+        .order("opened_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error && error.code !== "PGRST116") throw error;
+      setCurrentSession(data);
+    } catch (error) {
+      console.error("Error fetching session:", error);
+    }
+  };
+
+  const fetchCompanyInfo = async () => {
+    try {
+      const { data, error } = await (supabase as any)
+        .from("company_profile")
+        .select("*")
+        .limit(1)
+        .single();
+
+      if (error && error.code !== "PGRST116") {
+        console.error("Error fetching company info:", error);
+        return;
+      }
+      setCompanyInfo(data);
+    } catch (error) {
+      console.error("Error fetching company info:", error);
     }
   };
 
@@ -136,37 +233,71 @@ const POS = () => {
       return;
     }
 
-    try {
-      const saleNumber = `SALE-${Date.now()}`;
-      const totalAmount = calculateTotal();
+    if (!currentSession) {
+      toast({
+        title: "خطأ",
+        description: "يجب فتح جلسة نقدية أولاً",
+        variant: "destructive",
+      });
+      setSessionDialogOpen(true);
+      return;
+    }
 
-      // إنشاء المبيعات
-      const { data: saleData, error: saleError } = await supabase
-        .from("sales")
+    if (!selectedPaymentMethod) {
+      toast({
+        title: "خطأ",
+        description: "الرجاء اختيار طريقة الدفع",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const invoiceNumber = `INV-POS-${Date.now()}`;
+      const subtotal = calculateTotal();
+      const taxRate = 0.15; // 15% VAT
+      const taxAmount = subtotal * taxRate;
+      const totalAmount = subtotal + taxAmount;
+
+      // إنشاء فاتورة المبيعات
+      const { data: invoiceData, error: invoiceError } = await (supabase as any)
+        .from("sales_invoices")
         .insert({
-          sale_number: saleNumber,
+          invoice_number: invoiceNumber,
+          invoice_date: new Date().toISOString(),
+          customer_id: null, // Walk-in customer
+          subtotal,
+          tax_amount: taxAmount,
           total_amount: totalAmount,
-          final_amount: totalAmount,
-          payment_method: paymentMethod,
           payment_status: "paid",
+          status: "posted",
+          created_by: user?.id,
+          posted_by: user?.id,
+          posted_at: new Date().toISOString(),
+          pos_session_id: currentSession.id,
         })
         .select()
         .single();
 
-      if (saleError) throw saleError;
+      if (invoiceError) throw invoiceError;
 
-      // إضافة تفاصيل المبيعات
-      const saleItems = cart.map((item) => ({
-        sale_id: saleData.id,
-        product_id: item.id,
-        quantity: item.cartQuantity,
-        unit_price: item.price,
-        total: item.price * item.cartQuantity,
+      // إضافة تفاصيل الفاتورة
+      const invoiceItems = cart.map((item, index) => ({
+        si_id: invoiceData.id,
+        line_no: index + 1,
+        item_id: item.id,
+        uom_id: item.uom_id || null,
+        qty: item.cartQuantity,
+        price: item.price,
+        discount: 0,
+        tax_code: item.tax_code || null,
+        line_total: item.price * item.cartQuantity,
       }));
 
-      const { error: itemsError } = await supabase
-        .from("sale_items")
-        .insert(saleItems);
+      const { error: itemsError } = await (supabase as any)
+        .from("si_items")
+        .insert(invoiceItems);
 
       if (itemsError) throw itemsError;
 
@@ -178,13 +309,75 @@ const POS = () => {
           .eq("id", item.id);
       }
 
+      // تحديث الجلسة النقدية
+      await supabase
+        .from("pos_sessions")
+        .update({
+          expected_cash: (currentSession.expected_cash || currentSession.opening_cash) + totalAmount,
+        })
+        .eq("id", currentSession.id);
+
+      // التكامل المحاسبي التلقائي
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-journal-entry`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+            body: JSON.stringify({
+              document_type: "sales_invoice",
+              document_id: invoiceData.id,
+              document_number: invoiceNumber,
+              entity_id: null,
+              entity_type: "customer",
+              subtotal,
+              tax_amount: taxAmount,
+              total_amount: totalAmount,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          console.error("Failed to generate journal entry");
+        }
+      } catch (error) {
+        console.error("Error calling journal entry function:", error);
+      }
+
+      // حفظ آخر فاتورة للطباعة
+      setLastInvoice({
+        invoiceNumber,
+        invoiceDate: new Date().toISOString(),
+        items: cart.map((item) => ({
+          name: item.name,
+          quantity: item.cartQuantity,
+          price: item.price,
+          total: item.price * item.cartQuantity,
+        })),
+        subtotal,
+        taxAmount,
+        totalAmount,
+        paymentMethod: paymentMethods.find((pm) => pm.id === selectedPaymentMethod)?.name || "",
+      });
+
       toast({
         title: "تمت العملية بنجاح",
-        description: `رقم الفاتورة: ${saleNumber}`,
+        description: `رقم الفاتورة: ${invoiceNumber}`,
       });
 
       setCart([]);
       fetchProducts();
+      fetchCurrentSession();
+
+      // فتح خيار الطباعة
+      setTimeout(() => {
+        if (window.confirm("هل تريد طباعة الفاتورة؟")) {
+          handlePrint();
+        }
+      }, 500);
     } catch (error: any) {
       toast({
         title: "خطأ",
@@ -198,6 +391,43 @@ const POS = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="container mx-auto px-4 py-8">
+        {/* Session Status */}
+        <div className="mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            {currentSession ? (
+              <Alert className="flex-1">
+                <DoorOpen className="h-4 w-4" />
+                <AlertDescription>
+                  جلسة مفتوحة: {currentSession.session_number} | المبلغ المتوقع:{" "}
+                  {(currentSession.expected_cash || currentSession.opening_cash)?.toFixed(2)} ر.س
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <Alert variant="destructive" className="flex-1">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>لا توجد جلسة مفتوحة - يجب فتح جلسة للبدء</AlertDescription>
+              </Alert>
+            )}
+          </div>
+          <Button
+            variant={currentSession ? "destructive" : "default"}
+            onClick={() => setSessionDialogOpen(true)}
+            className="gap-2"
+          >
+            {currentSession ? (
+              <>
+                <DoorClosed className="w-4 h-4" />
+                إغلاق الجلسة
+              </>
+            ) : (
+              <>
+                <DoorOpen className="w-4 h-4" />
+                فتح جلسة
+              </>
+            )}
+          </Button>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Products Section */}
           <div className="lg:col-span-2 space-y-4">
@@ -310,31 +540,41 @@ const POS = () => {
                     </div>
                   </div>
 
-                  <div className="flex gap-2 mb-4">
-                    <Button
-                      variant={paymentMethod === "cash" ? "default" : "outline"}
-                      className="flex-1 gap-2"
-                      onClick={() => setPaymentMethod("cash")}
-                    >
-                      <Banknote className="w-4 h-4" />
-                      نقداً
-                    </Button>
-                    <Button
-                      variant={paymentMethod === "card" ? "default" : "outline"}
-                      className="flex-1 gap-2"
-                      onClick={() => setPaymentMethod("card")}
-                    >
-                      <CreditCard className="w-4 h-4" />
-                      بطاقة
-                    </Button>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium mb-2">طريقة الدفع</label>
+                    <Select value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر طريقة الدفع" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {paymentMethods.map((method) => (
+                          <SelectItem key={method.id} value={method.id}>
+                            {method.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
-                  <Button
-                    className="w-full btn-medical"
-                    onClick={handleCheckout}
-                  >
-                    إتمام عملية البيع
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      className="flex-1 btn-medical"
+                      onClick={handleCheckout}
+                      disabled={!currentSession}
+                    >
+                      إتمام عملية البيع
+                    </Button>
+                    {lastInvoice && (
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={handlePrint}
+                        title="طباعة آخر فاتورة"
+                      >
+                        <Printer className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
                 </>
               )}
 
@@ -347,6 +587,31 @@ const POS = () => {
             </Card>
           </div>
         </div>
+
+        {/* Hidden Receipt for Printing */}
+        {lastInvoice && (
+          <div style={{ display: "none" }}>
+            <POSReceipt
+              ref={receiptRef}
+              invoiceNumber={lastInvoice.invoiceNumber}
+              invoiceDate={lastInvoice.invoiceDate}
+              items={lastInvoice.items}
+              subtotal={lastInvoice.subtotal}
+              taxAmount={lastInvoice.taxAmount}
+              totalAmount={lastInvoice.totalAmount}
+              paymentMethod={lastInvoice.paymentMethod}
+              companyInfo={companyInfo}
+            />
+          </div>
+        )}
+
+        {/* Session Dialog */}
+        <POSSessionDialog
+          open={sessionDialogOpen}
+          onOpenChange={setSessionDialogOpen}
+          currentSession={currentSession}
+          onSessionUpdate={fetchCurrentSession}
+        />
       </div>
     </div>
   );

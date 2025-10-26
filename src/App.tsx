@@ -9,6 +9,10 @@ import Sidebar from "./components/Sidebar";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import WarehouseTransfers from "./pages/WarehouseTransfers";
+import StockAdjustments from "./pages/StockAdjustments";
+import BatchTracking from "./pages/BatchTracking";
+import InventoryReports from "./pages/InventoryReports";
 import POS from "./pages/POS";
 import POSReports from "./pages/POSReports";
 import Products from "./pages/Products";
@@ -92,6 +96,10 @@ const AppContent = () => {
           <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/pos" element={<POS />} />
             <Route path="/pos/reports" element={<POSReports />} />
+            <Route path="/warehouse-transfers" element={<WarehouseTransfers />} />
+            <Route path="/stock-adjustments" element={<StockAdjustments />} />
+            <Route path="/batch-tracking" element={<BatchTracking />} />
+            <Route path="/inventory/reports" element={<InventoryReports />} />
           <Route path="/products" element={<Products />} />
           <Route path="/products-advanced" element={<ProductsAdvanced />} />
           <Route path="/customers" element={<Customers />} />

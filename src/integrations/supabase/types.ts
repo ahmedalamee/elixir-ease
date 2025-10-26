@@ -280,6 +280,63 @@ export type Database = {
         }
         Relationships: []
       }
+      employees: {
+        Row: {
+          created_at: string | null
+          department: string | null
+          email: string | null
+          employee_code: string
+          full_name: string
+          full_name_en: string | null
+          hire_date: string | null
+          id: string
+          is_active: boolean | null
+          job_title: string | null
+          national_id: string | null
+          notes: string | null
+          phone: string | null
+          salary: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          department?: string | null
+          email?: string | null
+          employee_code: string
+          full_name: string
+          full_name_en?: string | null
+          hire_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          job_title?: string | null
+          national_id?: string | null
+          notes?: string | null
+          phone?: string | null
+          salary?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          department?: string | null
+          email?: string | null
+          employee_code?: string
+          full_name?: string
+          full_name_en?: string | null
+          hire_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          job_title?: string | null
+          national_id?: string | null
+          notes?: string | null
+          phone?: string | null
+          salary?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       gl_accounts: {
         Row: {
           account_code: string
@@ -2985,6 +3042,7 @@ export type Database = {
       }
     }
     Functions: {
+      generate_employee_code: { Args: never; Returns: string }
       has_any_role: {
         Args: {
           _roles: Database["public"]["Enums"]["app_role"][]

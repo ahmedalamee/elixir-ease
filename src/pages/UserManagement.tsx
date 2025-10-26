@@ -19,16 +19,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Users, UserPlus, Shield, Trash2 } from "lucide-react";
+import { Users, UserPlus, Edit, Trash2, Search } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,22 +32,41 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import AddEmployeeDialog from "@/components/employees/AddEmployeeDialog";
+import EditEmployeeDialog from "@/components/employees/EditEmployeeDialog";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
 
-interface User {
+interface Employee {
   id: string;
-  email: string;
+  user_id: string;
+  employee_code: string;
+  full_name: string;
+  full_name_en?: string;
+  phone?: string;
+  email?: string;
+  national_id?: string;
+  hire_date?: string;
+  job_title?: string;
+  department?: string;
+  salary?: number;
+  is_active: boolean;
+  notes?: string;
   created_at: string;
   role?: AppRole;
   role_id?: string;
 }
 
 const UserManagement = () => {
-  const [users, setUsers] = useState<User[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
-  const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
+  const [deleteEmployeeId, setDeleteEmployeeId] = useState<string | null>(null);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -86,40 +98,51 @@ const UserManagement = () => {
     }
 
     setCurrentUserRole(roleData.role);
-    await fetchUsers();
+    await fetchEmployees();
   };
 
-  const fetchUsers = async () => {
+  const fetchEmployees = async () => {
     setLoading(true);
     try {
-      // Get all users from auth (via admin function or manually)
-      const { data: { users: authUsers }, error: authError } = await supabase.auth.admin.listUsers();
-      
-      if (authError) throw authError;
+      // Get all employees with their roles
+      const { data: employeesData, error: employeesError } = await supabase
+        .from("employees")
+        .select(`
+          *,
+          user_roles (
+            id,
+            role
+          )
+        `)
+        .order("created_at", { ascending: false });
 
-      // Get all user roles
-      const { data: rolesData, error: rolesError } = await supabase
-        .from("user_roles")
-        .select("*");
+      if (employeesError) throw employeesError;
 
-      if (rolesError) throw rolesError;
+      // Format the data
+      const formattedEmployees = employeesData.map((emp: any) => ({
+        id: emp.id,
+        user_id: emp.user_id,
+        employee_code: emp.employee_code,
+        full_name: emp.full_name,
+        full_name_en: emp.full_name_en,
+        phone: emp.phone,
+        email: emp.email,
+        national_id: emp.national_id,
+        hire_date: emp.hire_date,
+        job_title: emp.job_title,
+        department: emp.department,
+        salary: emp.salary,
+        is_active: emp.is_active,
+        notes: emp.notes,
+        created_at: emp.created_at,
+        role: emp.user_roles?.[0]?.role,
+        role_id: emp.user_roles?.[0]?.id,
+      }));
 
-      // Combine the data
-      const usersWithRoles = authUsers.map(user => {
-        const roleInfo = rolesData?.find(r => r.user_id === user.id);
-        return {
-          id: user.id,
-          email: user.email || "",
-          created_at: user.created_at,
-          role: roleInfo?.role,
-          role_id: roleInfo?.id,
-        };
-      });
-
-      setUsers(usersWithRoles);
+      setEmployees(formattedEmployees);
     } catch (error: any) {
       toast({
-        title: "خطأ في تحميل المستخدمين",
+        title: "خطأ في تحميل الموظفين",
         description: error.message,
         variant: "destructive",
       });
@@ -128,61 +151,27 @@ const UserManagement = () => {
     }
   };
 
-  const assignRole = async (userId: string, role: string) => {
-    try {
-      const user = users.find(u => u.id === userId);
-      
-      if (user?.role_id) {
-        // Update existing role
-        const { error } = await supabase
-          .from("user_roles")
-          .update({ role: role as AppRole })
-          .eq("id", user.role_id);
-
-        if (error) throw error;
-      } else {
-        // Insert new role
-        const { error } = await supabase
-          .from("user_roles")
-          .insert({ 
-            user_id: userId,
-            role: role as AppRole
-          });
-
-        if (error) throw error;
-      }
-
-      toast({
-        title: "تم تحديث الصلاحية",
-        description: "تم تعيين الدور بنجاح",
-      });
-
-      await fetchUsers();
-    } catch (error: any) {
-      toast({
-        title: "خطأ في تحديث الصلاحية",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
+  const handleEditEmployee = (employee: Employee) => {
+    setSelectedEmployee(employee);
+    setEditDialogOpen(true);
   };
 
-  const deleteRole = async (roleId: string) => {
+  const handleDeleteEmployee = async (employeeId: string) => {
     try {
       const { error } = await supabase
-        .from("user_roles")
+        .from("employees")
         .delete()
-        .eq("id", roleId);
+        .eq("id", employeeId);
 
       if (error) throw error;
 
       toast({
         title: "تم الحذف",
-        description: "تم حذف الصلاحية بنجاح",
+        description: "تم حذف الموظف بنجاح",
       });
 
-      setDeleteUserId(null);
-      await fetchUsers();
+      setDeleteEmployeeId(null);
+      await fetchEmployees();
     } catch (error: any) {
       toast({
         title: "خطأ في الحذف",
@@ -202,8 +191,8 @@ const UserManagement = () => {
     return roles[role] || role;
   };
 
-  const getRoleVariant = (role: string) => {
-    const variants: { [key: string]: any } = {
+  const getRoleVariant = (role: string): "default" | "secondary" | "outline" | "destructive" => {
+    const variants: { [key: string]: "default" | "secondary" | "outline" | "destructive" } = {
       admin: "default",
       pharmacist: "secondary",
       cashier: "outline",
@@ -211,6 +200,17 @@ const UserManagement = () => {
     };
     return variants[role] || "outline";
   };
+
+  const filteredEmployees = employees.filter((emp) => {
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      emp.full_name.toLowerCase().includes(searchLower) ||
+      emp.employee_code.toLowerCase().includes(searchLower) ||
+      emp.email?.toLowerCase().includes(searchLower) ||
+      emp.phone?.toLowerCase().includes(searchLower) ||
+      emp.job_title?.toLowerCase().includes(searchLower)
+    );
+  });
 
   if (loading) {
     return (
@@ -229,68 +229,117 @@ const UserManagement = () => {
       <div className="container mx-auto py-8 px-4">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-6 w-6" />
-              إدارة المستخدمين والصلاحيات
-            </CardTitle>
-            <CardDescription>
-              تعيين وتعديل أدوار المستخدمين في النظام
-            </CardDescription>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-6 w-6" />
+                  إدارة الموظفين
+                </CardTitle>
+                <CardDescription>
+                  عرض وإدارة بيانات الموظفين وصلاحياتهم
+                </CardDescription>
+              </div>
+              <Button onClick={() => setAddDialogOpen(true)}>
+                <UserPlus className="ml-2 h-4 w-4" />
+                إضافة موظف
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
+            <div className="mb-4">
+              <div className="relative">
+                <Search className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="بحث عن موظف..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pr-10"
+                />
+              </div>
+            </div>
+
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>البريد الإلكتروني</TableHead>
+                    <TableHead>رمز الموظف</TableHead>
+                    <TableHead>الاسم</TableHead>
+                    <TableHead>البريد / الهاتف</TableHead>
+                    <TableHead>الوظيفة</TableHead>
                     <TableHead>الصلاحية</TableHead>
-                    <TableHead>تاريخ الإنشاء</TableHead>
+                    <TableHead>الحالة</TableHead>
                     <TableHead className="text-left">الإجراءات</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.map((user) => (
-                    <TableRow key={user.id}>
+                  {filteredEmployees.map((employee) => (
+                    <TableRow key={employee.id}>
                       <TableCell className="font-medium">
-                        {user.email}
+                        {employee.employee_code}
                       </TableCell>
                       <TableCell>
-                        <Select
-                          value={user.role || ""}
-                          onValueChange={(value) => assignRole(user.id, value)}
-                        >
-                          <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="اختر الصلاحية" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="admin">
-                              {getRoleLabel("admin")}
-                            </SelectItem>
-                            <SelectItem value="pharmacist">
-                              {getRoleLabel("pharmacist")}
-                            </SelectItem>
-                            <SelectItem value="cashier">
-                              {getRoleLabel("cashier")}
-                            </SelectItem>
-                            <SelectItem value="inventory_manager">
-                              {getRoleLabel("inventory_manager")}
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <div>
+                          <div className="font-medium">{employee.full_name}</div>
+                          {employee.full_name_en && (
+                            <div className="text-sm text-muted-foreground">
+                              {employee.full_name_en}
+                            </div>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
-                        {new Date(user.created_at).toLocaleDateString("ar-SA")}
+                        <div className="text-sm">
+                          {employee.email && <div>{employee.email}</div>}
+                          {employee.phone && (
+                            <div className="text-muted-foreground">
+                              {employee.phone}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          {employee.job_title && <div>{employee.job_title}</div>}
+                          {employee.department && (
+                            <div className="text-muted-foreground">
+                              {employee.department}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {employee.role ? (
+                          <Badge variant={getRoleVariant(employee.role)}>
+                            {getRoleLabel(employee.role)}
+                          </Badge>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">
+                            لا توجد صلاحية
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={employee.is_active ? "default" : "secondary"}>
+                          {employee.is_active ? "نشط" : "غير نشط"}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-left">
-                        {user.role_id && (
+                        <div className="flex gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => setDeleteUserId(user.role_id || null)}
+                            onClick={() => handleEditEmployee(employee)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDeleteEmployeeId(employee.id)}
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
-                        )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -298,28 +347,50 @@ const UserManagement = () => {
               </Table>
             </div>
 
-            {users.length === 0 && (
+            {filteredEmployees.length === 0 && (
               <div className="text-center py-12 text-muted-foreground">
-                <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>لا يوجد مستخدمين في النظام</p>
+                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>
+                  {searchQuery
+                    ? "لا توجد نتائج للبحث"
+                    : "لا يوجد موظفين في النظام"}
+                </p>
               </div>
             )}
           </CardContent>
         </Card>
       </div>
 
-      <AlertDialog open={!!deleteUserId} onOpenChange={() => setDeleteUserId(null)}>
+      <AddEmployeeDialog
+        open={addDialogOpen}
+        onOpenChange={setAddDialogOpen}
+        onSuccess={fetchEmployees}
+      />
+
+      <EditEmployeeDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        employee={selectedEmployee}
+        onSuccess={fetchEmployees}
+      />
+
+      <AlertDialog
+        open={!!deleteEmployeeId}
+        onOpenChange={() => setDeleteEmployeeId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
             <AlertDialogDescription>
-              سيتم حذف صلاحية المستخدم. هذا الإجراء لا يمكن التراجع عنه.
+              سيتم حذف بيانات الموظف بشكل نهائي. هذا الإجراء لا يمكن التراجع عنه.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>إلغاء</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteUserId && deleteRole(deleteUserId)}
+              onClick={() =>
+                deleteEmployeeId && handleDeleteEmployee(deleteEmployeeId)
+              }
             >
               حذف
             </AlertDialogAction>

@@ -49,6 +49,7 @@ import InsuranceCompanies from "./pages/InsuranceCompanies";
 import PaymentMethods from "./pages/PaymentMethods";
 import SalesInvoices from "./pages/SalesInvoices";
 import NewSalesInvoice from "./pages/NewSalesInvoice";
+import SalesInvoiceView from "./pages/SalesInvoiceView";
 import Expenses from "./pages/Expenses";
 import AccountingIntegration from "./pages/AccountingIntegration";
 
@@ -127,6 +128,7 @@ const AppContent = () => {
           <Route path="/settings/payment-methods" element={<PaymentMethods />} />
           <Route path="/sales/invoices" element={<SalesInvoices />} />
           <Route path="/sales/new-invoice" element={<NewSalesInvoice />} />
+          <Route path="/sales/invoice/:id" element={<SalesInvoiceView />} />
           <Route path="/finance/expenses" element={<Expenses />} />
           <Route path="/accounting-integration" element={<AccountingIntegration />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

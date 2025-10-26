@@ -66,6 +66,8 @@ import CRMReports from "./pages/CRMReports";
 import Doctors from "./pages/Doctors";
 import Prescriptions from "./pages/Prescriptions";
 import HealthRecords from "./pages/HealthRecords";
+import DrugInteractions from "./pages/DrugInteractions";
+import PharmacyReports from "./pages/PharmacyReports";
 
 const queryClient = new QueryClient();
 
@@ -159,6 +161,8 @@ const AppContent = () => {
           <Route path="/doctors" element={<Doctors />} />
           <Route path="/prescriptions" element={<Prescriptions />} />
           <Route path="/health-records" element={<HealthRecords />} />
+          <Route path="/drug-interactions" element={<DrugInteractions />} />
+          <Route path="/pharmacy-reports" element={<PharmacyReports />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

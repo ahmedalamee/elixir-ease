@@ -66,6 +66,17 @@ const menuItems: MenuItem[] = [
     ],
   },
   {
+    title: "النظام الصيدلي",
+    icon: FileText,
+    children: [
+      { title: "الأطباء", path: "/doctors" },
+      { title: "الوصفات الطبية", path: "/prescriptions" },
+      { title: "السجلات الصحية", path: "/health-records" },
+      { title: "التفاعلات والتحذيرات", path: "/drug-interactions" },
+      { title: "التقارير الصيدلانية", path: "/pharmacy-reports" },
+    ],
+  },
+  {
     title: "نقطة البيع",
     icon: ShoppingCart,
     children: [

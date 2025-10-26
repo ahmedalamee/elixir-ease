@@ -59,6 +59,10 @@ import NewSalesInvoice from "./pages/NewSalesInvoice";
 import SalesInvoiceView from "./pages/SalesInvoiceView";
 import Expenses from "./pages/Expenses";
 import AccountingIntegration from "./pages/AccountingIntegration";
+import CRMDashboard from "./pages/CRMDashboard";
+import MarketingCampaigns from "./pages/MarketingCampaigns";
+import CustomerProfile from "./pages/CustomerProfile";
+import CRMReports from "./pages/CRMReports";
 
 const queryClient = new QueryClient();
 
@@ -145,6 +149,10 @@ const AppContent = () => {
           <Route path="/sales/invoice/:id" element={<SalesInvoiceView />} />
           <Route path="/finance/expenses" element={<Expenses />} />
           <Route path="/accounting-integration" element={<AccountingIntegration />} />
+          <Route path="/crm-dashboard" element={<CRMDashboard />} />
+          <Route path="/marketing-campaigns" element={<MarketingCampaigns />} />
+          <Route path="/customer-profile/:id" element={<CustomerProfile />} />
+          <Route path="/crm-reports" element={<CRMReports />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

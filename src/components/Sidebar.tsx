@@ -43,6 +43,15 @@ const menuItems: MenuItem[] = [
     ],
   },
   {
+    title: "إدارة العلاقات",
+    icon: Users,
+    children: [
+      { title: "لوحة CRM", path: "/crm-dashboard" },
+      { title: "الحملات التسويقية", path: "/marketing-campaigns" },
+      { title: "تقارير وتحليلات", path: "/crm-reports" },
+    ],
+  },
+  {
     title: "وكلاء التأمين",
     icon: Shield,
     children: [

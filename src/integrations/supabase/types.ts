@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      campaign_customers: {
+        Row: {
+          campaign_id: string
+          clicked_at: string | null
+          converted_at: string | null
+          created_at: string | null
+          customer_id: string
+          id: string
+          opened_at: string | null
+          revenue: number | null
+          sent_at: string | null
+          status: string | null
+        }
+        Insert: {
+          campaign_id: string
+          clicked_at?: string | null
+          converted_at?: string | null
+          created_at?: string | null
+          customer_id: string
+          id?: string
+          opened_at?: string | null
+          revenue?: number | null
+          sent_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          clicked_at?: string | null
+          converted_at?: string | null
+          created_at?: string | null
+          customer_id?: string
+          id?: string
+          opened_at?: string | null
+          revenue?: number | null
+          sent_at?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_customers_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_customers_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           created_at: string | null
@@ -71,6 +125,250 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_analytics: {
+        Row: {
+          average_purchase_value: number | null
+          churn_risk_score: number | null
+          customer_id: string
+          days_since_last_purchase: number | null
+          id: string
+          last_interaction_date: string | null
+          last_purchase_date: string | null
+          lifetime_value: number | null
+          predicted_next_purchase_date: string | null
+          preferred_products: Json | null
+          purchase_frequency: number | null
+          satisfaction_score: number | null
+          total_purchase_count: number | null
+          total_purchases: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          average_purchase_value?: number | null
+          churn_risk_score?: number | null
+          customer_id: string
+          days_since_last_purchase?: number | null
+          id?: string
+          last_interaction_date?: string | null
+          last_purchase_date?: string | null
+          lifetime_value?: number | null
+          predicted_next_purchase_date?: string | null
+          preferred_products?: Json | null
+          purchase_frequency?: number | null
+          satisfaction_score?: number | null
+          total_purchase_count?: number | null
+          total_purchases?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          average_purchase_value?: number | null
+          churn_risk_score?: number | null
+          customer_id?: string
+          days_since_last_purchase?: number | null
+          id?: string
+          last_interaction_date?: string | null
+          last_purchase_date?: string | null
+          lifetime_value?: number | null
+          predicted_next_purchase_date?: string | null
+          preferred_products?: Json | null
+          purchase_frequency?: number | null
+          satisfaction_score?: number | null
+          total_purchase_count?: number | null
+          total_purchases?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_analytics_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: true
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_complaints: {
+        Row: {
+          assigned_to: string | null
+          complaint_date: string | null
+          complaint_number: string
+          complaint_type: string
+          created_at: string | null
+          customer_id: string
+          description: string
+          id: string
+          priority: string | null
+          resolution: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          satisfaction_rating: number | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          complaint_date?: string | null
+          complaint_number: string
+          complaint_type: string
+          created_at?: string | null
+          customer_id: string
+          description: string
+          id?: string
+          priority?: string | null
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          satisfaction_rating?: number | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          complaint_date?: string | null
+          complaint_number?: string
+          complaint_type?: string
+          created_at?: string | null
+          customer_id?: string
+          description?: string
+          id?: string
+          priority?: string | null
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          satisfaction_rating?: number | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_complaints_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_complaints_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_events: {
+        Row: {
+          created_at: string | null
+          customer_id: string
+          event_date: string
+          event_name: string
+          event_type: string
+          id: string
+          notes: string | null
+          recurring: boolean | null
+          reminder_days_before: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_id: string
+          event_date: string
+          event_name: string
+          event_type: string
+          id?: string
+          notes?: string | null
+          recurring?: boolean | null
+          reminder_days_before?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_id?: string
+          event_date?: string
+          event_name?: string
+          event_type?: string
+          id?: string
+          notes?: string | null
+          recurring?: boolean | null
+          reminder_days_before?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_events_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_follow_ups: {
+        Row: {
+          assigned_to: string | null
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string | null
+          created_by: string | null
+          customer_id: string
+          description: string | null
+          follow_up_type: string
+          id: string
+          notes: string | null
+          scheduled_date: string
+          status: string | null
+          subject: string
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          customer_id: string
+          description?: string | null
+          follow_up_type: string
+          id?: string
+          notes?: string | null
+          scheduled_date: string
+          status?: string | null
+          subject: string
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          customer_id?: string
+          description?: string | null
+          follow_up_type?: string
+          id?: string
+          notes?: string | null
+          scheduled_date?: string
+          status?: string | null
+          subject?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_follow_ups_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_follow_ups_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_insurance: {
         Row: {
           coverage_percentage: number | null
@@ -127,6 +425,114 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      customer_interactions: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          customer_id: string
+          description: string | null
+          employee_id: string | null
+          follow_up_date: string | null
+          id: string
+          interaction_date: string | null
+          interaction_type: string
+          priority: string | null
+          resolution: string | null
+          status: string | null
+          subject: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          customer_id: string
+          description?: string | null
+          employee_id?: string | null
+          follow_up_date?: string | null
+          id?: string
+          interaction_date?: string | null
+          interaction_type: string
+          priority?: string | null
+          resolution?: string | null
+          status?: string | null
+          subject?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          customer_id?: string
+          description?: string | null
+          employee_id?: string | null
+          follow_up_date?: string | null
+          id?: string
+          interaction_date?: string | null
+          interaction_type?: string
+          priority?: string | null
+          resolution?: string | null
+          status?: string | null
+          subject?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_interactions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_interactions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_segments: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          discount_percentage: number | null
+          id: string
+          is_active: boolean | null
+          max_purchase_amount: number | null
+          min_purchase_amount: number | null
+          name: string
+          name_en: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          discount_percentage?: number | null
+          id?: string
+          is_active?: boolean | null
+          max_purchase_amount?: number | null
+          min_purchase_amount?: number | null
+          name: string
+          name_en?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          discount_percentage?: number | null
+          id?: string
+          is_active?: boolean | null
+          max_purchase_amount?: number | null
+          min_purchase_amount?: number | null
+          name?: string
+          name_en?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       customers: {
         Row: {
@@ -1046,6 +1452,78 @@ export type Database = {
           is_active?: boolean | null
           name?: string
           name_en?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      marketing_campaigns: {
+        Row: {
+          actual_cost: number | null
+          budget: number | null
+          campaign_number: string
+          campaign_type: string
+          conversion_count: number | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          discount_amount: number | null
+          discount_percentage: number | null
+          end_date: string | null
+          id: string
+          name: string
+          name_en: string | null
+          reached_customers_count: number | null
+          revenue_generated: number | null
+          start_date: string
+          status: string | null
+          target_customers_count: number | null
+          target_segment: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          actual_cost?: number | null
+          budget?: number | null
+          campaign_number: string
+          campaign_type: string
+          conversion_count?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          discount_amount?: number | null
+          discount_percentage?: number | null
+          end_date?: string | null
+          id?: string
+          name: string
+          name_en?: string | null
+          reached_customers_count?: number | null
+          revenue_generated?: number | null
+          start_date: string
+          status?: string | null
+          target_customers_count?: number | null
+          target_segment?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          actual_cost?: number | null
+          budget?: number | null
+          campaign_number?: string
+          campaign_type?: string
+          conversion_count?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          discount_amount?: number | null
+          discount_percentage?: number | null
+          end_date?: string | null
+          id?: string
+          name?: string
+          name_en?: string | null
+          reached_customers_count?: number | null
+          revenue_generated?: number | null
+          start_date?: string
+          status?: string | null
+          target_customers_count?: number | null
+          target_segment?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -3042,6 +3520,8 @@ export type Database = {
       }
     }
     Functions: {
+      generate_campaign_number: { Args: never; Returns: string }
+      generate_complaint_number: { Args: never; Returns: string }
       generate_employee_code: { Args: never; Returns: string }
       has_any_role: {
         Args: {

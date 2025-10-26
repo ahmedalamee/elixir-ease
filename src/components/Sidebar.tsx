@@ -32,7 +32,7 @@ const menuItems: MenuItem[] = [
   {
     title: "لوحة التحكم",
     icon: Home,
-    path: "/dashboard",
+    path: "/executive-dashboard",
   },
   {
     title: "المبيعات",
@@ -114,7 +114,13 @@ const menuItems: MenuItem[] = [
   {
     title: "التقارير",
     icon: BarChart3,
-    path: "/reports",
+    children: [
+      { title: "لوحة التحكم التنفيذية", path: "/executive-dashboard" },
+      { title: "تقارير المبيعات", path: "/sales-reports" },
+      { title: "تقارير المخزون", path: "/inventory/reports" },
+      { title: "تقارير POS", path: "/pos/reports" },
+      { title: "تقارير عامة", path: "/reports" },
+    ],
   },
   {
     title: "الموظفين",

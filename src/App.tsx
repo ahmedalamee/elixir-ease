@@ -29,6 +29,11 @@ import DefaultTaxes from "./pages/ProductSettings/DefaultTaxes";
 import BarcodeSettings from "./pages/ProductSettings/BarcodeSettings";
 import NotFound from "./pages/NotFound";
 import Accounting from "./pages/Accounting";
+import GeneralLedger from "./pages/GeneralLedger";
+import TrialBalance from "./pages/TrialBalance";
+import JournalEntryDetail from "./pages/JournalEntryDetail";
+import IncomeStatement from "./pages/IncomeStatement";
+import BalanceSheet from "./pages/BalanceSheet";
 import PriceLists from "./pages/PriceLists";
 import StockAlerts from "./pages/StockAlerts";
 import GoodsReceipts from "./pages/GoodsReceipts";
@@ -98,6 +103,11 @@ const AppContent = () => {
           <Route path="/product-settings/default-taxes" element={<DefaultTaxes />} />
           <Route path="/product-settings/barcode-settings" element={<BarcodeSettings />} />
           <Route path="/accounting" element={<Accounting />} />
+          <Route path="/general-ledger" element={<GeneralLedger />} />
+          <Route path="/trial-balance" element={<TrialBalance />} />
+          <Route path="/journal-entry/:id" element={<JournalEntryDetail />} />
+          <Route path="/income-statement" element={<IncomeStatement />} />
+          <Route path="/balance-sheet" element={<BalanceSheet />} />
           <Route path="/price-lists" element={<PriceLists />} />
           <Route path="/inventory/alerts" element={<StockAlerts />} />
           <Route path="/goods-receipts" element={<GoodsReceipts />} />

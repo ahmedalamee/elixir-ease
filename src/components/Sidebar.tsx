@@ -125,11 +125,11 @@ const menuItems: MenuItem[] = [
     title: "الحسابات العامة",
     icon: FileStack,
     children: [
-      { title: "المحاسبة العامة", path: "/accounting" },
-      { title: "دليل الحسابات", path: "/accounts/chart" },
-      { title: "القيود اليومية", path: "/accounts/journal" },
-      { title: "الأستاذ العام", path: "/accounts/ledger" },
-      { title: "ميزان المراجعة", path: "/accounts/trial-balance" },
+      { title: "قيود اليومية", path: "/accounting" },
+      { title: "الأستاذ العام", path: "/general-ledger" },
+      { title: "ميزان المراجعة", path: "/trial-balance" },
+      { title: "قائمة الدخل", path: "/income-statement" },
+      { title: "الميزانية العمومية", path: "/balance-sheet" },
     ],
   },
   {

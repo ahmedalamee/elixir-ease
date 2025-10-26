@@ -425,7 +425,7 @@ const Accounting = () => {
         <TabsContent value="journal" className="space-y-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>قيود اليومية</CardTitle>
+              <CardTitle>قيود اليومية (آخر 50 قيد)</CardTitle>
               <Dialog open={isJournalDialogOpen} onOpenChange={setIsJournalDialogOpen}>
                 <DialogTrigger asChild>
                   <Button>
@@ -548,6 +548,7 @@ const Accounting = () => {
                     <TableHead>المدين</TableHead>
                     <TableHead>الدائن</TableHead>
                     <TableHead>الحالة</TableHead>
+                    <TableHead>الإجراءات</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -560,6 +561,15 @@ const Accounting = () => {
                       <TableCell>{entry.total_credit.toFixed(2)}</TableCell>
                       <TableCell>
                         {entry.status === "draft" ? "مسودة" : entry.status === "posted" ? "مرحّل" : "ملغي"}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.location.href = `/journal-entry/${entry.id}`}
+                        >
+                          عرض
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}

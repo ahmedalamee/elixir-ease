@@ -197,6 +197,53 @@ export type Database = {
           },
         ]
       }
+      document_gl_entries: {
+        Row: {
+          created_at: string | null
+          document_amount: number
+          document_id: string
+          document_number: string
+          document_type: string
+          error_message: string | null
+          id: string
+          journal_entry_id: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          document_amount: number
+          document_id: string
+          document_number: string
+          document_type: string
+          error_message?: string | null
+          id?: string
+          journal_entry_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          document_amount?: number
+          document_id?: string
+          document_number?: string
+          document_type?: string
+          error_message?: string | null
+          id?: string
+          journal_entry_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_gl_entries_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_numbering_rules: {
         Row: {
           created_at: string | null

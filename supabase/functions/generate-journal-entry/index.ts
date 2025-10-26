@@ -1,0 +1,269 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+interface JournalEntryLine {
+  account_id: string;
+  debit_amount: number;
+  credit_amount: number;
+  description: string;
+}
+
+interface GenerateJournalEntryRequest {
+  document_type: 'sales_invoice' | 'purchase_invoice' | 'customer_payment' | 'supplier_payment';
+  document_id: string;
+  document_number: string;
+  document_date: string;
+  amount: number;
+  customer_id?: string;
+  supplier_id?: string;
+  payment_method?: string;
+}
+
+Deno.serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    const requestData: GenerateJournalEntryRequest = await req.json();
+    console.log('Generating journal entry for:', requestData);
+
+    // التحقق من البيانات المطلوبة
+    if (!requestData.document_type || !requestData.document_id || !requestData.amount) {
+      throw new Error('Missing required fields: document_type, document_id, or amount');
+    }
+
+    // الحصول على قواعد الترحيل
+    const { data: postingRules, error: rulesError } = await supabase
+      .from('posting_rules')
+      .select('*')
+      .eq('document_type', requestData.document_type)
+      .eq('is_active', true);
+
+    if (rulesError) {
+      console.error('Error fetching posting rules:', rulesError);
+      throw rulesError;
+    }
+
+    if (!postingRules || postingRules.length === 0) {
+      throw new Error(`No active posting rules found for document type: ${requestData.document_type}`);
+    }
+
+    // إنشاء بنود القيد المحاسبي
+    const journalLines: JournalEntryLine[] = [];
+    
+    switch (requestData.document_type) {
+      case 'sales_invoice':
+        // مدين: العملاء (المدينون)
+        const receivablesRule = postingRules.find(r => r.account_type === 'receivables');
+        if (receivablesRule && receivablesRule.debit_account_id) {
+          journalLines.push({
+            account_id: receivablesRule.debit_account_id,
+            debit_amount: requestData.amount,
+            credit_amount: 0,
+            description: `فاتورة مبيعات رقم ${requestData.document_number}`,
+          });
+        }
+
+        // دائن: المبيعات
+        const revenueRule = postingRules.find(r => r.account_type === 'revenue');
+        if (revenueRule && revenueRule.credit_account_id) {
+          journalLines.push({
+            account_id: revenueRule.credit_account_id,
+            debit_amount: 0,
+            credit_amount: requestData.amount,
+            description: `فاتورة مبيعات رقم ${requestData.document_number}`,
+          });
+        }
+        break;
+
+      case 'purchase_invoice':
+        // مدين: المخزون
+        const inventoryRule = postingRules.find(r => r.account_type === 'inventory');
+        if (inventoryRule && inventoryRule.debit_account_id) {
+          journalLines.push({
+            account_id: inventoryRule.debit_account_id,
+            debit_amount: requestData.amount,
+            credit_amount: 0,
+            description: `فاتورة مشتريات رقم ${requestData.document_number}`,
+          });
+        }
+
+        // دائن: الموردين (الدائنون)
+        const payablesRule = postingRules.find(r => r.account_type === 'payables');
+        if (payablesRule && payablesRule.credit_account_id) {
+          journalLines.push({
+            account_id: payablesRule.credit_account_id,
+            debit_amount: 0,
+            credit_amount: requestData.amount,
+            description: `فاتورة مشتريات رقم ${requestData.document_number}`,
+          });
+        }
+        break;
+
+      case 'customer_payment':
+        // مدين: الصندوق أو البنك
+        const paymentMethod = requestData.payment_method || 'cash';
+        const cashBankRule = postingRules.find(r => 
+          paymentMethod === 'cash' ? r.account_type === 'cash' : r.account_type === 'bank'
+        );
+        if (cashBankRule && cashBankRule.debit_account_id) {
+          journalLines.push({
+            account_id: cashBankRule.debit_account_id,
+            debit_amount: requestData.amount,
+            credit_amount: 0,
+            description: `سداد من عميل - ${requestData.document_number}`,
+          });
+        }
+
+        // دائن: العملاء (المدينون)
+        const customerReceivablesRule = postingRules.find(r => r.account_type === 'receivables');
+        if (customerReceivablesRule && customerReceivablesRule.credit_account_id) {
+          journalLines.push({
+            account_id: customerReceivablesRule.credit_account_id,
+            debit_amount: 0,
+            credit_amount: requestData.amount,
+            description: `سداد من عميل - ${requestData.document_number}`,
+          });
+        }
+        break;
+
+      case 'supplier_payment':
+        // مدين: الموردين (الدائنون)
+        const supplierPayablesRule = postingRules.find(r => r.account_type === 'payables');
+        if (supplierPayablesRule && supplierPayablesRule.debit_account_id) {
+          journalLines.push({
+            account_id: supplierPayablesRule.debit_account_id,
+            debit_amount: requestData.amount,
+            credit_amount: 0,
+            description: `سداد لمورد - ${requestData.document_number}`,
+          });
+        }
+
+        // دائن: الصندوق أو البنك
+        const supplierPaymentMethod = requestData.payment_method || 'cash';
+        const supplierCashBankRule = postingRules.find(r => 
+          supplierPaymentMethod === 'cash' ? r.account_type === 'cash' : r.account_type === 'bank'
+        );
+        if (supplierCashBankRule && supplierCashBankRule.credit_account_id) {
+          journalLines.push({
+            account_id: supplierCashBankRule.credit_account_id,
+            debit_amount: 0,
+            credit_amount: requestData.amount,
+            description: `سداد لمورد - ${requestData.document_number}`,
+          });
+        }
+        break;
+    }
+
+    if (journalLines.length === 0) {
+      throw new Error('No journal lines generated. Check posting rules configuration.');
+    }
+
+    // التحقق من توازن القيد
+    const totalDebit = journalLines.reduce((sum, line) => sum + line.debit_amount, 0);
+    const totalCredit = journalLines.reduce((sum, line) => sum + line.credit_amount, 0);
+
+    if (Math.abs(totalDebit - totalCredit) > 0.01) {
+      throw new Error(`Journal entry not balanced. Debit: ${totalDebit}, Credit: ${totalCredit}`);
+    }
+
+    // إنشاء القيد المحاسبي
+    const { data: journalEntry, error: entryError } = await supabase
+      .from('journal_entries')
+      .insert({
+        entry_number: `AUTO-${requestData.document_number}`,
+        entry_date: requestData.document_date,
+        reference_type: requestData.document_type,
+        reference_id: requestData.document_id,
+        description: `قيد تلقائي - ${requestData.document_type} - ${requestData.document_number}`,
+        total_debit: totalDebit,
+        total_credit: totalCredit,
+        status: 'draft',
+      })
+      .select()
+      .single();
+
+    if (entryError) {
+      console.error('Error creating journal entry:', entryError);
+      throw entryError;
+    }
+
+    console.log('Journal entry created:', journalEntry);
+
+    // إنشاء بنود القيد
+    const linesWithEntryId = journalLines.map((line, index) => ({
+      entry_id: journalEntry.id,
+      line_no: index + 1,
+      ...line,
+    }));
+
+    const { error: linesError } = await supabase
+      .from('journal_entry_lines')
+      .insert(linesWithEntryId);
+
+    if (linesError) {
+      console.error('Error creating journal entry lines:', linesError);
+      // حذف القيد إذا فشل إنشاء البنود
+      await supabase.from('journal_entries').delete().eq('id', journalEntry.id);
+      throw linesError;
+    }
+
+    // تسجيل الربط بين المستند والقيد
+    const { error: linkError } = await supabase
+      .from('document_gl_entries')
+      .insert({
+        document_type: requestData.document_type,
+        document_id: requestData.document_id,
+        document_number: requestData.document_number,
+        journal_entry_id: journalEntry.id,
+        document_amount: requestData.amount,
+        status: 'posted',
+      });
+
+    if (linkError) {
+      console.error('Error linking document to journal entry:', linkError);
+    }
+
+    console.log('Journal entry generated successfully');
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        journal_entry_id: journalEntry.id,
+        entry_number: journalEntry.entry_number,
+        total_debit: totalDebit,
+        total_credit: totalCredit,
+        lines_count: journalLines.length,
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      }
+    );
+  } catch (error) {
+    console.error('Error in generate-journal-entry function:', error);
+    
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: errorMessage,
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      }
+    );
+  }
+});

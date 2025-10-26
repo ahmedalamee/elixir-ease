@@ -50,6 +50,7 @@ import PaymentMethods from "./pages/PaymentMethods";
 import SalesInvoices from "./pages/SalesInvoices";
 import NewSalesInvoice from "./pages/NewSalesInvoice";
 import Expenses from "./pages/Expenses";
+import AccountingIntegration from "./pages/AccountingIntegration";
 
 const queryClient = new QueryClient();
 
@@ -127,6 +128,7 @@ const AppContent = () => {
           <Route path="/sales/invoices" element={<SalesInvoices />} />
           <Route path="/sales/new-invoice" element={<NewSalesInvoice />} />
           <Route path="/finance/expenses" element={<Expenses />} />
+          <Route path="/accounting-integration" element={<AccountingIntegration />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

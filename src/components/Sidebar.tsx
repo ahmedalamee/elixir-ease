@@ -101,6 +101,7 @@ const menuItems: MenuItem[] = [
       { title: "ميزان المراجعة", path: "/trial-balance" },
       { title: "قائمة الدخل", path: "/income-statement" },
       { title: "الميزانية العمومية", path: "/balance-sheet" },
+      { title: "التكامل المحاسبي", path: "/accounting-integration" },
     ],
   },
   {

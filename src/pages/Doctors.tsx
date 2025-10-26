@@ -60,12 +60,12 @@ const Doctors = () => {
   const fetchDoctors = async () => {
     try {
       const { data, error } = await supabase
-        .from('doctors' as any)
+        .from('doctors')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setDoctors(data as any || []);
+      setDoctors(data || []);
     } catch (error) {
       console.error('Error fetching doctors:', error);
       toast.error('حدث خطأ في تحميل الأطباء');
@@ -81,7 +81,7 @@ const Doctors = () => {
     try {
       if (editingDoctor) {
         const { error } = await supabase
-          .from('doctors' as any)
+          .from('doctors')
           .update(formData)
           .eq('id', editingDoctor.id);
 
@@ -89,10 +89,10 @@ const Doctors = () => {
         toast.success('تم تحديث الطبيب بنجاح');
       } else {
         // Generate doctor code
-        const { data: codeData } = await supabase.rpc('generate_doctor_code' as any);
+        const { data: codeData } = await supabase.rpc('generate_doctor_code');
         
         const { error } = await supabase
-          .from('doctors' as any)
+          .from('doctors')
           .insert([{
             ...formData,
             doctor_code: codeData,
@@ -118,7 +118,7 @@ const Doctors = () => {
 
     try {
       const { error } = await supabase
-        .from('doctors' as any)
+        .from('doctors')
         .delete()
         .eq('id', id);
 

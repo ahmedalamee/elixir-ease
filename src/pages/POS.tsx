@@ -301,12 +301,33 @@ const POS = () => {
 
       if (itemsError) throw itemsError;
 
-      // تحديث المخزون
+      // تحديث المخزون بشكل آمن (يمنع race conditions)
       for (const item of cart) {
-        await supabase
-          .from("products")
-          .update({ quantity: item.quantity - item.cartQuantity })
-          .eq("id", item.id);
+        const { data: result, error: stockError } = await (supabase as any)
+          .rpc('decrement_product_quantity', {
+            product_id: item.id,
+            quantity_to_remove: item.cartQuantity
+          });
+
+        if (stockError || !result?.[0]?.success) {
+          // التراجع عن الفاتورة في حالة فشل تحديث المخزون
+          await (supabase as any)
+            .from("sales_invoices")
+            .delete()
+            .eq("id", invoiceData.id);
+          
+          await (supabase as any)
+            .from("si_items")
+            .delete()
+            .eq("si_id", invoiceData.id);
+
+          toast({
+            title: "فشلت العملية",
+            description: result?.[0]?.message || "فشل في تحديث المخزون",
+            variant: "destructive",
+          });
+          return;
+        }
       }
 
       // تحديث الجلسة النقدية

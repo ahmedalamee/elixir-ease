@@ -8,6 +8,15 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Navbar } from "@/components/Navbar";
 import { User, Lock, Mail, Phone } from "lucide-react";
+import { z } from "zod";
+
+// Password validation schema with strong security requirements
+const passwordSchema = z.string()
+  .min(8, "كلمة المرور يجب أن تكون 8 أحرف على الأقل")
+  .regex(/[A-Z]/, "كلمة المرور يجب أن تحتوي على حرف كبير واحد على الأقل")
+  .regex(/[a-z]/, "كلمة المرور يجب أن تحتوي على حرف صغير واحد على الأقل")
+  .regex(/[0-9]/, "كلمة المرور يجب أن تحتوي على رقم واحد على الأقل")
+  .regex(/[^A-Za-z0-9]/, "كلمة المرور يجب أن تحتوي على رمز خاص واحد على الأقل (!@#$%^&*)");
 
 export default function AccountSettings() {
   const navigate = useNavigate();
@@ -87,13 +96,18 @@ export default function AccountSettings() {
       return;
     }
 
-    if (passwordData.newPassword.length < 6) {
-      toast({
-        title: "خطأ",
-        description: "كلمة المرور يجب أن تكون 6 أحرف على الأقل",
-        variant: "destructive",
-      });
-      return;
+    // Validate password strength using zod schema
+    try {
+      passwordSchema.parse(passwordData.newPassword);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast({
+          title: "كلمة مرور ضعيفة",
+          description: error.errors[0].message,
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     setLoading(true);
@@ -249,6 +263,9 @@ export default function AccountSettings() {
                     placeholder="أدخل كلمة المرور الجديدة"
                   />
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  يجب أن تحتوي على: 8 أحرف على الأقل، حرف كبير، حرف صغير، رقم، ورمز خاص
+                </p>
               </div>
 
               <div className="space-y-2">

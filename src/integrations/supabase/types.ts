@@ -4381,6 +4381,11 @@ export type Database = {
         Returns: boolean
       }
       is_document_posted: { Args: { doc_status: string }; Returns: boolean }
+      validate_admin_action: { Args: never; Returns: boolean }
+      validate_role_action: {
+        Args: { required_roles: Database["public"]["Enums"]["app_role"][] }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "pharmacist" | "cashier" | "inventory_manager"

@@ -3814,34 +3814,55 @@ export type Database = {
         Row: {
           address: string | null
           balance: number | null
+          code: string | null
+          contact_person: string | null
           created_at: string | null
           credit_limit: number | null
           email: string | null
           id: string
+          is_active: boolean | null
           name: string
+          name_en: string | null
+          notes: string | null
+          payment_terms: string | null
           phone: string | null
+          tax_number: string | null
           updated_at: string | null
         }
         Insert: {
           address?: string | null
           balance?: number | null
+          code?: string | null
+          contact_person?: string | null
           created_at?: string | null
           credit_limit?: number | null
           email?: string | null
           id?: string
+          is_active?: boolean | null
           name: string
+          name_en?: string | null
+          notes?: string | null
+          payment_terms?: string | null
           phone?: string | null
+          tax_number?: string | null
           updated_at?: string | null
         }
         Update: {
           address?: string | null
           balance?: number | null
+          code?: string | null
+          contact_person?: string | null
           created_at?: string | null
           credit_limit?: number | null
           email?: string | null
           id?: string
+          is_active?: boolean | null
           name?: string
+          name_en?: string | null
+          notes?: string | null
+          payment_terms?: string | null
           phone?: string | null
+          tax_number?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -4366,6 +4387,7 @@ export type Database = {
       generate_doctor_code: { Args: never; Returns: string }
       generate_employee_code: { Args: never; Returns: string }
       generate_prescription_number: { Args: never; Returns: string }
+      generate_supplier_code: { Args: never; Returns: string }
       has_any_role: {
         Args: {
           _roles: Database["public"]["Enums"]["app_role"][]

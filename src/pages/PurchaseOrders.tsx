@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Plus, FileText, Eye, Trash2, Check, X } from 'lucide-react';
+import { Plus, FileText, Eye, Trash2, Check, X, Search, Filter } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface PurchaseOrder {
@@ -44,6 +44,7 @@ interface POItem {
 
 export default function PurchaseOrders() {
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
+  const [filteredOrders, setFilteredOrders] = useState<PurchaseOrder[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
@@ -54,11 +55,17 @@ export default function PurchaseOrders() {
   const [selectedOrder, setSelectedOrder] = useState<PurchaseOrder | null>(null);
   const [selectedOrderItems, setSelectedOrderItems] = useState<any[]>([]);
 
+  // Filter states
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [supplierFilter, setSupplierFilter] = useState('all');
+
   // Form states
   const [supplierId, setSupplierId] = useState('');
   const [warehouseId, setWarehouseId] = useState('');
   const [expectedDate, setExpectedDate] = useState('');
   const [notes, setNotes] = useState('');
+  const [paymentTerms, setPaymentTerms] = useState('');
   const [items, setItems] = useState<POItem[]>([]);
 
   useEffect(() => {
@@ -70,12 +77,40 @@ export default function PurchaseOrders() {
     fetchTaxes();
   }, []);
 
+  useEffect(() => {
+    filterOrders();
+  }, [orders, statusFilter, searchTerm, supplierFilter]);
+
+  const filterOrders = () => {
+    let filtered = [...orders];
+
+    // Filter by status
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(order => order.status === statusFilter);
+    }
+
+    // Filter by supplier
+    if (supplierFilter !== 'all') {
+      filtered = filtered.filter(order => order.supplier_id === supplierFilter);
+    }
+
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter(order =>
+        order.po_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.suppliers?.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    setFilteredOrders(filtered);
+  };
+
   const fetchOrders = async () => {
     const { data, error } = await supabase
       .from('purchase_orders')
       .select(`
         *,
-        suppliers(name),
+        suppliers(name, phone, email, contact_person),
         warehouses(name)
       `)
       .order('created_at', { ascending: false });
@@ -91,7 +126,8 @@ export default function PurchaseOrders() {
   const fetchSuppliers = async () => {
     const { data } = await supabase
       .from('suppliers')
-      .select('id, name')
+      .select('id, name, code, phone, email, contact_person, payment_terms')
+      .eq('is_active', true)
       .order('name');
     setSuppliers(data || []);
   };
@@ -229,6 +265,7 @@ export default function PurchaseOrders() {
         supplier_id: supplierId,
         warehouse_id: warehouseId,
         expected_date: expectedDate || null,
+        payment_terms: paymentTerms || null,
         notes,
         subtotal,
         tax_amount: taxAmount,
@@ -336,9 +373,12 @@ export default function PurchaseOrders() {
     setSupplierId('');
     setWarehouseId('');
     setExpectedDate('');
+    setPaymentTerms('');
     setNotes('');
     setItems([]);
   };
+
+  const selectedSupplier = suppliers.find(s => s.id === supplierId);
 
   const { subtotal, taxAmount, total } = calculateTotals();
 
@@ -358,6 +398,77 @@ export default function PurchaseOrders() {
             </Button>
           </CardHeader>
           <CardContent>
+            {/* Filters Section */}
+            <div className="mb-6 space-y-4">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Filter className="h-4 w-4" />
+                <span>تصفية النتائج</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label>البحث</Label>
+                  <div className="relative">
+                    <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="رقم الأمر أو اسم المورد..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pr-10"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label>الحالة</Label>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="كل الحالات" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">كل الحالات</SelectItem>
+                      <SelectItem value="draft">مسودة</SelectItem>
+                      <SelectItem value="submitted">مقدم</SelectItem>
+                      <SelectItem value="approved">معتمد</SelectItem>
+                      <SelectItem value="partial">جزئي</SelectItem>
+                      <SelectItem value="completed">مكتمل</SelectItem>
+                      <SelectItem value="cancelled">ملغي</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>المورد</Label>
+                  <Select value={supplierFilter} onValueChange={setSupplierFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="كل الموردين" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">كل الموردين</SelectItem>
+                      {suppliers.map((supplier) => (
+                        <SelectItem key={supplier.id} value={supplier.id}>
+                          {supplier.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>عدد النتائج: {filteredOrders.length}</span>
+                {(statusFilter !== 'all' || searchTerm || supplierFilter !== 'all') && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setStatusFilter('all');
+                      setSearchTerm('');
+                      setSupplierFilter('all');
+                    }}
+                  >
+                    إعادة تعيين الفلاتر
+                  </Button>
+                )}
+              </div>
+            </div>
+
             <Table>
               <TableHeader>
                 <TableRow>
@@ -371,7 +482,7 @@ export default function PurchaseOrders() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {orders.map((order) => (
+                {filteredOrders.map((order) => (
                   <TableRow key={order.id}>
                     <TableCell className="font-medium">{order.po_number}</TableCell>
                     <TableCell>{order.suppliers?.name}</TableCell>
@@ -396,6 +507,11 @@ export default function PurchaseOrders() {
               </TableBody>
             </Table>
 
+            {filteredOrders.length === 0 && orders.length > 0 && (
+              <div className="text-center py-12 text-muted-foreground">
+                لا توجد نتائج مطابقة للفلاتر المحددة
+              </div>
+            )}
             {orders.length === 0 && (
               <div className="text-center py-12 text-muted-foreground">
                 لا توجد أوامر شراء حتى الآن
@@ -421,7 +537,7 @@ export default function PurchaseOrders() {
                     <SelectContent>
                       {suppliers.map((supplier) => (
                         <SelectItem key={supplier.id} value={supplier.id}>
-                          {supplier.name}
+                          {supplier.name} {supplier.code && `(${supplier.code})`}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -443,9 +559,46 @@ export default function PurchaseOrders() {
                   </Select>
                 </div>
               </div>
-              <div>
-                <Label>التاريخ المتوقع</Label>
-                <Input type="date" value={expectedDate} onChange={(e) => setExpectedDate(e.target.value)} />
+
+              {/* Supplier Info Card */}
+              {selectedSupplier && (
+                <Card className="bg-muted/50">
+                  <CardContent className="pt-4">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">جهة الاتصال:</span>
+                        <p className="font-medium">{selectedSupplier.contact_person || '-'}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">الهاتف:</span>
+                        <p className="font-medium">{selectedSupplier.phone || '-'}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">البريد:</span>
+                        <p className="font-medium">{selectedSupplier.email || '-'}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">شروط الدفع:</span>
+                        <p className="font-medium">{selectedSupplier.payment_terms || '-'}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>التاريخ المتوقع</Label>
+                  <Input type="date" value={expectedDate} onChange={(e) => setExpectedDate(e.target.value)} />
+                </div>
+                <div>
+                  <Label>شروط الدفع</Label>
+                  <Input 
+                    placeholder="مثال: 30 يوم" 
+                    value={paymentTerms} 
+                    onChange={(e) => setPaymentTerms(e.target.value)} 
+                  />
+                </div>
               </div>
               <div>
                 <Label>ملاحظات</Label>

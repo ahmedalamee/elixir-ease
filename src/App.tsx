@@ -71,6 +71,7 @@ import PharmacyReports from "./pages/PharmacyReports";
 import RolesManagement from "./pages/RolesManagement";
 import EmployeeReports from "./pages/EmployeeReports";
 import AccountSettings from "./pages/AccountSettings";
+import RolesPermissions from "./pages/RolesPermissions";
 
 const queryClient = new QueryClient();
 
@@ -167,6 +168,7 @@ const AppContent = () => {
           <Route path="/drug-interactions" element={<DrugInteractions />} />
           <Route path="/pharmacy-reports" element={<PharmacyReports />} />
           <Route path="/roles-management" element={<RolesManagement />} />
+          <Route path="/roles-permissions" element={<RolesPermissions />} />
           <Route path="/employee-reports" element={<EmployeeReports />} />
           <Route path="/account-settings" element={<AccountSettings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

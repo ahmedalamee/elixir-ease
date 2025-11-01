@@ -2331,6 +2331,45 @@ export type Database = {
         }
         Relationships: []
       }
+      permissions: {
+        Row: {
+          category: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          permission_key: string
+          permission_name: string
+          permission_name_en: string | null
+          sort_order: number | null
+          subcategory: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          permission_key: string
+          permission_name: string
+          permission_name_en?: string | null
+          sort_order?: number | null
+          subcategory?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          permission_key?: string
+          permission_name?: string
+          permission_name_en?: string | null
+          sort_order?: number | null
+          subcategory?: string | null
+        }
+        Relationships: []
+      }
       pi_items: {
         Row: {
           created_at: string | null
@@ -3419,6 +3458,84 @@ export type Database = {
           },
         ]
       }
+      role_permissions: {
+        Row: {
+          granted_at: string | null
+          granted_by: string | null
+          id: string
+          permission_id: string
+          role_id: string
+        }
+        Insert: {
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          permission_id: string
+          role_id: string
+        }
+        Update: {
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          permission_id?: string
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_permissions_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roles: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_system_role: boolean | null
+          role_name: string
+          role_name_en: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_system_role?: boolean | null
+          role_name: string
+          role_name_en?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_system_role?: boolean | null
+          role_name?: string
+          role_name_en?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       sale_items: {
         Row: {
           created_at: string | null
@@ -4026,6 +4143,38 @@ export type Database = {
         }
         Relationships: []
       }
+      user_custom_roles: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          id: string
+          role_id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          id?: string
+          role_id: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          id?: string
+          role_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_custom_roles_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           assigned_at: string | null
@@ -4382,12 +4531,27 @@ export type Database = {
       }
     }
     Functions: {
+      copy_role_permissions: {
+        Args: {
+          _copied_by: string
+          _source_role_id: string
+          _target_role_id: string
+        }
+        Returns: number
+      }
       generate_campaign_number: { Args: never; Returns: string }
       generate_complaint_number: { Args: never; Returns: string }
       generate_doctor_code: { Args: never; Returns: string }
       generate_employee_code: { Args: never; Returns: string }
       generate_prescription_number: { Args: never; Returns: string }
       generate_supplier_code: { Args: never; Returns: string }
+      get_role_permissions_count: {
+        Args: { _category?: string; _role_id: string }
+        Returns: {
+          active_count: number
+          total_count: number
+        }[]
+      }
       has_any_role: {
         Args: {
           _roles: Database["public"]["Enums"]["app_role"][]
@@ -4403,6 +4567,10 @@ export type Database = {
         Returns: boolean
       }
       is_document_posted: { Args: { doc_status: string }; Returns: boolean }
+      user_has_permission: {
+        Args: { _permission_key: string; _user_id: string }
+        Returns: boolean
+      }
       validate_admin_action: { Args: never; Returns: boolean }
       validate_role_action: {
         Args: { required_roles: Database["public"]["Enums"]["app_role"][] }

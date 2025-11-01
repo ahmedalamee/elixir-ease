@@ -149,6 +149,7 @@ const menuItems: MenuItem[] = [
       { title: "عرض الموظفين", path: "/user-management" },
       { title: "إدارة الموظفين", path: "/user-management" },
       { title: "الأدوار والصلاحيات", path: "/roles-management" },
+      { title: "إدارة الصلاحيات المتقدمة", path: "/roles-permissions" },
       { title: "تقارير الموظفين", path: "/employee-reports" },
     ],
   },

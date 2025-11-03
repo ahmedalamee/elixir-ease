@@ -104,40 +104,56 @@ const UserManagement = () => {
   const fetchEmployees = async () => {
     setLoading(true);
     try {
-      // Get all employees with their roles
+      // Get all employees
       const { data: employeesData, error: employeesError } = await supabase
         .from("employees")
-        .select(`
-          *,
-          user_roles (
-            id,
-            role
-          )
-        `)
+        .select("*")
+        .eq("is_active", true)
         .order("created_at", { ascending: false });
 
       if (employeesError) throw employeesError;
 
+      // Get all user roles
+      const { data: rolesData, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("id, user_id, role");
+
+      if (rolesError) throw rolesError;
+
+      // Map roles to user_id for quick lookup
+      const rolesMap = new Map();
+      rolesData?.forEach((role: any) => {
+        if (!rolesMap.has(role.user_id)) {
+          rolesMap.set(role.user_id, []);
+        }
+        rolesMap.get(role.user_id).push(role);
+      });
+
       // Format the data
-      const formattedEmployees = employeesData.map((emp: any) => ({
-        id: emp.id,
-        user_id: emp.user_id,
-        employee_code: emp.employee_code,
-        full_name: emp.full_name,
-        full_name_en: emp.full_name_en,
-        phone: emp.phone,
-        email: emp.email,
-        national_id: emp.national_id,
-        hire_date: emp.hire_date,
-        job_title: emp.job_title,
-        department: emp.department,
-        salary: emp.salary,
-        is_active: emp.is_active,
-        notes: emp.notes,
-        created_at: emp.created_at,
-        role: emp.user_roles?.[0]?.role,
-        role_id: emp.user_roles?.[0]?.id,
-      }));
+      const formattedEmployees = employeesData.map((emp: any) => {
+        const userRoles = rolesMap.get(emp.user_id) || [];
+        const primaryRole = userRoles[0];
+        
+        return {
+          id: emp.id,
+          user_id: emp.user_id,
+          employee_code: emp.employee_code,
+          full_name: emp.full_name,
+          full_name_en: emp.full_name_en,
+          phone: emp.phone,
+          email: emp.email,
+          national_id: emp.national_id,
+          hire_date: emp.hire_date,
+          job_title: emp.job_title,
+          department: emp.department,
+          salary: emp.salary,
+          is_active: emp.is_active,
+          notes: emp.notes,
+          created_at: emp.created_at,
+          role: primaryRole?.role,
+          role_id: primaryRole?.id,
+        };
+      });
 
       setEmployees(formattedEmployees);
     } catch (error: any) {

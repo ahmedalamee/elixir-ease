@@ -77,33 +77,46 @@ const RolesManagement = () => {
   const fetchEmployees = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // Get all active employees
+      const { data: employeesData, error: employeesError } = await supabase
         .from("employees")
-        .select(`
-          id,
-          employee_code,
-          full_name,
-          email,
-          user_id,
-          user_roles (
-            id,
-            role
-          )
-        `)
+        .select("id, employee_code, full_name, email, user_id")
         .eq("is_active", true)
         .order("full_name");
 
-      if (error) throw error;
+      if (employeesError) throw employeesError;
 
-      const formatted = data.map((emp: any) => ({
-        id: emp.id,
-        employee_code: emp.employee_code,
-        full_name: emp.full_name,
-        email: emp.email,
-        user_id: emp.user_id,
-        role: emp.user_roles?.[0]?.role,
-        role_id: emp.user_roles?.[0]?.id,
-      }));
+      // Get all user roles
+      const { data: rolesData, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("id, user_id, role");
+
+      if (rolesError) throw rolesError;
+
+      // Map roles to user_id for quick lookup
+      const rolesMap = new Map();
+      rolesData?.forEach((role: any) => {
+        if (!rolesMap.has(role.user_id)) {
+          rolesMap.set(role.user_id, []);
+        }
+        rolesMap.get(role.user_id).push(role);
+      });
+
+      // Format the data
+      const formatted = employeesData.map((emp: any) => {
+        const userRoles = rolesMap.get(emp.user_id) || [];
+        const primaryRole = userRoles[0];
+        
+        return {
+          id: emp.id,
+          employee_code: emp.employee_code,
+          full_name: emp.full_name,
+          email: emp.email,
+          user_id: emp.user_id,
+          role: primaryRole?.role,
+          role_id: primaryRole?.id,
+        };
+      });
 
       setEmployees(formatted);
     } catch (error: any) {

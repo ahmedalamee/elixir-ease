@@ -48,15 +48,16 @@ import PurchaseInvoices from "./pages/PurchaseInvoices";
 import Taxes from "./pages/Taxes";
 import Currencies from "./pages/Currencies";
 import InventorySettings from "./pages/InventorySettings";
+import CustomerPayments from "./pages/CustomerPayments";
+import SalesInvoices from "./pages/SalesInvoices";
+import NewSalesInvoice from "./pages/NewSalesInvoice";
+import SalesInvoiceView from "./pages/SalesInvoiceView";
 import WarehouseStock from "./pages/WarehouseStock";
 import CompanyProfile from "./pages/CompanyProfile";
 import UnitOfMeasures from "./pages/UnitOfMeasures";
 import StockMovements from "./pages/StockMovements";
 import InsuranceCompanies from "./pages/InsuranceCompanies";
 import PaymentMethods from "./pages/PaymentMethods";
-import SalesInvoices from "./pages/SalesInvoices";
-import NewSalesInvoice from "./pages/NewSalesInvoice";
-import SalesInvoiceView from "./pages/SalesInvoiceView";
 import Expenses from "./pages/Expenses";
 import AccountingIntegration from "./pages/AccountingIntegration";
 import CRMDashboard from "./pages/CRMDashboard";
@@ -156,6 +157,8 @@ const AppContent = () => {
           <Route path="/sales/invoices" element={<SalesInvoices />} />
           <Route path="/sales/new-invoice" element={<NewSalesInvoice />} />
           <Route path="/sales/invoice/:id" element={<SalesInvoiceView />} />
+          <Route path="/sales/payments" element={<CustomerPayments />} />
+          <Route path="/sales/reports" element={<SalesReports />} />
           <Route path="/finance/expenses" element={<Expenses />} />
           <Route path="/accounting-integration" element={<AccountingIntegration />} />
           <Route path="/crm-dashboard" element={<CRMDashboard />} />

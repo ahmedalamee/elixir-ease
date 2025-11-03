@@ -8,9 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, Save } from "lucide-react";
+import { Plus, Trash2, Save, Search, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface InvoiceItem {
   item_id: string;
@@ -36,11 +38,15 @@ const NewSalesInvoice = () => {
   const [warehouseId, setWarehouseId] = useState("");
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<InvoiceItem[]>([]);
+  const [paymentMethodId, setPaymentMethodId] = useState("");
+  const [paymentAmount, setPaymentAmount] = useState(0);
 
   // Product Selection Dialog
   const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState("");
   const [selectedQty, setSelectedQty] = useState(1);
+  const [productSearch, setProductSearch] = useState("");
+  const [stockWarnings, setStockWarnings] = useState<Record<string, string>>({});
 
   // Fetch customers
   const { data: customers } = useQuery({
@@ -97,6 +103,43 @@ const NewSalesInvoice = () => {
     },
   });
 
+  // Fetch payment methods
+  const { data: paymentMethods } = useQuery({
+    queryKey: ["payment-methods"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("payment_methods")
+        .select("*")
+        .eq("is_active", true)
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch stock levels for warehouse
+  const { data: stockLevels } = useQuery({
+    queryKey: ["stock-levels", warehouseId],
+    queryFn: async () => {
+      if (!warehouseId) return [];
+      const { data, error } = await supabase
+        .from("warehouse_stock")
+        .select("item_id, qty_on_hand")
+        .eq("warehouse_id", warehouseId);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!warehouseId,
+  });
+
+  // Filter products by search
+  const filteredProducts = products?.filter((p) =>
+    productSearch
+      ? p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+        p.barcode?.toLowerCase().includes(productSearch.toLowerCase())
+      : true
+  );
+
   // Calculate totals
   const subtotal = items.reduce((sum, item) => sum + item.line_total, 0);
   const totalDiscount = items.reduce((sum, item) => sum + item.discount_amount, 0);
@@ -109,12 +152,30 @@ const NewSalesInvoice = () => {
       return;
     }
 
+    if (!warehouseId) {
+      toast.error("الرجاء اختيار المستودع أولاً");
+      return;
+    }
+
     const product = products?.find((p) => p.id === selectedProductId);
     if (!product) return;
 
+    // Check stock availability
+    const stockLevel = stockLevels?.find((s) => s.item_id === selectedProductId);
+    const availableQty = stockLevel?.qty_on_hand || 0;
+    
+    if (selectedQty > availableQty) {
+      toast.error(`الكمية المتوفرة في المخزون: ${availableQty}`);
+      return;
+    }
+
+    // Get default tax - use first active tax if available
+    const defaultTax = taxes?.[0];
+    const taxRate = defaultTax?.rate || 0;
+    const taxCode = defaultTax?.tax_code || "";
+
     const unitPrice = product.price;
     const discountAmount = 0;
-    const taxRate = 0; // Default to 0 if no tax
     const lineSubtotal = selectedQty * unitPrice - discountAmount;
     const taxAmount = lineSubtotal * (taxRate / 100);
     const lineTotal = lineSubtotal + taxAmount;
@@ -127,7 +188,7 @@ const NewSalesInvoice = () => {
       unit_price: unitPrice,
       discount_percentage: 0,
       discount_amount: discountAmount,
-      tax_code: "",
+      tax_code: taxCode,
       tax_percentage: taxRate,
       tax_amount: taxAmount,
       line_total: lineTotal,
@@ -137,6 +198,7 @@ const NewSalesInvoice = () => {
     setIsAddItemDialogOpen(false);
     setSelectedProductId("");
     setSelectedQty(1);
+    setProductSearch("");
   };
 
   const handleRemoveItem = (index: number) => {
@@ -297,6 +359,35 @@ const NewSalesInvoice = () => {
                 onChange={(e) => setDueDate(e.target.value)}
               />
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="paymentMethod">طريقة الدفع</Label>
+              <Select value={paymentMethodId} onValueChange={setPaymentMethodId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر طريقة الدفع" />
+                </SelectTrigger>
+                <SelectContent>
+                  {paymentMethods?.map((method) => (
+                    <SelectItem key={method.id} value={method.id}>
+                      {method.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="paymentAmount">المبلغ المدفوع</Label>
+              <Input
+                id="paymentAmount"
+                type="number"
+                step="0.01"
+                min="0"
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(Number(e.target.value))}
+                placeholder="0.00"
+              />
+            </div>
           </div>
 
           {/* بنود الفاتورة */}
@@ -390,13 +481,37 @@ const NewSalesInvoice = () => {
           {/* ملاحظات */}
           <div className="space-y-2">
             <Label htmlFor="notes">ملاحظات</Label>
-            <Input
+            <Textarea
               id="notes"
               placeholder="أضف ملاحظات إضافية..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
+              rows={3}
             />
           </div>
+
+          {/* Payment Summary */}
+          {paymentAmount > 0 && items.length > 0 && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                <div className="space-y-1">
+                  <p>
+                    <strong>المبلغ الإجمالي:</strong> {totalAmount.toFixed(2)} ر.س
+                  </p>
+                  <p>
+                    <strong>المبلغ المدفوع:</strong> {paymentAmount.toFixed(2)} ر.س
+                  </p>
+                  <p>
+                    <strong>المتبقي:</strong>{" "}
+                    <span className={paymentAmount >= totalAmount ? "text-green-600" : "text-orange-600"}>
+                      {(totalAmount - paymentAmount).toFixed(2)} ر.س
+                    </span>
+                  </p>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* الأزرار */}
           <div className="flex gap-2 justify-end">
@@ -419,17 +534,34 @@ const NewSalesInvoice = () => {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
+              <Label>بحث عن المنتج (الاسم أو الباركود)</Label>
+              <div className="relative">
+                <Search className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="ابحث بالاسم أو الباركود..."
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                  className="pr-10"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
               <Label>المنتج</Label>
               <Select value={selectedProductId} onValueChange={setSelectedProductId}>
                 <SelectTrigger>
                   <SelectValue placeholder="اختر المنتج" />
                 </SelectTrigger>
                 <SelectContent>
-                  {products?.map((product) => (
-                    <SelectItem key={product.id} value={product.id}>
-                      {product.name} - {product.price.toFixed(2)} ر.س
-                    </SelectItem>
-                  ))}
+                  {filteredProducts?.map((product) => {
+                    const stockLevel = stockLevels?.find((s) => s.item_id === product.id);
+                    const availableQty = stockLevel?.qty_on_hand || 0;
+                    return (
+                      <SelectItem key={product.id} value={product.id}>
+                        {product.name} - {product.price.toFixed(2)} ر.س (متوفر: {availableQty})
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>

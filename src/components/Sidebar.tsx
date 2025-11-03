@@ -40,6 +40,8 @@ const menuItems: MenuItem[] = [
     children: [
       { title: "إدارة الفواتير", path: "/sales/invoices" },
       { title: "إنشاء فاتورة", path: "/sales/new-invoice" },
+      { title: "مدفوعات العملاء", path: "/sales/payments" },
+      { title: "تقارير المبيعات", path: "/sales/reports" },
     ],
   },
   {

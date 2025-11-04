@@ -13,6 +13,8 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { Plus, Trash2, Save, Search, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CustomerCombobox } from "@/components/customers/CustomerCombobox";
+import { CustomerInfoCard } from "@/components/customers/CustomerInfoCard";
 
 interface InvoiceItem {
   item_id: string;
@@ -48,18 +50,7 @@ const NewSalesInvoice = () => {
   const [productSearch, setProductSearch] = useState("");
   const [stockWarnings, setStockWarnings] = useState<Record<string, string>>({});
 
-  // Fetch customers
-  const { data: customers } = useQuery({
-    queryKey: ["customers"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("customers")
-        .select("*")
-        .order("name");
-      if (error) throw error;
-      return data;
-    },
-  });
+  // Note: Customer fetching now handled by CustomerCombobox component
 
   // Fetch warehouses
   const { data: warehouses } = useQuery({
@@ -223,8 +214,9 @@ const NewSalesInvoice = () => {
       }
 
       // Get next invoice number
-      const { count } = await supabase
-        .from("stock_alerts")
+      // Generate invoice number
+      const { count } = await (supabase as any)
+        .from("sales_invoices")
         .select("*", { count: "exact", head: true });
       const invoiceNumber = `INV-${String((count || 0) + 1).padStart(6, "0")}`;
 
@@ -249,8 +241,7 @@ const NewSalesInvoice = () => {
         created_by: userData?.user?.id,
       };
 
-      // Note: This will fail until types are regenerated, but the logic is correct
-      // Insert invoice using any type to bypass type checking temporarily
+      // Insert invoice
       const { data: invoice, error: invoiceError } = await (supabase as any)
         .from("sales_invoices")
         .insert(invoiceData)
@@ -310,18 +301,11 @@ const NewSalesInvoice = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="customer">العميل *</Label>
-              <Select value={customerId} onValueChange={setCustomerId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر العميل" />
-                </SelectTrigger>
-                <SelectContent>
-                  {customers?.map((customer) => (
-                    <SelectItem key={customer.id} value={customer.id}>
-                      {customer.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <CustomerCombobox
+                value={customerId}
+                onValueChange={setCustomerId}
+                placeholder="ابحث عن عميل..."
+              />
             </div>
 
             <div className="space-y-2">
@@ -389,6 +373,11 @@ const NewSalesInvoice = () => {
               />
             </div>
           </div>
+
+          {/* عرض معلومات العميل */}
+          {customerId && customerId !== "walk-in" && (
+            <CustomerInfoCard customerId={customerId} />
+          )}
 
           {/* بنود الفاتورة */}
           <div className="space-y-4">

@@ -6,6 +6,8 @@ import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
   CardContent,
@@ -42,6 +44,8 @@ interface Customer {
   balance: number;
   loyalty_points: number;
   currency_code?: string;
+  is_active: boolean;
+  last_transaction_date: string | null;
   created_at: string;
 }
 
@@ -55,6 +59,7 @@ const Customers = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("active");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [formData, setFormData] = useState({
@@ -64,6 +69,7 @@ const Customers = () => {
     address: "",
     credit_limit: 0,
     currency_code: "SAR",
+    is_active: true,
   });
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -72,7 +78,7 @@ const Customers = () => {
     checkAuth();
     fetchCustomers();
     fetchCurrencies();
-  }, []);
+  }, [statusFilter]);
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -82,10 +88,12 @@ const Customers = () => {
   };
 
   const fetchCustomers = async () => {
-    const { data, error } = await supabase
+    const query = supabase
       .from("customers")
       .select("*")
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false }) as any;
+    
+    const { data, error } = await query;
 
     if (error) {
       toast({
@@ -94,7 +102,7 @@ const Customers = () => {
         variant: "destructive",
       });
     } else {
-      setCustomers(data || []);
+      setCustomers((data || []) as any);
     }
   };
 
@@ -182,6 +190,7 @@ const Customers = () => {
       address: "",
       credit_limit: 0,
       currency_code: "SAR",
+      is_active: true,
     });
     setEditingCustomer(null);
     setIsDialogOpen(false);
@@ -196,6 +205,7 @@ const Customers = () => {
       address: customer.address || "",
       credit_limit: customer.credit_limit,
       currency_code: customer.currency_code || "SAR",
+      is_active: customer.is_active,
     });
     setIsDialogOpen(true);
   };
@@ -332,8 +342,9 @@ const Customers = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="mb-4">
-              <div className="relative">
+            {/* Filters */}
+            <div className="mb-4 flex flex-col md:flex-row gap-4">
+              <div className="flex-1 relative">
                 <Search className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="البحث بالاسم، الهاتف أو البريد الإلكتروني..."
@@ -342,6 +353,18 @@ const Customers = () => {
                   className="pr-10"
                 />
               </div>
+              
+              <Tabs value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
+                <TabsList>
+                  <TabsTrigger value="all">الكل</TabsTrigger>
+                  <TabsTrigger value="active">نشط</TabsTrigger>
+                  <TabsTrigger value="inactive">غير نشط</TabsTrigger>
+                </TabsList>
+              </Tabs>
+
+              <Badge variant="outline" className="flex items-center gap-2">
+                {filteredCustomers.length} عميل
+              </Badge>
             </div>
 
             <div className="rounded-md border">
@@ -351,10 +374,10 @@ const Customers = () => {
                     <TableHead>الاسم</TableHead>
                     <TableHead>الهاتف</TableHead>
                     <TableHead>البريد الإلكتروني</TableHead>
-                    <TableHead>العملة</TableHead>
                     <TableHead>الرصيد</TableHead>
                     <TableHead>نقاط الولاء</TableHead>
-                    <TableHead>حد الائتمان</TableHead>
+                    <TableHead>آخر معاملة</TableHead>
+                    <TableHead>الحالة</TableHead>
                     <TableHead className="text-left">الإجراءات</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -365,12 +388,26 @@ const Customers = () => {
                         {customer.name}
                       </TableCell>
                       <TableCell>{customer.phone || "-"}</TableCell>
-                      <TableCell>{customer.email || "-"}</TableCell>
-                      <TableCell>{customer.currency_code || "SAR"}</TableCell>
-                      <TableCell>{customer.balance.toFixed(2)}</TableCell>
-                      <TableCell>{customer.loyalty_points}</TableCell>
+                      <TableCell className="text-sm">{customer.email || "-"}</TableCell>
                       <TableCell>
-                        {customer.credit_limit.toFixed(2)}
+                        <span className={customer.balance > 0 ? "text-red-600 font-medium" : ""}>
+                          {customer.balance.toFixed(2)} ر.س
+                        </span>
+                      </TableCell>
+                      <TableCell>{customer.loyalty_points}</TableCell>
+                      <TableCell className="text-sm">
+                        {customer.last_transaction_date
+                          ? new Date(customer.last_transaction_date).toLocaleDateString("ar-SA", {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })
+                          : "-"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={customer.is_active ? "default" : "secondary"}>
+                          {customer.is_active ? "نشط" : "غير نشط"}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-left">
                         <div className="flex gap-2">

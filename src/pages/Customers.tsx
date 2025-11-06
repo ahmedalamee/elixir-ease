@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/table";
 import { Plus, Edit, Trash, Search } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 
 interface Customer {
   id: string;
@@ -211,10 +212,17 @@ const Customers = () => {
   };
 
   const filteredCustomers = customers.filter(
-    (customer) =>
-      customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer.phone?.includes(searchTerm) ||
-      customer.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    (customer) => {
+      const matchesSearch = customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        customer.phone?.includes(searchTerm) ||
+        customer.email?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesStatus = statusFilter === "all" ? true :
+        statusFilter === "active" ? customer.is_active :
+        !customer.is_active;
+      
+      return matchesSearch && matchesStatus;
+    }
   );
 
   return (
@@ -323,6 +331,23 @@ const Customers = () => {
                           ))}
                         </SelectContent>
                       </Select>
+                    </div>
+                    <div className="flex items-center justify-between space-x-2">
+                      <Label htmlFor="is_active" className="cursor-pointer">
+                        حالة العميل
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">
+                          {formData.is_active ? "نشط" : "غير نشط"}
+                        </span>
+                        <Switch
+                          id="is_active"
+                          checked={formData.is_active}
+                          onCheckedChange={(checked) =>
+                            setFormData({ ...formData, is_active: checked })
+                          }
+                        />
+                      </div>
                     </div>
                     <div className="flex gap-2">
                       <Button type="submit" className="flex-1">

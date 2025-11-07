@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -74,6 +75,7 @@ const Customers = () => {
   });
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     checkAuth();
@@ -145,6 +147,10 @@ const Customers = () => {
           title: "تم التحديث بنجاح",
         });
         fetchCustomers();
+        // Invalidate all customer queries to refresh the data everywhere
+        queryClient.invalidateQueries({ 
+          predicate: (query) => query.queryKey[0] === "customers" 
+        });
         resetForm();
       }
     } else {
@@ -161,6 +167,10 @@ const Customers = () => {
           title: "تم الإضافة بنجاح",
         });
         fetchCustomers();
+        // Invalidate all customer queries to refresh the data everywhere
+        queryClient.invalidateQueries({ 
+          predicate: (query) => query.queryKey[0] === "customers" 
+        });
         resetForm();
       }
     }

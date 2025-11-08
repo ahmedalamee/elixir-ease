@@ -32,7 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Edit, Trash, Search } from "lucide-react";
+import { Plus, Edit, Trash, Search, Eye } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 
@@ -176,7 +176,13 @@ const Customers = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, name: string) => {
+    const confirmed = window.confirm(
+      `هل أنت متأكد من حذف العميل "${name}"؟\n\nتحذير: سيتم حذف جميع البيانات المرتبطة بهذا العميل.`
+    );
+
+    if (!confirmed) return;
+
     const { error } = await supabase.from("customers").delete().eq("id", id);
 
     if (error) {
@@ -190,6 +196,9 @@ const Customers = () => {
         title: "تم الحذف بنجاح",
       });
       fetchCustomers();
+      queryClient.invalidateQueries({ 
+        predicate: (query) => query.queryKey[0] === "customers" 
+      });
     }
   };
 
@@ -449,6 +458,13 @@ const Customers = () => {
                           <Button
                             size="sm"
                             variant="outline"
+                            onClick={() => navigate(`/customers/${customer.id}`)}
+                          >
+                            عرض
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
                             onClick={() => handleEdit(customer)}
                           >
                             <Edit className="h-4 w-4" />
@@ -456,7 +472,7 @@ const Customers = () => {
                           <Button
                             size="sm"
                             variant="destructive"
-                            onClick={() => handleDelete(customer.id)}
+                            onClick={() => handleDelete(customer.id, customer.name)}
                           >
                             <Trash className="h-4 w-4" />
                           </Button>

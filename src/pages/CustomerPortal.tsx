@@ -211,7 +211,13 @@ const CustomerPortal = () => {
 
         {/* Contact Information */}
         <Card className="p-6 card-elegant">
-          <h2 className="text-xl font-bold mb-4">البيانات الشخصية</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold">البيانات الشخصية</h2>
+            <Button variant="outline" size="sm" onClick={() => navigate(`/customers/${customer.id}`)}>
+              <User className="w-4 h-4 mr-2" />
+              عرض الملف الكامل
+            </Button>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex items-center gap-3">
               <Mail className="w-5 h-5 text-muted-foreground" />

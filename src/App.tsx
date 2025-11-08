@@ -73,6 +73,8 @@ import RolesManagement from "./pages/RolesManagement";
 import EmployeeReports from "./pages/EmployeeReports";
 import AccountSettings from "./pages/AccountSettings";
 import RolesPermissions from "./pages/RolesPermissions";
+import CustomerAuth from "./pages/CustomerAuth";
+import CustomerPortal from "./pages/CustomerPortal";
 
 const queryClient = new QueryClient();
 
@@ -96,7 +98,10 @@ const AppContent = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const showSidebar = isAuthenticated && location.pathname !== "/auth";
+  const showSidebar = isAuthenticated && 
+    location.pathname !== "/auth" && 
+    location.pathname !== "/customer-auth" && 
+    location.pathname !== "/customer-portal";
 
   if (loading) {
     return <div className="flex min-h-screen items-center justify-center">جاري التحميل...</div>;
@@ -109,6 +114,8 @@ const AppContent = () => {
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/customer-auth" element={<CustomerAuth />} />
+          <Route path="/customer-portal" element={<CustomerPortal />} />
           <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/pos" element={<POS />} />
             <Route path="/pos/reports" element={<POSReports />} />

@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   User, Phone, Mail, MapPin, CreditCard, TrendingUp, 
-  Calendar, FileText, DollarSign, ArrowLeft, Edit, AlertCircle 
+  FileText, DollarSign, ArrowLeft, Edit, AlertCircle 
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -51,63 +50,56 @@ interface Payment {
 const CustomerProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [customer, setCustomer] = useState<CustomerData | null>(null);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (id) {
-      fetchCustomerData();
-    }
-  }, [id]);
-
-  const fetchCustomerData = async () => {
-    try {
-      setLoading(true);
-
-      // Fetch customer
-      const { data: customerData, error: customerError } = await supabase
+  // Fetch customer data
+  const { data: customer, isLoading: customerLoading } = useQuery({
+    queryKey: ["customer", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
         .from("customers")
         .select("*")
-        .eq("id", id)
+        .eq("id", id!)
         .single();
 
-      if (customerError) throw customerError;
-      setCustomer(customerData as any);
+      if (error) throw error;
+      return data as CustomerData;
+    },
+    enabled: !!id,
+  });
 
-      // Fetch invoices
-      const { data: invoicesData, error: invoicesError } = await supabase
+  // Fetch invoices
+  const { data: invoices = [], isLoading: invoicesLoading } = useQuery({
+    queryKey: ["customer-invoices", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
         .from("sales_invoices")
-        .select("id, invoice_number, invoice_date, total_amount, paid_amount, status, payment_status")
-        .eq("customer_id", id)
-        .order("invoice_date", { ascending: false })
-        .limit(10);
+        .select("*")
+        .eq("customer_id", id!)
+        .order("invoice_date", { ascending: false });
 
-      if (invoicesError) throw invoicesError;
-      setInvoices(invoicesData || []);
+      if (error) throw error;
+      return data as Invoice[];
+    },
+    enabled: !!id,
+  });
 
-      // Fetch payments
-      const { data: paymentsData, error: paymentsError } = await supabase
+  // Fetch payments
+  const { data: payments = [], isLoading: paymentsLoading } = useQuery({
+    queryKey: ["customer-payments", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
         .from("customer_payments")
-        .select("id, payment_number, payment_date, amount, status")
-        .eq("customer_id", id)
-        .order("payment_date", { ascending: false })
-        .limit(10);
+        .select("*")
+        .eq("customer_id", id!)
+        .order("payment_date", { ascending: false });
 
-      if (paymentsError) throw paymentsError;
-      setPayments(paymentsData || []);
-    } catch (error: any) {
-      toast({
-        title: "خطأ في تحميل البيانات",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+      if (error) throw error;
+      return data as Payment[];
+    },
+    enabled: !!id,
+  });
+
+  const loading = customerLoading || invoicesLoading || paymentsLoading;
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", label: string }> = {
@@ -336,8 +328,8 @@ const CustomerProfile = () => {
                       {invoices.map((invoice) => (
                         <TableRow 
                           key={invoice.id}
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => navigate(`/sales/invoice/${invoice.id}`)}
+                          className="cursor-pointer hover:bg-muted/50 transition-colors"
+                          onClick={() => navigate(`/sales-invoice/${invoice.id}`)}
                         >
                           <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
                           <TableCell>{new Date(invoice.invoice_date).toLocaleDateString("ar-SA")}</TableCell>

@@ -1,20 +1,22 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { User, Phone, Mail, MapPin, CreditCard, TrendingUp, FileText, LogOut, Wallet } from "lucide-react";
+import { User, Phone, Mail, MapPin, CreditCard, TrendingUp, FileText, LogOut, Wallet, Edit } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EditCustomerInfoDialog } from "@/components/customers/EditCustomerInfoDialog";
 
 interface CustomerData {
   id: string;
   name: string;
   email: string;
-  phone: string;
-  address: string;
+  phone: string | null;
+  address: string | null;
   balance: number;
   credit_limit: number;
   loyalty_points: number;
@@ -31,58 +33,56 @@ interface Invoice {
 }
 
 const CustomerPortal = () => {
-  const [customer, setCustomer] = useState<CustomerData | null>(null);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
-  useEffect(() => {
-    checkAuthAndFetchData();
-  }, []);
-
-  const checkAuthAndFetchData = async () => {
-    try {
+  // Fetch customer data
+  const { data: customer, isLoading: customerLoading } = useQuery({
+    queryKey: ["customer-portal"],
+    queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      
       if (!session) {
         navigate("/customer-auth");
-        return;
+        return null;
       }
 
-      // Fetch customer data
-      const { data: customerData, error: customerError } = await supabase
+      const { data, error } = await supabase
         .from("customers")
         .select("*")
         .eq("user_id", session.user.id)
         .single();
 
-      if (customerError) throw customerError;
-      setCustomer(customerData);
+      if (error) throw error;
+      return data as CustomerData;
+    },
+  });
 
-      // Fetch customer invoices
-      const { data: invoicesData, error: invoicesError } = await supabase
+  // Fetch invoices
+  const { data: invoices = [], isLoading: invoicesLoading } = useQuery({
+    queryKey: ["customer-invoices", customer?.id],
+    queryFn: async () => {
+      if (!customer?.id) return [];
+
+      const { data, error } = await supabase
         .from("sales_invoices")
-        .select("id, invoice_number, invoice_date, total_amount, status, payment_status")
-        .eq("customer_id", customerData.id)
+        .select("*")
+        .eq("customer_id", customer.id)
         .order("invoice_date", { ascending: false })
         .limit(10);
 
-      if (invoicesError) throw invoicesError;
-      setInvoices(invoicesData || []);
-    } catch (error: any) {
-      toast({
-        title: "خطأ",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+      if (error) throw error;
+      return data as Invoice[];
+    },
+    enabled: !!customer?.id,
+  });
+
+  const loading = customerLoading || invoicesLoading;
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    queryClient.clear();
     navigate("/customer-auth");
   };
 
@@ -141,7 +141,7 @@ const CustomerPortal = () => {
   return (
     <div className="min-h-screen bg-background" dir="rtl">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary to-primary-hover text-white p-6 shadow-lg">
+      <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground p-6 shadow-lg">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-3">
@@ -160,7 +160,7 @@ const CustomerPortal = () => {
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         {/* Customer Info Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="p-6 card-elegant">
+          <Card className="p-6">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-primary/10 rounded-lg">
                 <Wallet className="w-6 h-6 text-primary" />
@@ -172,7 +172,7 @@ const CustomerPortal = () => {
             </div>
           </Card>
 
-          <Card className="p-6 card-elegant">
+          <Card className="p-6">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-accent/10 rounded-lg">
                 <CreditCard className="w-6 h-6 text-accent" />
@@ -184,7 +184,7 @@ const CustomerPortal = () => {
             </div>
           </Card>
 
-          <Card className="p-6 card-elegant">
+          <Card className="p-6">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-green-500/10 rounded-lg">
                 <TrendingUp className="w-6 h-6 text-green-600" />
@@ -196,7 +196,7 @@ const CustomerPortal = () => {
             </div>
           </Card>
 
-          <Card className="p-6 card-elegant">
+          <Card className="p-6">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-blue-500/10 rounded-lg">
                 <FileText className="w-6 h-6 text-blue-600" />
@@ -210,13 +210,19 @@ const CustomerPortal = () => {
         </div>
 
         {/* Contact Information */}
-        <Card className="p-6 card-elegant">
+        <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold">البيانات الشخصية</h2>
-            <Button variant="outline" size="sm" onClick={() => navigate(`/customers/${customer.id}`)}>
-              <User className="w-4 h-4 mr-2" />
-              عرض الملف الكامل
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setEditDialogOpen(true)}>
+                <Edit className="w-4 h-4 ml-2" />
+                تعديل البيانات
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => navigate(`/customers/${customer.id}`)}>
+                <User className="w-4 h-4 ml-2" />
+                عرض الملف الكامل
+              </Button>
+            </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex items-center gap-3">
@@ -244,7 +250,7 @@ const CustomerPortal = () => {
         </Card>
 
         {/* Invoices Table */}
-        <Card className="p-6 card-elegant">
+        <Card className="p-6">
           <h2 className="text-xl font-bold mb-4">فواتير المبيعات</h2>
           {invoices.length === 0 ? (
             <div className="text-center py-12">
@@ -265,7 +271,11 @@ const CustomerPortal = () => {
                 </TableHeader>
                 <TableBody>
                   {invoices.map((invoice) => (
-                    <TableRow key={invoice.id}>
+                    <TableRow 
+                      key={invoice.id}
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => navigate(`/sales-invoice/${invoice.id}`)}
+                    >
                       <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
                       <TableCell>{new Date(invoice.invoice_date).toLocaleDateString("ar-SA")}</TableCell>
                       <TableCell>{invoice.total_amount.toFixed(2)} ر.س</TableCell>
@@ -279,6 +289,19 @@ const CustomerPortal = () => {
           )}
         </Card>
       </div>
+
+      {customer && (
+        <EditCustomerInfoDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          customer={{
+            id: customer.id,
+            name: customer.name,
+            phone: customer.phone,
+            address: customer.address,
+          }}
+        />
+      )}
     </div>
   );
 };

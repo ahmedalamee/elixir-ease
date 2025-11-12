@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { User, Mail, Lock, Phone, MapPin } from "lucide-react";
+import { customerSchema } from "@/lib/validationSchemas";
+import { z } from "zod";
 
 const CustomerAuth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -29,6 +31,22 @@ const CustomerAuth = () => {
     }
   };
 
+  const validatePassword = (pass: string): string | null => {
+    if (pass.length < 8) {
+      return "كلمة المرور يجب أن تكون 8 أحرف على الأقل";
+    }
+    if (!/[A-Z]/.test(pass)) {
+      return "كلمة المرور يجب أن تحتوي على حرف كبير";
+    }
+    if (!/[a-z]/.test(pass)) {
+      return "كلمة المرور يجب أن تحتوي على حرف صغير";
+    }
+    if (!/[0-9]/.test(pass)) {
+      return "كلمة المرور يجب أن تحتوي على رقم";
+    }
+    return null;
+  };
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -47,8 +65,39 @@ const CustomerAuth = () => {
         });
         navigate("/customer-portal");
       } else {
+        // Validate password strength
+        const passwordError = validatePassword(password);
+        if (passwordError) {
+          toast({
+            title: "كلمة مرور ضعيفة",
+            description: passwordError,
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+
+        // Validate customer data
+        const customerData = {
+          name: name.trim(),
+          email: email.trim(),
+          phone: phone.trim() || null,
+          address: address.trim() || null,
+          credit_limit: 0,
+          loyalty_points: 0,
+        };
+
+        const validationSchema = customerSchema.pick({
+          name: true,
+          email: true,
+          phone: true,
+          address: true,
+        });
+
+        const validatedData = validationSchema.parse(customerData);
+
         const { data: authData, error: authError } = await supabase.auth.signUp({
-          email,
+          email: validatedData.email!,
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/customer-portal`,
@@ -58,20 +107,20 @@ const CustomerAuth = () => {
         if (authError) throw authError;
 
         if (authData.user) {
-          // Create customer record
+          // Create customer record with validated data
           const { error: customerError } = await supabase
             .from("customers")
-            .insert({
-              name,
-              email,
-              phone,
-              address,
+            .insert([{
+              name: validatedData.name,
+              email: validatedData.email || null,
+              phone: validatedData.phone || null,
+              address: validatedData.address || null,
               user_id: authData.user.id,
               balance: 0,
               credit_limit: 0,
               loyalty_points: 0,
               is_active: true,
-            });
+            }]);
 
           if (customerError) throw customerError;
 
@@ -83,11 +132,20 @@ const CustomerAuth = () => {
         }
       }
     } catch (error: any) {
-      toast({
-        title: "خطأ",
-        description: error.message,
-        variant: "destructive",
-      });
+      if (error instanceof z.ZodError) {
+        const firstError = error.errors[0];
+        toast({
+          title: "خطأ في البيانات",
+          description: firstError.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "خطأ",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -186,7 +244,13 @@ const CustomerAuth = () => {
               required
               className="input-medical"
               placeholder="••••••••"
+              minLength={8}
             />
+            {!isLogin && (
+              <p className="text-xs text-muted-foreground">
+                8 أحرف على الأقل، تحتوي على أحرف كبيرة وصغيرة وأرقام
+              </p>
+            )}
           </div>
 
           <Button

@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,16 +13,19 @@ interface JournalEntryLine {
   description: string;
 }
 
-interface GenerateJournalEntryRequest {
-  document_type: 'sales_invoice' | 'purchase_invoice' | 'customer_payment' | 'supplier_payment';
-  document_id: string;
-  document_number: string;
-  document_date: string;
-  amount: number;
-  customer_id?: string;
-  supplier_id?: string;
-  payment_method?: string;
-}
+// Request validation schema
+const RequestSchema = z.object({
+  document_type: z.enum(['sales_invoice', 'purchase_invoice', 'customer_payment', 'supplier_payment']),
+  document_id: z.string().uuid('معرف المستند يجب أن يكون UUID صالح'),
+  document_number: z.string().min(1, 'رقم المستند مطلوب').max(50, 'رقم المستند طويل جداً'),
+  document_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'تاريخ المستند يجب أن يكون بصيغة YYYY-MM-DD'),
+  amount: z.number().positive('المبلغ يجب أن يكون موجباً').max(10000000, 'المبلغ يتجاوز الحد الأقصى المسموح'),
+  customer_id: z.string().uuid().optional(),
+  supplier_id: z.string().uuid().optional(),
+  payment_method: z.string().max(50).optional(),
+});
+
+type GenerateJournalEntryRequest = z.infer<typeof RequestSchema>;
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
@@ -34,13 +38,30 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const requestData: GenerateJournalEntryRequest = await req.json();
-    console.log('Generating journal entry for:', requestData);
-
-    // التحقق من البيانات المطلوبة
-    if (!requestData.document_type || !requestData.document_id || !requestData.amount) {
-      throw new Error('Missing required fields: document_type, document_id, or amount');
+    // Parse and validate request
+    const rawData = await req.json();
+    let requestData: GenerateJournalEntryRequest;
+    
+    try {
+      requestData = RequestSchema.parse(rawData);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'بيانات غير صالحة',
+            details: error.errors.map(e => `${e.path.join('.')}: ${e.message}`),
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 400,
+          }
+        );
+      }
+      throw error;
     }
+
+    console.log('Generating journal entry for:', requestData.document_type, requestData.document_number);
 
     // الحصول على قواعد الترحيل
     const { data: postingRules, error: rulesError } = await supabase
@@ -51,11 +72,11 @@ Deno.serve(async (req) => {
 
     if (rulesError) {
       console.error('Error fetching posting rules:', rulesError);
-      throw rulesError;
+      throw new Error('خطأ في تكوين المحاسبة');
     }
 
     if (!postingRules || postingRules.length === 0) {
-      throw new Error(`No active posting rules found for document type: ${requestData.document_type}`);
+      throw new Error('خطأ في تكوين المحاسبة - اتصل بالمسؤول');
     }
 
     // إنشاء بنود القيد المحاسبي
@@ -166,7 +187,7 @@ Deno.serve(async (req) => {
     }
 
     if (journalLines.length === 0) {
-      throw new Error('No journal lines generated. Check posting rules configuration.');
+      throw new Error('خطأ في تكوين المحاسبة - اتصل بالمسؤول');
     }
 
     // التحقق من توازن القيد
@@ -174,7 +195,8 @@ Deno.serve(async (req) => {
     const totalCredit = journalLines.reduce((sum, line) => sum + line.credit_amount, 0);
 
     if (Math.abs(totalDebit - totalCredit) > 0.01) {
-      throw new Error(`Journal entry not balanced. Debit: ${totalDebit}, Credit: ${totalCredit}`);
+      console.error('Journal entry not balanced', { totalDebit, totalCredit });
+      throw new Error('خطأ في حساب المعاملة - اتصل بالمسؤول');
     }
 
     // إنشاء القيد المحاسبي
@@ -195,10 +217,10 @@ Deno.serve(async (req) => {
 
     if (entryError) {
       console.error('Error creating journal entry:', entryError);
-      throw entryError;
+      throw new Error('فشل في إنشاء القيد المحاسبي');
     }
 
-    console.log('Journal entry created:', journalEntry);
+    console.log('Journal entry created:', journalEntry.id);
 
     // إنشاء بنود القيد
     const linesWithEntryId = journalLines.map((line, index) => ({
@@ -215,7 +237,7 @@ Deno.serve(async (req) => {
       console.error('Error creating journal entry lines:', linesError);
       // حذف القيد إذا فشل إنشاء البنود
       await supabase.from('journal_entries').delete().eq('id', journalEntry.id);
-      throw linesError;
+      throw new Error('فشل في إنشاء بنود القيد المحاسبي');
     }
 
     // تسجيل الربط بين المستند والقيد
@@ -253,16 +275,30 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error in generate-journal-entry function:', error);
     
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    // Return generic error message to client, log details server-side
+    let userMessage = 'فشل في إنشاء القيد المحاسبي';
+    let statusCode = 500;
+    
+    if (error instanceof Error) {
+      // Only return safe error messages
+      if (error.message.includes('بيانات غير صالحة') || 
+          error.message.includes('خطأ في تكوين المحاسبة') ||
+          error.message.includes('خطأ في حساب المعاملة') ||
+          error.message.includes('فشل في إنشاء')) {
+        userMessage = error.message;
+      }
+      statusCode = error.message.includes('تكوين') ? 400 : 500;
+    }
     
     return new Response(
       JSON.stringify({
         success: false,
-        error: errorMessage,
+        error: userMessage,
+        error_id: crypto.randomUUID(), // For support tracking
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
+        status: statusCode,
       }
     );
   }

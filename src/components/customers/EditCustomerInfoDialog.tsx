@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { customerSchema } from "@/lib/validationSchemas";
+import { z } from "zod";
 import {
   Dialog,
   DialogContent,
@@ -42,25 +44,29 @@ export function EditCustomerInfoDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name.trim()) {
-      toast({
-        title: "خطأ",
-        description: "الاسم مطلوب",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setLoading(true);
 
     try {
+      // Prepare data for validation
+      const dataToValidate = {
+        name: formData.name.trim(),
+        phone: formData.phone.trim() || null,
+        address: formData.address.trim() || null,
+      };
+
+      // Validate using customerSchema (only the fields we're updating)
+      const validationSchema = customerSchema.pick({
+        name: true,
+        phone: true,
+        address: true,
+      });
+
+      const validatedData = validationSchema.parse(dataToValidate);
+
+      // Update with validated data
       const { error } = await supabase
         .from("customers")
-        .update({
-          name: formData.name.trim(),
-          phone: formData.phone.trim() || null,
-          address: formData.address.trim() || null,
-        })
+        .update(validatedData)
         .eq("id", customer.id);
 
       if (error) throw error;
@@ -76,11 +82,21 @@ export function EditCustomerInfoDialog({
       
       onOpenChange(false);
     } catch (error: any) {
-      toast({
-        title: "خطأ",
-        description: "فشل تحديث البيانات، يرجى المحاولة مرة أخرى",
-        variant: "destructive",
-      });
+      // Handle validation errors
+      if (error instanceof z.ZodError) {
+        const firstError = error.errors[0];
+        toast({
+          title: "خطأ في البيانات",
+          description: firstError.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "خطأ",
+          description: "فشل تحديث البيانات، يرجى المحاولة مرة أخرى",
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }

@@ -18,6 +18,7 @@ export default function PurchaseInvoices() {
   const [grns, setGRNs] = useState<any[]>([]);
   const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [warehouses, setWarehouses] = useState<any[]>([]);
   const [taxes, setTaxes] = useState<any[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
@@ -34,6 +35,7 @@ export default function PurchaseInvoices() {
   const [grnId, setGrnId] = useState('');
   const [poId, setPoId] = useState('');
   const [supplierId, setSupplierId] = useState('');
+  const [warehouseId, setWarehouseId] = useState('');
   const [invoiceDate, setInvoiceDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [supplierInvoiceNo, setSupplierInvoiceNo] = useState('');
   const [selectedTaxId, setSelectedTaxId] = useState('');
@@ -44,6 +46,7 @@ export default function PurchaseInvoices() {
     fetchPostedGRNs();
     fetchApprovedPOs();
     fetchSuppliers();
+    fetchWarehouses();
     fetchTaxes();
   }, []);
 
@@ -56,9 +59,18 @@ export default function PurchaseInvoices() {
   const fetchInvoices = async () => {
     const { data } = await supabase
       .from('purchase_invoices')
-      .select(`*, suppliers(name, code)`)
+      .select(`*, suppliers(name, code), warehouses(name)`)
       .order('created_at', { ascending: false });
     setInvoices(data || []);
+  };
+
+  const fetchWarehouses = async () => {
+    const { data } = await supabase
+      .from('warehouses')
+      .select('id, name')
+      .eq('is_active', true)
+      .order('name');
+    setWarehouses(data || []);
   };
 
   const fetchPostedGRNs = async () => {
@@ -89,6 +101,17 @@ export default function PurchaseInvoices() {
   };
 
   const fetchGRNItems = async (grnId: string) => {
+    const { data: grn } = await supabase
+      .from('goods_receipts')
+      .select('warehouse_id, supplier_id')
+      .eq('id', grnId)
+      .single();
+    
+    if (grn) {
+      setWarehouseId(grn.warehouse_id || '');
+      setSupplierId(grn.supplier_id || '');
+    }
+
     const { data } = await supabase
       .from('grn_items')
       .select(`*, products(name, default_tax_id)`)
@@ -109,6 +132,17 @@ export default function PurchaseInvoices() {
   };
 
   const fetchPOItems = async (poId: string) => {
+    const { data: po } = await supabase
+      .from('purchase_orders')
+      .select('warehouse_id, supplier_id')
+      .eq('id', poId)
+      .single();
+    
+    if (po) {
+      setWarehouseId(po.warehouse_id || '');
+      setSupplierId(po.supplier_id || '');
+    }
+
     const { data } = await supabase
       .from('po_items')
       .select(`*, products(name, default_tax_id)`)
@@ -173,11 +207,13 @@ export default function PurchaseInvoices() {
         pi_number: piNumber,
         supplier_invoice_no: supplierInvoiceNo,
         supplier_id: finalSupplierId,
+        warehouse_id: warehouseId || null,
         invoice_date: invoiceDate,
         subtotal,
         tax_amount: taxAmount || 0,
         total_amount: totalAmount,
         status: 'draft',
+        source_type: invoiceSource,
         created_by: user?.user?.id,
       })
       .select()
@@ -224,6 +260,7 @@ export default function PurchaseInvoices() {
     setGrnId('');
     setPoId('');
     setSupplierId('');
+    setWarehouseId('');
     setSupplierInvoiceNo('');
     setInvoiceDate(format(new Date(), 'yyyy-MM-dd'));
     setItems([]);
@@ -341,7 +378,9 @@ export default function PurchaseInvoices() {
                   <TableHead>رقم الفاتورة</TableHead>
                   <TableHead>رقم فاتورة المورد</TableHead>
                   <TableHead>المورد</TableHead>
+                  <TableHead>المخزن</TableHead>
                   <TableHead>التاريخ</TableHead>
+                  <TableHead>المصدر</TableHead>
                   <TableHead>الإجمالي</TableHead>
                   <TableHead>الحالة</TableHead>
                   <TableHead>الإجراءات</TableHead>
@@ -360,7 +399,12 @@ export default function PurchaseInvoices() {
                         </span>
                       )}
                     </TableCell>
+                    <TableCell>{invoice.warehouses?.name || '-'}</TableCell>
                     <TableCell>{format(new Date(invoice.invoice_date), 'yyyy-MM-dd')}</TableCell>
+                    <TableCell>
+                      {invoice.source_type === 'grn' ? 'استلام بضاعة' : 
+                       invoice.source_type === 'po' ? 'أمر شراء' : 'مباشر'}
+                    </TableCell>
                     <TableCell>{invoice.total_amount.toFixed(2)} ر.س</TableCell>
                     <TableCell>
                       <span className={`px-2 py-1 text-xs rounded ${
@@ -484,21 +528,36 @@ export default function PurchaseInvoices() {
                     onChange={(e) => setInvoiceDate(e.target.value)} 
                   />
                 </div>
-              </div>
-              <div>
-                <Label>الضريبة *</Label>
-                <Select value={selectedTaxId} onValueChange={setSelectedTaxId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر الضريبة" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {taxes.map((tax) => (
-                      <SelectItem key={tax.tax_code} value={tax.tax_code}>
-                        {tax.name} ({tax.rate}%)
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div>
+                  <Label>المخزن</Label>
+                  <Select value={warehouseId} onValueChange={setWarehouseId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر المخزن" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {warehouses.map((w) => (
+                        <SelectItem key={w.id} value={w.id}>
+                          {w.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>الضريبة *</Label>
+                  <Select value={selectedTaxId} onValueChange={setSelectedTaxId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر الضريبة" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {taxes.map((tax) => (
+                        <SelectItem key={tax.tax_code} value={tax.tax_code}>
+                          {tax.name} ({tax.rate}%)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               {items.length > 0 && (

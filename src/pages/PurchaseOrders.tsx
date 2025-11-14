@@ -75,7 +75,20 @@ export default function PurchaseOrders() {
     fetchProducts();
     fetchUOMs();
     fetchTaxes();
+    loadDefaultWarehouse();
   }, []);
+
+  const loadDefaultWarehouse = async () => {
+    const { data } = await supabase
+      .from('system_settings')
+      .select('setting_value')
+      .eq('setting_key', 'default_warehouse')
+      .single();
+    
+    if (data?.setting_value && typeof data.setting_value === 'object' && 'warehouse_id' in data.setting_value) {
+      setWarehouseId(data.setting_value.warehouse_id as string);
+    }
+  };
 
   useEffect(() => {
     filterOrders();
@@ -154,6 +167,7 @@ export default function PurchaseOrders() {
     const { data } = await supabase
       .from('uoms')
       .select('*')
+      .eq('is_active', true)
       .order('name');
     setUoms(data || []);
   };

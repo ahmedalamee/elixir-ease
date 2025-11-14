@@ -97,7 +97,12 @@ const InventorySettings = () => {
   };
 
   const fetchWarehouses = async () => {
-    const { data } = await supabase.from("warehouses").select("*").order("name");
+    const { data } = await supabase
+      .from("warehouses")
+      .select("*")
+      .eq("is_active", true)
+      .order("is_default", { ascending: false })
+      .order("name");
     setWarehouses(data || []);
   };
 

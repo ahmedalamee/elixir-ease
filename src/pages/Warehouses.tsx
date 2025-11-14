@@ -26,6 +26,7 @@ interface WarehouseData {
   country?: string;
   notes?: string;
   is_active: boolean;
+  is_default?: boolean;
 }
 
 export default function Warehouses() {
@@ -47,6 +48,7 @@ export default function Warehouses() {
     country: 'المملكة العربية السعودية',
     notes: '',
     is_active: true,
+    is_default: false,
   });
 
   useEffect(() => {
@@ -141,6 +143,7 @@ export default function Warehouses() {
       country: 'المملكة العربية السعودية',
       notes: '',
       is_active: true,
+      is_default: false,
     });
     setEditingWarehouse(null);
   };
@@ -351,6 +354,18 @@ export default function Warehouses() {
                         placeholder="أي ملاحظات إضافية"
                       />
                     </div>
+                    <div className="flex items-center gap-2 pt-2">
+                      <input
+                        type="checkbox"
+                        id="is_default"
+                        checked={formData.is_default || false}
+                        onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })}
+                        className="h-4 w-4"
+                      />
+                      <Label htmlFor="is_default" className="cursor-pointer">
+                        تعيين كمستودع افتراضي
+                      </Label>
+                    </div>
                   </div>
 
                   <div className="flex gap-2 justify-end pt-4 border-t">
@@ -372,8 +387,15 @@ export default function Warehouses() {
                   <CardContent className="pt-6">
                     <div className="space-y-3">
                       <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <h3 className="font-bold text-lg">{warehouse.name}</h3>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-bold text-lg">{warehouse.name}</h3>
+                            {warehouse.is_default && (
+                              <span className="px-2 py-0.5 text-xs rounded-full bg-primary/10 text-primary border border-primary/20">
+                                افتراضي
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-muted-foreground">{warehouse.code}</p>
                         </div>
                         <span className={`px-2 py-1 text-xs rounded-full ${warehouse.is_active ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}`}>

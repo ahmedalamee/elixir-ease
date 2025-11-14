@@ -1369,6 +1369,168 @@ export type Database = {
         }
         Relationships: []
       }
+      expense_items: {
+        Row: {
+          account_code: string | null
+          created_at: string | null
+          description: string
+          expense_id: string
+          id: string
+          line_no: number
+          line_total: number
+          notes: string | null
+          quantity: number
+          tax_amount: number | null
+          tax_code: string | null
+          tax_percentage: number | null
+          unit_price: number
+        }
+        Insert: {
+          account_code?: string | null
+          created_at?: string | null
+          description: string
+          expense_id: string
+          id?: string
+          line_no: number
+          line_total?: number
+          notes?: string | null
+          quantity?: number
+          tax_amount?: number | null
+          tax_code?: string | null
+          tax_percentage?: number | null
+          unit_price?: number
+        }
+        Update: {
+          account_code?: string | null
+          created_at?: string | null
+          description?: string
+          expense_id?: string
+          id?: string
+          line_no?: number
+          line_total?: number
+          notes?: string | null
+          quantity?: number
+          tax_amount?: number | null
+          tax_code?: string | null
+          tax_percentage?: number | null
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_items_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expenses: {
+        Row: {
+          amount: number
+          approved_at: string | null
+          approved_by: string | null
+          attachments: Json | null
+          category: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          expense_date: string
+          expense_number: string
+          expense_type: string
+          id: string
+          notes: string | null
+          paid_amount: number
+          payment_method: string | null
+          payment_status: string
+          posted_at: string | null
+          posted_by: string | null
+          reference_number: string | null
+          status: string
+          supplier_id: string | null
+          tax_amount: number
+          total_amount: number
+          updated_at: string | null
+          warehouse_id: string | null
+        }
+        Insert: {
+          amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          attachments?: Json | null
+          category: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          expense_date?: string
+          expense_number: string
+          expense_type: string
+          id?: string
+          notes?: string | null
+          paid_amount?: number
+          payment_method?: string | null
+          payment_status?: string
+          posted_at?: string | null
+          posted_by?: string | null
+          reference_number?: string | null
+          status?: string
+          supplier_id?: string | null
+          tax_amount?: number
+          total_amount?: number
+          updated_at?: string | null
+          warehouse_id?: string | null
+        }
+        Update: {
+          amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          attachments?: Json | null
+          category?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          expense_date?: string
+          expense_number?: string
+          expense_type?: string
+          id?: string
+          notes?: string | null
+          paid_amount?: number
+          payment_method?: string | null
+          payment_status?: string
+          posted_at?: string | null
+          posted_by?: string | null
+          reference_number?: string | null
+          status?: string
+          supplier_id?: string | null
+          tax_amount?: number
+          total_amount?: number
+          updated_at?: string | null
+          warehouse_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "expenses_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gl_accounts: {
         Row: {
           account_code: string
@@ -3194,6 +3356,7 @@ export type Database = {
           tax_amount: number | null
           total_amount: number | null
           updated_at: string | null
+          warehouse_id: string | null
         }
         Insert: {
           attachments?: Json | null
@@ -3218,6 +3381,7 @@ export type Database = {
           tax_amount?: number | null
           total_amount?: number | null
           updated_at?: string | null
+          warehouse_id?: string | null
         }
         Update: {
           attachments?: Json | null
@@ -3242,6 +3406,7 @@ export type Database = {
           tax_amount?: number | null
           total_amount?: number | null
           updated_at?: string | null
+          warehouse_id?: string | null
         }
         Relationships: [
           {
@@ -3249,6 +3414,20 @@ export type Database = {
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_invoices_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "purchase_invoices_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
             referencedColumns: ["id"]
           },
         ]
@@ -4363,6 +4542,7 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          is_active: boolean | null
           name: string
           name_en: string | null
           symbol: string | null
@@ -4371,6 +4551,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
+          is_active?: boolean | null
           name: string
           name_en?: string | null
           symbol?: string | null
@@ -4379,6 +4560,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
+          is_active?: boolean | null
           name?: string
           name_en?: string | null
           symbol?: string | null
@@ -4691,6 +4873,7 @@ export type Database = {
           email: string | null
           id: string
           is_active: boolean | null
+          is_default: boolean | null
           manager_name: string | null
           name: string
           name_en: string | null
@@ -4710,6 +4893,7 @@ export type Database = {
           email?: string | null
           id?: string
           is_active?: boolean | null
+          is_default?: boolean | null
           manager_name?: string | null
           name: string
           name_en?: string | null
@@ -4729,6 +4913,7 @@ export type Database = {
           email?: string | null
           id?: string
           is_active?: boolean | null
+          is_default?: boolean | null
           manager_name?: string | null
           name?: string
           name_en?: string | null
@@ -4800,6 +4985,10 @@ export type Database = {
           _roles: Database["public"]["Enums"]["app_role"][]
           _user_id: string
         }
+        Returns: boolean
+      }
+      has_permission: {
+        Args: { permission_key: string; user_id: string }
         Returns: boolean
       }
       has_role: {

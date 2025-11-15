@@ -252,6 +252,16 @@ export default function PurchaseOrders() {
       return;
     }
 
+    // Validate all items have required fields
+    const invalidItems = items.filter(item => 
+      !item.item_id || !item.uom_id || item.qty_ordered <= 0 || item.price < 0
+    );
+    
+    if (invalidItems.length > 0) {
+      toast.error('يرجى ملء جميع حقول البنود (المنتج، الوحدة، الكمية، السعر)');
+      return;
+    }
+
     const { subtotal, taxAmount, total } = calculateTotals();
 
     // Get next PO number
@@ -630,15 +640,16 @@ export default function PurchaseOrders() {
 
                 <div className="space-y-3">
                   {items.map((item, index) => (
-                    <div key={index} className="grid grid-cols-7 gap-2 items-end p-3 border rounded">
+                    <div key={index} className="grid grid-cols-7 gap-2 items-end p-3 border rounded bg-card">
                       <div>
-                        <Label className="text-xs">المنتج</Label>
+                        <Label className="text-xs">المنتج *</Label>
                         <Select
                           value={item.item_id}
                           onValueChange={(value) => updateItem(index, 'item_id', value)}
+                          required
                         >
-                          <SelectTrigger className="h-8">
-                            <SelectValue placeholder="اختر" />
+                          <SelectTrigger className={`h-8 ${!item.item_id ? 'border-destructive' : ''}`}>
+                            <SelectValue placeholder="اختر المنتج" />
                           </SelectTrigger>
                           <SelectContent>
                             {products.map((product) => (
@@ -650,13 +661,14 @@ export default function PurchaseOrders() {
                         </Select>
                       </div>
                       <div>
-                        <Label className="text-xs">الوحدة</Label>
+                        <Label className="text-xs">الوحدة *</Label>
                         <Select
                           value={item.uom_id}
                           onValueChange={(value) => updateItem(index, 'uom_id', value)}
+                          required
                         >
-                          <SelectTrigger className="h-8">
-                            <SelectValue placeholder="اختر" />
+                          <SelectTrigger className={`h-8 ${!item.uom_id ? 'border-destructive' : ''}`}>
+                            <SelectValue placeholder="اختر الوحدة" />
                           </SelectTrigger>
                           <SelectContent>
                             {uoms.map((uom) => (
@@ -668,21 +680,27 @@ export default function PurchaseOrders() {
                         </Select>
                       </div>
                       <div>
-                        <Label className="text-xs">الكمية</Label>
+                        <Label className="text-xs">الكمية *</Label>
                         <Input
                           type="number"
-                          className="h-8"
+                          className={`h-8 ${item.qty_ordered <= 0 ? 'border-destructive' : ''}`}
                           value={item.qty_ordered}
+                          min="0.01"
+                          step="0.01"
                           onChange={(e) => updateItem(index, 'qty_ordered', parseFloat(e.target.value) || 0)}
+                          required
                         />
                       </div>
                       <div>
-                        <Label className="text-xs">السعر</Label>
+                        <Label className="text-xs">السعر *</Label>
                         <Input
                           type="number"
-                          className="h-8"
+                          className={`h-8 ${item.price < 0 ? 'border-destructive' : ''}`}
                           value={item.price}
+                          min="0"
+                          step="0.01"
                           onChange={(e) => updateItem(index, 'price', parseFloat(e.target.value) || 0)}
+                          required
                         />
                       </div>
                       <div>
@@ -691,6 +709,9 @@ export default function PurchaseOrders() {
                           type="number"
                           className="h-8"
                           value={item.discount}
+                          min="0"
+                          max="100"
+                          step="0.01"
                           onChange={(e) => updateItem(index, 'discount', parseFloat(e.target.value) || 0)}
                         />
                       </div>
@@ -698,7 +719,7 @@ export default function PurchaseOrders() {
                         <Label className="text-xs">الصافي</Label>
                         <Input
                           type="number"
-                          className="h-8"
+                          className="h-8 bg-muted"
                           value={item.net_amount.toFixed(2)}
                           readOnly
                         />

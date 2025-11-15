@@ -2731,7 +2731,7 @@ export type Database = {
           discount: number | null
           expected_date: string | null
           id: string
-          item_id: string | null
+          item_id: string
           line_no: number
           net_amount: number | null
           notes: string | null
@@ -2740,14 +2740,14 @@ export type Database = {
           qty_ordered: number
           qty_received: number | null
           tax_code: string | null
-          uom_id: string | null
+          uom_id: string
         }
         Insert: {
           created_at?: string | null
           discount?: number | null
           expected_date?: string | null
           id?: string
-          item_id?: string | null
+          item_id: string
           line_no: number
           net_amount?: number | null
           notes?: string | null
@@ -2756,14 +2756,14 @@ export type Database = {
           qty_ordered: number
           qty_received?: number | null
           tax_code?: string | null
-          uom_id?: string | null
+          uom_id: string
         }
         Update: {
           created_at?: string | null
           discount?: number | null
           expected_date?: string | null
           id?: string
-          item_id?: string | null
+          item_id?: string
           line_no?: number
           net_amount?: number | null
           notes?: string | null
@@ -2772,7 +2772,7 @@ export type Database = {
           qty_ordered?: number
           qty_received?: number | null
           tax_code?: string | null
-          uom_id?: string | null
+          uom_id?: string
         }
         Relationships: [
           {

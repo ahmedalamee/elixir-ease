@@ -214,7 +214,7 @@ export default function PurchaseOrders() {
         qty_ordered: 1,
         price: 0,
         discount: 0,
-        tax_code: '',
+        tax_code: null,
         net_amount: 0,
       },
     ]);
@@ -311,6 +311,7 @@ export default function PurchaseOrders() {
       po_id: po.id,
       line_no: index + 1,
       ...item,
+      tax_code: item.tax_code || null, // Convert empty string to null
     }));
 
     const { error: itemsError } = await supabase

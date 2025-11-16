@@ -3341,12 +3341,15 @@ export type Database = {
           discount_amount: number | null
           due_date: string | null
           exchange_rate: number | null
+          grn_id: string | null
           id: string
           invoice_date: string
+          invoice_type: string | null
           notes: string | null
           paid_amount: number | null
           payment_status: string | null
           pi_number: string
+          po_id: string | null
           posted_at: string | null
           posted_by: string | null
           status: string | null
@@ -3366,12 +3369,15 @@ export type Database = {
           discount_amount?: number | null
           due_date?: string | null
           exchange_rate?: number | null
+          grn_id?: string | null
           id?: string
           invoice_date: string
+          invoice_type?: string | null
           notes?: string | null
           paid_amount?: number | null
           payment_status?: string | null
           pi_number: string
+          po_id?: string | null
           posted_at?: string | null
           posted_by?: string | null
           status?: string | null
@@ -3391,12 +3397,15 @@ export type Database = {
           discount_amount?: number | null
           due_date?: string | null
           exchange_rate?: number | null
+          grn_id?: string | null
           id?: string
           invoice_date?: string
+          invoice_type?: string | null
           notes?: string | null
           paid_amount?: number | null
           payment_status?: string | null
           pi_number?: string
+          po_id?: string | null
           posted_at?: string | null
           posted_by?: string | null
           status?: string | null
@@ -3409,6 +3418,20 @@ export type Database = {
           warehouse_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "purchase_invoices_grn_id_fkey"
+            columns: ["grn_id"]
+            isOneToOne: false
+            referencedRelation: "goods_receipts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_invoices_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "purchase_invoices_supplier_id_fkey"
             columns: ["supplier_id"]

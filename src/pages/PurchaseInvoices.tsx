@@ -236,13 +236,23 @@ export default function PurchaseInvoices() {
 
   const handlePostInvoice = async (invoiceId: string) => {
     try {
-      const { error } = await supabase.rpc('post_purchase_invoice' as any, { p_pi_id: invoiceId });
+      toast.loading('جاري ترحيل فاتورة الشراء...');
+      
+      const { data, error } = await supabase.rpc('post_purchase_invoice', { 
+        p_invoice_id: invoiceId 
+      });
+
       if (error) throw error;
-      toast.success('تم ترحيل الفاتورة بنجاح');
-      fetchInvoices();
-      if (isViewDialogOpen) setIsViewDialogOpen(false);
+
+      toast.dismiss();
+      toast.success('تم ترحيل فاتورة الشراء وإنشاء القيد المحاسبي بنجاح');
+      
+      await fetchInvoices();
+      setIsViewDialogOpen(false);
     } catch (error: any) {
-      toast.error(`خطأ: ${error.message}`);
+      toast.dismiss();
+      toast.error(`خطأ في الترحيل: ${error.message}`);
+      console.error('Error posting invoice:', error);
     }
   };
 

@@ -223,11 +223,19 @@ export default function GoodsReceipts() {
 
   const handlePostReceipt = async (receiptId: string) => {
     try {
-      const { error } = await supabase.rpc('post_goods_receipt' as any, { p_grn_id: receiptId });
+      toast.loading('جاري ترحيل استلام البضاعة...');
+      
+      const { data, error } = await supabase.rpc('post_goods_receipt', {
+        p_grn_id: receiptId
+      });
+
       if (error) throw error;
-      toast.success('تم ترحيل الاستلام بنجاح');
-      fetchReceipts();
-      if (isViewDialogOpen) setIsViewDialogOpen(false);
+
+      toast.dismiss();
+      toast.success('تم ترحيل استلام البضاعة وتحديث المخزون بنجاح');
+      
+      await fetchReceipts();
+      setIsViewDialogOpen(false);
     } catch (error: any) {
       toast.error(`خطأ: ${error.message}`);
     }

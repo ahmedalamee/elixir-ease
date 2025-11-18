@@ -5022,6 +5022,8 @@ export type Database = {
         Returns: boolean
       }
       is_document_posted: { Args: { doc_status: string }; Returns: boolean }
+      post_goods_receipt: { Args: { p_grn_id: string }; Returns: Json }
+      post_purchase_invoice: { Args: { p_invoice_id: string }; Returns: Json }
       user_has_permission: {
         Args: { _permission_key: string; _user_id: string }
         Returns: boolean

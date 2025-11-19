@@ -213,12 +213,15 @@ const NewSalesInvoice = () => {
         throw new Error("الرجاء ملء جميع الحقول المطلوبة وإضافة بند واحد على الأقل");
       }
 
-      // Get next invoice number
-      // Generate invoice number
-      const { count } = await (supabase as any)
-        .from("sales_invoices")
-        .select("*", { count: "exact", head: true });
-      const invoiceNumber = `INV-${String((count || 0) + 1).padStart(6, "0")}`;
+      // Generate invoice number using RPC function
+      const { data: invoiceNumber, error: numberError } = await supabase.rpc(
+        "generate_si_number"
+      );
+
+      if (numberError) {
+        console.error("Error generating invoice number:", numberError);
+        throw new Error("فشل في إنشاء رقم الفاتورة");
+      }
 
       // Get current user
       const { data: userData } = await supabase.auth.getUser();

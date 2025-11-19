@@ -1,17 +1,19 @@
 import { useEffect, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Printer, Download } from "lucide-react";
+import { ArrowLeft, Printer, Download, CheckCircle, Loader2 } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
+import { toast } from "sonner";
 
 const SalesInvoiceView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const printRef = useRef<HTMLDivElement>(null);
   const shouldPrint = searchParams.get("print") === "true";
@@ -59,6 +61,32 @@ const SalesInvoiceView = () => {
     documentTitle: `فاتورة-${invoice?.invoice_number}`,
   });
 
+  // Post invoice mutation
+  const postInvoiceMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc("post_sales_invoice", {
+        p_invoice_id: id,
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("تم ترحيل الفاتورة بنجاح");
+      queryClient.invalidateQueries({ queryKey: ["sales-invoice", id] });
+    },
+    onError: (error: any) => {
+      console.error("Error posting invoice:", error);
+      toast.error(error.message || "حدث خطأ أثناء ترحيل الفاتورة");
+    },
+  });
+
+  const handlePostInvoice = () => {
+    if (confirm("هل أنت متأكد من ترحيل هذه الفاتورة؟ سيتم تحديث المخزون ورصيد العميل.")) {
+      postInvoiceMutation.mutate();
+    }
+  };
+
   useEffect(() => {
     if (shouldPrint && invoice && companyProfile && handlePrint) {
       // Auto-print when the page loads with print=true parameter
@@ -103,6 +131,20 @@ const SalesInvoiceView = () => {
           <ArrowLeft className="ml-2 h-4 w-4" />
           رجوع
         </Button>
+        {invoice.status === "draft" && (
+          <Button 
+            onClick={handlePostInvoice}
+            disabled={postInvoiceMutation.isPending}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            {postInvoiceMutation.isPending ? (
+              <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+            ) : (
+              <CheckCircle className="ml-2 h-4 w-4" />
+            )}
+            ترحيل الفاتورة
+          </Button>
+        )}
         <Button onClick={handlePrint}>
           <Printer className="ml-2 h-4 w-4" />
           طباعة

@@ -34,9 +34,57 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Authentication check
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'غير مصرح: مطلوب رأس التفويض' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      );
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Verify user authentication
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      console.error('Authentication failed:', authError);
+      return new Response(
+        JSON.stringify({ success: false, error: 'غير مصرح: رمز غير صالح' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      );
+    }
+
+    // Verify user has appropriate role (admin, pharmacist, or cashier)
+    const { data: userRoles, error: roleError } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id);
+
+    if (roleError) {
+      console.error('Error checking user roles:', roleError);
+      return new Response(
+        JSON.stringify({ success: false, error: 'خطأ في التحقق من الصلاحيات' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
+
+    const allowedRoles = ['admin', 'pharmacist', 'cashier'];
+    const hasPermission = userRoles?.some(r => allowedRoles.includes(r.role));
+
+    if (!hasPermission) {
+      console.log(`User ${user.id} attempted journal entry without permission`);
+      return new Response(
+        JSON.stringify({ success: false, error: 'غير مصرح: صلاحيات غير كافية' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+      );
+    }
+
+    console.log(`Authenticated user ${user.id} with role ${userRoles?.map(r => r.role).join(', ')}`);
 
     // Parse and validate request
     const rawData = await req.json();

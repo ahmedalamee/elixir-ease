@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,12 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Eye, Printer, X, Search, Filter } from "lucide-react";
+import { Plus, Eye, Printer, X, Search, Filter, CheckCircle, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 const SalesInvoices = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>("all");
@@ -78,6 +79,32 @@ const SalesInvoices = () => {
     } catch (error) {
       console.error("Error canceling invoice:", error);
       toast.error("حدث خطأ أثناء إلغاء الفاتورة");
+    }
+  };
+
+  // Post invoice mutation
+  const postInvoiceMutation = useMutation({
+    mutationFn: async (invoiceId: string) => {
+      const { data, error } = await supabase.rpc("post_sales_invoice", {
+        p_invoice_id: invoiceId,
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("تم ترحيل الفاتورة بنجاح");
+      queryClient.invalidateQueries({ queryKey: ["sales-invoices"] });
+    },
+    onError: (error: any) => {
+      console.error("Error posting invoice:", error);
+      toast.error(error.message || "حدث خطأ أثناء ترحيل الفاتورة");
+    },
+  });
+
+  const handlePostInvoice = (id: string) => {
+    if (confirm("هل أنت متأكد من ترحيل هذه الفاتورة؟ سيتم تحديث المخزون ورصيد العميل.")) {
+      postInvoiceMutation.mutate(id);
     }
   };
 
@@ -204,13 +231,28 @@ const SalesInvoices = () => {
                           <Printer className="h-4 w-4" />
                         </Button>
                         {invoice.status === "draft" && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleCancelInvoice(invoice.id)}
-                          >
-                            <X className="h-4 w-4 text-destructive" />
-                          </Button>
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handlePostInvoice(invoice.id)}
+                              disabled={postInvoiceMutation.isPending}
+                              className="text-green-600 hover:text-green-700"
+                            >
+                              {postInvoiceMutation.isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <CheckCircle className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleCancelInvoice(invoice.id)}
+                            >
+                              <X className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </>
                         )}
                       </div>
                     </TableCell>

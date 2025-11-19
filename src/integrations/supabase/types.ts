@@ -4118,11 +4118,14 @@ export type Database = {
           notes: string | null
           paid_amount: number
           payment_status: string
+          posted_at: string | null
+          posted_by: string | null
           status: string
           subtotal: number
           tax_amount: number
           total_amount: number
           updated_at: string | null
+          warehouse_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -4136,11 +4139,14 @@ export type Database = {
           notes?: string | null
           paid_amount?: number
           payment_status?: string
+          posted_at?: string | null
+          posted_by?: string | null
           status?: string
           subtotal?: number
           tax_amount?: number
           total_amount?: number
           updated_at?: string | null
+          warehouse_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -4154,11 +4160,14 @@ export type Database = {
           notes?: string | null
           paid_amount?: number
           payment_status?: string
+          posted_at?: string | null
+          posted_by?: string | null
           status?: string
           subtotal?: number
           tax_amount?: number
           total_amount?: number
           updated_at?: string | null
+          warehouse_id?: string | null
         }
         Relationships: [
           {
@@ -4166,6 +4175,20 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_invoices_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "sales_invoices_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
             referencedColumns: ["id"]
           },
         ]
@@ -5059,6 +5082,7 @@ export type Database = {
       generate_doctor_code: { Args: never; Returns: string }
       generate_employee_code: { Args: never; Returns: string }
       generate_prescription_number: { Args: never; Returns: string }
+      generate_si_number: { Args: never; Returns: string }
       generate_supplier_code: { Args: never; Returns: string }
       get_role_permissions_count: {
         Args: { _category?: string; _role_id: string }
@@ -5088,6 +5112,7 @@ export type Database = {
       is_document_posted: { Args: { doc_status: string }; Returns: boolean }
       post_goods_receipt: { Args: { p_grn_id: string }; Returns: Json }
       post_purchase_invoice: { Args: { p_invoice_id: string }; Returns: Json }
+      post_sales_invoice: { Args: { p_invoice_id: string }; Returns: Json }
       user_has_permission: {
         Args: { _permission_key: string; _user_id: string }
         Returns: boolean

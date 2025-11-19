@@ -4044,12 +4044,14 @@ export type Database = {
           expiry_date: string | null
           id: string
           invoice_id: string
+          item_id: string
+          line_no: number | null
           line_total: number
-          product_id: string
           quantity: number
           tax_amount: number | null
           tax_percentage: number | null
           unit_price: number
+          uom_id: string | null
         }
         Insert: {
           batch_number?: string | null
@@ -4059,12 +4061,14 @@ export type Database = {
           expiry_date?: string | null
           id?: string
           invoice_id: string
+          item_id: string
+          line_no?: number | null
           line_total: number
-          product_id: string
           quantity: number
           tax_amount?: number | null
           tax_percentage?: number | null
           unit_price: number
+          uom_id?: string | null
         }
         Update: {
           batch_number?: string | null
@@ -4074,12 +4078,14 @@ export type Database = {
           expiry_date?: string | null
           id?: string
           invoice_id?: string
+          item_id?: string
+          line_no?: number | null
           line_total?: number
-          product_id?: string
           quantity?: number
           tax_amount?: number | null
           tax_percentage?: number | null
           unit_price?: number
+          uom_id?: string | null
         }
         Relationships: [
           {
@@ -4091,17 +4097,24 @@ export type Database = {
           },
           {
             foreignKeyName: "sales_invoice_items_product_id_fkey"
-            columns: ["product_id"]
+            columns: ["item_id"]
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "sales_invoice_items_product_id_fkey"
-            columns: ["product_id"]
+            columns: ["item_id"]
             isOneToOne: false
             referencedRelation: "stock_alerts"
             referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "sales_invoice_items_uom_id_fkey"
+            columns: ["uom_id"]
+            isOneToOne: false
+            referencedRelation: "uoms"
+            referencedColumns: ["id"]
           },
         ]
       }

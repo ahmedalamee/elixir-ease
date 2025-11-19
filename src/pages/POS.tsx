@@ -338,34 +338,59 @@ const POS = () => {
         })
         .eq("id", currentSession.id);
 
-      // التكامل المحاسبي التلقائي
-      try {
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-journal-entry`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            },
-            body: JSON.stringify({
-              document_type: "sales_invoice",
-              document_id: invoiceData.id,
-              document_number: invoiceNumber,
-              entity_id: null,
-              entity_type: "customer",
-              subtotal,
-              tax_amount: taxAmount,
-              total_amount: totalAmount,
-            }),
-          }
-        );
+      // التكامل المحاسبي التلقائي مع معالجة أخطاء محسّنة
+      let journalEntryCreated = false;
+      let retryCount = 0;
+      const maxRetries = 3;
 
-        if (!response.ok) {
-          console.error("Failed to generate journal entry");
+      while (!journalEntryCreated && retryCount < maxRetries) {
+        try {
+          const { data: journalData, error: journalError } = await supabase.functions.invoke(
+            'generate-journal-entry',
+            {
+              body: {
+                document_type: "sales_invoice",
+                document_id: invoiceData.id,
+                document_number: invoiceNumber,
+                document_date: new Date().toISOString().split('T')[0],
+                amount: totalAmount,
+                customer_id: null,
+                payment_method: paymentMethods.find((pm) => pm.id === selectedPaymentMethod)?.code,
+              },
+            }
+          );
+
+          if (journalError) {
+            console.error(`Journal entry attempt ${retryCount + 1} failed:`, journalError);
+            retryCount++;
+            
+            if (retryCount >= maxRetries) {
+              // بعد 3 محاولات فاشلة، نسجل خطأ ولكن لا نلغي الفاتورة
+              console.error("Failed to create journal entry after max retries");
+              toast({
+                title: "تحذير",
+                description: "تم إنشاء الفاتورة ولكن فشل التسجيل المحاسبي. سيتم المحاولة لاحقاً.",
+                variant: "destructive",
+              });
+            } else {
+              // انتظر قليلاً قبل إعادة المحاولة
+              await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+            }
+          } else if (journalData?.success) {
+            journalEntryCreated = true;
+            console.log("Journal entry created successfully:", journalData);
+          } else {
+            console.warn("Journal entry returned unsuccessful response:", journalData);
+            retryCount++;
+          }
+        } catch (error) {
+          console.error(`Error in journal entry attempt ${retryCount + 1}:`, error);
+          retryCount++;
+          
+          if (retryCount < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+          }
         }
-      } catch (error) {
-        console.error("Error calling journal entry function:", error);
       }
 
       // حفظ آخر فاتورة للطباعة

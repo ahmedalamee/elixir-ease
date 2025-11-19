@@ -1742,6 +1742,54 @@ export type Database = {
           },
         ]
       }
+      health_record_audit: {
+        Row: {
+          accessed_at: string
+          action: string
+          customer_id: string
+          id: string
+          ip_address: string | null
+          prescription_id: string | null
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          accessed_at?: string
+          action: string
+          customer_id: string
+          id?: string
+          ip_address?: string | null
+          prescription_id?: string | null
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          accessed_at?: string
+          action?: string
+          customer_id?: string
+          id?: string
+          ip_address?: string | null
+          prescription_id?: string | null
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_record_audit_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "health_record_audit_prescription_id_fkey"
+            columns: ["prescription_id"]
+            isOneToOne: false
+            referencedRelation: "prescriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       insurance_companies: {
         Row: {
           address: string | null
@@ -4989,6 +5037,22 @@ export type Database = {
           _target_role_id: string
         }
         Returns: number
+      }
+      create_employee_with_role: {
+        Args: {
+          p_department?: string
+          p_email: string
+          p_full_name: string
+          p_full_name_en?: string
+          p_job_title?: string
+          p_national_id?: string
+          p_notes?: string
+          p_password: string
+          p_phone?: string
+          p_role?: Database["public"]["Enums"]["app_role"]
+          p_salary?: number
+        }
+        Returns: Json
       }
       generate_campaign_number: { Args: never; Returns: string }
       generate_complaint_number: { Args: never; Returns: string }

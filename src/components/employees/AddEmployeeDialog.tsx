@@ -57,6 +57,23 @@ export default function AddEmployeeDialog({
     setLoading(true);
 
     try {
+      // التحقق من صلاحيات المسؤول من جانب العميل
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("يجب تسجيل الدخول أولاً");
+      }
+
+      const { data: userRoles, error: roleError } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+
+      if (roleError) throw roleError;
+
+      const isAdmin = userRoles?.some(r => r.role === "admin");
+      if (!isAdmin) {
+        throw new Error("غير مصرح: مطلوب صلاحيات المسؤول لإضافة موظفين");
+      }
       // 1. Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,

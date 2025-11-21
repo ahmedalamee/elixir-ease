@@ -1,15 +1,17 @@
 import { forwardRef } from "react";
 
+interface ReceiptItem {
+  name: string;
+  quantity: number;
+  price: number;
+  discount?: number;
+  total: number;
+}
+
 interface ReceiptProps {
   invoiceNumber: string;
   invoiceDate: string;
-  items: Array<{
-    name: string;
-    quantity: number;
-    price: number;
-    discount?: number;
-    total: number;
-  }>;
+  items: ReceiptItem[];
   subtotal: number;
   discount?: number;
   taxAmount: number;
@@ -24,6 +26,14 @@ interface ReceiptProps {
     phone?: string;
   };
 }
+
+const formatArabicDate = (value: string | null | undefined): string => {
+  if (!value) return new Date().toLocaleDateString("ar-SA");
+  const date = new Date(value);
+  return isNaN(date.getTime())
+    ? new Date().toLocaleDateString("ar-SA")
+    : date.toLocaleDateString("ar-SA");
+};
 
 export const POSReceipt = forwardRef<HTMLDivElement, ReceiptProps>(
   (
@@ -82,7 +92,7 @@ export const POSReceipt = forwardRef<HTMLDivElement, ReceiptProps>(
           </div>
           <div className="flex justify-between">
             <span>التاريخ:</span>
-            <span>{invoiceDate ? new Date(invoiceDate).toLocaleDateString("ar-SA") : new Date().toLocaleDateString("ar-SA")}</span>
+            <span>{formatArabicDate(invoiceDate)}</span>
           </div>
           {customerName && (
             <div className="flex justify-between">

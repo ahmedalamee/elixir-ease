@@ -237,12 +237,12 @@ const SalesInvoiceView = () => {
                 <TableCell>
                   <div>
                     <div className="font-medium">{item.products?.name}</div>
-                    {item.item_description && (
-                      <div className="text-sm text-muted-foreground">{item.item_description}</div>
+                    {item.batch_number && (
+                      <div className="text-sm text-muted-foreground">دفعة: {item.batch_number}</div>
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="text-center">{item.qty}</TableCell>
+                <TableCell className="text-center">{item.quantity}</TableCell>
                 <TableCell className="text-center">{item.unit_of_measures?.name || "-"}</TableCell>
                 <TableCell className="text-left">{item.unit_price.toFixed(2)}</TableCell>
                 <TableCell className="text-left">{item.discount_amount.toFixed(2)}</TableCell>

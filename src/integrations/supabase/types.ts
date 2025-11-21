@@ -4368,57 +4368,98 @@ export type Database = {
       }
       stock_ledger: {
         Row: {
+          balance_after: number | null
           batch_id: string | null
+          batch_number: string | null
           cogs_amount: number | null
           created_at: string | null
           created_by: string | null
           currency: string | null
+          expiry_date: string | null
           id: string
           item_id: string | null
           note: string | null
+          notes: string | null
+          product_id: string | null
           qty_in: number | null
           qty_out: number | null
+          quantity_change: number | null
           ref_id: string | null
           ref_type: string | null
+          reference_id: string | null
+          reference_type: string | null
           timestamp: string | null
+          transaction_type: string | null
           unit_cost: number | null
           warehouse_id: string | null
         }
         Insert: {
+          balance_after?: number | null
           batch_id?: string | null
+          batch_number?: string | null
           cogs_amount?: number | null
           created_at?: string | null
           created_by?: string | null
           currency?: string | null
+          expiry_date?: string | null
           id?: string
           item_id?: string | null
           note?: string | null
+          notes?: string | null
+          product_id?: string | null
           qty_in?: number | null
           qty_out?: number | null
+          quantity_change?: number | null
           ref_id?: string | null
           ref_type?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
           timestamp?: string | null
+          transaction_type?: string | null
           unit_cost?: number | null
           warehouse_id?: string | null
         }
         Update: {
+          balance_after?: number | null
           batch_id?: string | null
+          batch_number?: string | null
           cogs_amount?: number | null
           created_at?: string | null
           created_by?: string | null
           currency?: string | null
+          expiry_date?: string | null
           id?: string
           item_id?: string | null
           note?: string | null
+          notes?: string | null
+          product_id?: string | null
           qty_in?: number | null
           qty_out?: number | null
+          quantity_change?: number | null
           ref_id?: string | null
           ref_type?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
           timestamp?: string | null
+          transaction_type?: string | null
           unit_cost?: number | null
           warehouse_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_stock_ledger_product"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_stock_ledger_product"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["product_id"]
+          },
           {
             foreignKeyName: "stock_ledger_batch_id_fkey"
             columns: ["batch_id"]

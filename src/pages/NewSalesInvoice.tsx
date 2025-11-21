@@ -207,11 +207,29 @@ const NewSalesInvoice = () => {
     setItems(updatedItems);
   };
 
+  const handleSaveInvoice = () => {
+    // Comprehensive validation before saving
+    if (!customerId) {
+      toast.error("الرجاء اختيار العميل أولاً");
+      return;
+    }
+    
+    if (!warehouseId) {
+      toast.error("الرجاء اختيار المستودع أولاً");
+      return;
+    }
+    
+    if (items.length === 0) {
+      toast.error("يجب إضافة بند واحد على الأقل إلى الفاتورة");
+      return;
+    }
+    
+    // If all validations pass, proceed with save
+    saveMutation.mutate();
+  };
+
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!customerId || !warehouseId || items.length === 0) {
-        throw new Error("الرجاء ملء جميع الحقول المطلوبة وإضافة بند واحد على الأقل");
-      }
 
       // Generate invoice number using RPC function
       const { data: invoiceNumber, error: numberError } = await supabase.rpc(
@@ -504,12 +522,25 @@ const NewSalesInvoice = () => {
             </Alert>
           )}
 
+          {/* تحذير إذا لم يتم إضافة بنود */}
+          {items.length === 0 && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>تنبيه:</strong> يجب إضافة بند واحد على الأقل إلى الفاتورة قبل الحفظ
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* الأزرار */}
           <div className="flex gap-2 justify-end">
             <Button variant="outline" onClick={() => navigate("/sales/invoices")}>
               إلغاء
             </Button>
-            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+            <Button 
+              onClick={handleSaveInvoice} 
+              disabled={saveMutation.isPending || items.length === 0 || !customerId || !warehouseId}
+            >
               <Save className="ml-2 h-4 w-4" />
               {saveMutation.isPending ? "جاري الحفظ..." : "حفظ الفاتورة"}
             </Button>

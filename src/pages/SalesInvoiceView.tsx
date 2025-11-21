@@ -27,6 +27,7 @@ const SalesInvoiceView = () => {
           *,
           customers (*),
           warehouses (name),
+          payment_methods (name),
           sales_invoice_items (
             *,
             products (name),
@@ -306,10 +307,10 @@ const SalesInvoiceView = () => {
 
         {/* طريقة الدفع وشروط الدفع */}
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-          {invoice.payment_method && (
+          {invoice.payment_methods && (
             <div className="p-4 bg-muted rounded-lg">
               <h4 className="font-semibold mb-2">طريقة الدفع:</h4>
-              <p className="text-sm">{invoice.payment_method}</p>
+              <p className="text-sm">{invoice.payment_methods.name}</p>
             </div>
           )}
           {invoice.payment_terms && (

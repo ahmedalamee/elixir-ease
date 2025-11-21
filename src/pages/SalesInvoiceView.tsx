@@ -30,7 +30,7 @@ const SalesInvoiceView = () => {
           sales_invoice_items (
             *,
             products (name),
-            unit_of_measures (name)
+            uoms (name)
           )
         `)
         .eq("id", id)
@@ -243,7 +243,7 @@ const SalesInvoiceView = () => {
                   </div>
                 </TableCell>
                 <TableCell className="text-center">{item.quantity}</TableCell>
-                <TableCell className="text-center">{item.unit_of_measures?.name || "-"}</TableCell>
+                <TableCell className="text-center">{item.uoms?.name || "-"}</TableCell>
                 <TableCell className="text-left">{item.unit_price.toFixed(2)}</TableCell>
                 <TableCell className="text-left">{item.discount_amount.toFixed(2)}</TableCell>
                 <TableCell className="text-left">

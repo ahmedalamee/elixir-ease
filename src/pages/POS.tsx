@@ -616,17 +616,21 @@ const POS = () => {
                 <div className="flex-1">
                   <label className="text-sm font-medium mb-2 block">العميل</label>
                   <Select
-                    value={selectedCustomer?.id || ""}
+                    value={selectedCustomer?.id || "walk-in"}
                     onValueChange={(value) => {
-                      const customer = customers.find((c) => c.id === value);
-                      setSelectedCustomer(customer || null);
+                      if (value === "walk-in") {
+                        setSelectedCustomer(null);
+                      } else {
+                        const customer = customers.find((c) => c.id === value);
+                        setSelectedCustomer(customer || null);
+                      }
                     }}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="عميل عابر (Walk-in)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">عميل عابر (Walk-in)</SelectItem>
+                      <SelectItem value="walk-in">عميل عابر (Walk-in)</SelectItem>
                       {filteredCustomers.slice(0, 50).map((customer) => (
                         <SelectItem key={customer.id} value={customer.id}>
                           {customer.name} - {customer.phone}

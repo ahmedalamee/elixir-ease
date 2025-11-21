@@ -78,8 +78,8 @@ const StockMovements = () => {
         .from("stock_ledger")
         .select(`
           *,
-          products:item_id (name, name_en),
-          warehouses:warehouse_id (name, code)
+          products!stock_ledger_item_id_fkey (name, name_en),
+          warehouses!stock_ledger_warehouse_id_fkey (name, code)
         `)
         .order("created_at", { ascending: false })
         .limit(500);

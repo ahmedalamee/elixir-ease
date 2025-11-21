@@ -226,34 +226,45 @@ const SalesInvoiceView = () => {
               <TableHead className="text-center">الوحدة</TableHead>
               <TableHead className="text-left">السعر</TableHead>
               <TableHead className="text-left">الخصم</TableHead>
+              <TableHead className="text-left">المبلغ</TableHead>
               <TableHead className="text-left">الضريبة</TableHead>
               <TableHead className="text-left">الإجمالي</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {invoice.sales_invoice_items?.map((item: any, index: number) => (
-              <TableRow key={item.id}>
-                <TableCell>{index + 1}</TableCell>
-                <TableCell>
-                  <div>
-                    <div className="font-medium">{item.products?.name}</div>
-                    {item.batch_number && (
-                      <div className="text-sm text-muted-foreground">دفعة: {item.batch_number}</div>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell className="text-center">{item.quantity}</TableCell>
-                <TableCell className="text-center">{item.uoms?.name || "-"}</TableCell>
-                <TableCell className="text-left">{item.unit_price.toFixed(2)}</TableCell>
-                <TableCell className="text-left">{item.discount_amount.toFixed(2)}</TableCell>
-                <TableCell className="text-left">
-                  {item.tax_percentage}% ({item.tax_amount.toFixed(2)})
-                </TableCell>
-                <TableCell className="text-left font-medium">
-                  {item.line_total.toFixed(2)}
-                </TableCell>
-              </TableRow>
-            ))}
+            {invoice.sales_invoice_items?.map((item: any, index: number) => {
+              const itemSubtotal = item.quantity * item.unit_price;
+              const itemAfterDiscount = itemSubtotal - item.discount_amount;
+              
+              return (
+                <TableRow key={item.id}>
+                  <TableCell>{index + 1}</TableCell>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">{item.products?.name}</div>
+                      {item.batch_number && (
+                        <div className="text-sm text-muted-foreground">دفعة: {item.batch_number}</div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">{item.quantity}</TableCell>
+                  <TableCell className="text-center">{item.uoms?.name || "قطعة"}</TableCell>
+                  <TableCell className="text-left">{item.unit_price.toFixed(2)}</TableCell>
+                  <TableCell className="text-left">
+                    {item.discount_amount > 0 ? item.discount_amount.toFixed(2) : "-"}
+                  </TableCell>
+                  <TableCell className="text-left font-medium">
+                    {itemAfterDiscount.toFixed(2)}
+                  </TableCell>
+                  <TableCell className="text-left">
+                    {item.tax_percentage}% ({item.tax_amount.toFixed(2)})
+                  </TableCell>
+                  <TableCell className="text-left font-bold">
+                    {item.line_total.toFixed(2)}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
 

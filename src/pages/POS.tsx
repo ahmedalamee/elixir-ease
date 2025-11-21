@@ -95,12 +95,25 @@ interface PaymentMethod {
 interface POSSession {
   id: string;
   session_number: string;
-  opened_at: string;
-  warehouse_id: string;
+  device_id: string | null;
+  shift_id: string | null;
+  user_id: string | null;
+  employee_id: string | null;
+  warehouse_id: string | null;
+  session_date: string;
+  start_time: string;
+  end_time: string | null;
   opening_cash: number;
+  closing_cash: number | null;
+  expected_cash: number | null;
+  cash_difference: number | null;
+  total_sales: number;
+  total_transactions: number;
   status: string;
-  total_sales?: number;
-  invoice_count?: number;
+  notes: string | null;
+  closed_by: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 const POS = () => {
@@ -249,9 +262,9 @@ const POS = () => {
       const { data, error } = await supabase
         .from("pos_sessions")
         .select("*")
-        .eq("cashier_id", user.id)
+        .eq("user_id", user.id)
         .eq("status", "open")
-        .order("opened_at", { ascending: false })
+        .order("start_time", { ascending: false })
         .limit(1)
         .maybeSingle();
 
@@ -274,7 +287,7 @@ const POS = () => {
         .from("sales_invoices")
         .select("id, total_amount")
         .eq("created_by", user?.id)
-        .gte("created_at", currentSession.opened_at)
+        .gte("created_at", currentSession.start_time)
         .eq("status", "posted");
 
       if (error) throw error;
@@ -665,7 +678,7 @@ const POS = () => {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">وقت البدء:</span>
                 <span className="text-foreground">
-                  {new Date(currentSession.opened_at).toLocaleTimeString("ar-SA", {
+                  {new Date(currentSession.start_time).toLocaleTimeString("ar-SA", {
                     hour: "2-digit",
                     minute: "2-digit",
                   })}

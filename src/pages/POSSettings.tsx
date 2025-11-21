@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Monitor, Clock, Settings, Plus, Search, Filter, Edit, Trash2, Copy, Power } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 type ViewType = "main" | "devices" | "shifts" | "general";
 
@@ -37,28 +38,121 @@ const POSSettings = () => {
   const [currentView, setCurrentView] = useState<ViewType>("main");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [devices, setDevices] = useState<Device[]>([
-    {
-      id: "1",
-      name: "جهاز الكاشير الرئيسي",
-      serialNumber: "POS-001",
-      type: "كمبيوتر",
-      location: "الطابق الأول",
-      status: "online",
-      lastActivity: "منذ 5 دقائق"
+  const [devices, setDevices] = useState<any[]>([]);
+  const [shifts, setShifts] = useState<any[]>([]);
+  const [newDeviceName, setNewDeviceName] = useState("");
+  const [newDeviceCode, setNewDeviceCode] = useState("");
+  const [newDeviceType, setNewDeviceType] = useState("computer");
+  const [newDeviceLocation, setNewDeviceLocation] = useState("");
+  const [newShiftName, setNewShiftName] = useState("");
+  const [newShiftType, setNewShiftType] = useState("morning");
+  const [newShiftStart, setNewShiftStart] = useState("");
+  const [newShiftEnd, setNewShiftEnd] = useState("");
+  const [newShiftOpeningBalance, setNewShiftOpeningBalance] = useState("");
+  const [isDeviceDialogOpen, setIsDeviceDialogOpen] = useState(false);
+  const [isShiftDialogOpen, setIsShiftDialogOpen] = useState(false);
+
+  useEffect(() => {
+    if (currentView === "devices") {
+      fetchDevices();
+    } else if (currentView === "shifts") {
+      fetchShifts();
     }
-  ]);
-  const [shifts, setShifts] = useState<Shift[]>([
-    {
-      id: "1",
-      name: "الوردية الصباحية",
-      startTime: "08:00",
-      endTime: "16:00",
-      type: "صباحية",
-      isActive: true,
-      openingCash: 1000
+  }, [currentView]);
+
+  const fetchDevices = async () => {
+    const { data, error } = await supabase
+      .from("pos_devices")
+      .select("*")
+      .order("device_name");
+
+    if (error) {
+      console.error("Error fetching devices:", error);
+      toast.error("فشل في جلب الأجهزة");
+    } else {
+      setDevices(data || []);
     }
-  ]);
+  };
+
+  const fetchShifts = async () => {
+    const { data, error } = await supabase
+      .from("pos_shifts")
+      .select("*")
+      .order("shift_name");
+
+    if (error) {
+      console.error("Error fetching shifts:", error);
+      toast.error("فشل في جلب الورديات");
+    } else {
+      setShifts(data || []);
+    }
+  };
+
+  const handleAddDevice = async () => {
+    if (!newDeviceName || !newDeviceCode) {
+      toast.error("يرجى ملء جميع الحقول المطلوبة");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("pos_devices")
+        .insert({
+          device_code: newDeviceCode,
+          device_name: newDeviceName,
+          device_type: newDeviceType,
+          location: newDeviceLocation,
+          status: 'active',
+        });
+
+      if (error) throw error;
+
+      toast.success("تم إضافة الجهاز بنجاح");
+      setIsDeviceDialogOpen(false);
+      setNewDeviceName("");
+      setNewDeviceCode("");
+      setNewDeviceType("computer");
+      setNewDeviceLocation("");
+      fetchDevices();
+    } catch (error) {
+      console.error("Error adding device:", error);
+      toast.error("فشل في إضافة الجهاز");
+    }
+  };
+
+  const handleAddShift = async () => {
+    if (!newShiftName || !newShiftStart || !newShiftEnd) {
+      toast.error("يرجى ملء جميع الحقول المطلوبة");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("pos_shifts")
+        .insert({
+          shift_name: newShiftName,
+          shift_type: newShiftType,
+          start_time: newShiftStart,
+          end_time: newShiftEnd,
+          opening_balance: parseFloat(newShiftOpeningBalance) || 0,
+          is_active: true,
+        });
+
+      if (error) throw error;
+
+      toast.success("تم إضافة الوردية بنجاح");
+      setIsShiftDialogOpen(false);
+      setNewShiftName("");
+      setNewShiftType("morning");
+      setNewShiftStart("");
+      setNewShiftEnd("");
+      setNewShiftOpeningBalance("");
+      fetchShifts();
+    } catch (error) {
+      console.error("Error adding shift:", error);
+      toast.error("فشل في إضافة الوردية");
+    }
+  };
 
   const currentDate = new Date().toLocaleDateString('ar-EG', { 
     day: '2-digit', 
@@ -125,7 +219,7 @@ const POSSettings = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">أجهزة نقاط البيع</h2>
-        <Dialog>
+        <Dialog open={isDeviceDialogOpen} onOpenChange={setIsDeviceDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="w-4 h-4 mr-2" />
@@ -138,20 +232,28 @@ const POSSettings = () => {
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label>اسم الجهاز</Label>
-                <Input placeholder="مثال: جهاز الكاشير الرئيسي" />
+                <Label>اسم الجهاز *</Label>
+                <Input 
+                  placeholder="مثال: جهاز الكاشير الرئيسي" 
+                  value={newDeviceName}
+                  onChange={(e) => setNewDeviceName(e.target.value)}
+                />
               </div>
               <div>
-                <Label>الرقم التسلسلي</Label>
-                <Input placeholder="مثال: POS-001" />
+                <Label>الرقم التسلسلي *</Label>
+                <Input 
+                  placeholder="مثال: POS-001" 
+                  value={newDeviceCode}
+                  onChange={(e) => setNewDeviceCode(e.target.value)}
+                />
               </div>
               <div>
                 <Label>نوع الجهاز</Label>
-                <Select>
+                <Select value={newDeviceType} onValueChange={setNewDeviceType}>
                   <SelectTrigger>
                     <SelectValue placeholder="اختر نوع الجهاز" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-popover">
                     <SelectItem value="computer">كمبيوتر</SelectItem>
                     <SelectItem value="tablet">تابلت</SelectItem>
                     <SelectItem value="mobile">محمول</SelectItem>
@@ -160,9 +262,13 @@ const POSSettings = () => {
               </div>
               <div>
                 <Label>الموقع</Label>
-                <Input placeholder="مثال: الطابق الأول" />
+                <Input 
+                  placeholder="مثال: الطابق الأول" 
+                  value={newDeviceLocation}
+                  onChange={(e) => setNewDeviceLocation(e.target.value)}
+                />
               </div>
-              <Button className="w-full">حفظ الجهاز</Button>
+              <Button className="w-full" onClick={handleAddDevice}>حفظ الجهاز</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -197,41 +303,41 @@ const POSSettings = () => {
           <Separator className="my-4" />
 
           <div className="space-y-4">
-            {devices.map((device) => (
-              <Card key={device.id}>
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold">{device.name}</h3>
-                        <span className={`text-xs px-2 py-1 rounded ${
-                          device.status === "online" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                        }`}>
-                          {device.status === "online" ? "متصل" : "غير متصل"}
-                        </span>
+            {devices.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">لا توجد أجهزة</p>
+            ) : (
+              devices.map((device) => (
+                <Card key={device.id}>
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold">{device.device_name}</h3>
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            device.status === "active" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                          }`}>
+                            {device.status === "active" ? "نشط" : "غير نشط"}
+                          </span>
+                        </div>
+                        <div className="text-sm text-muted-foreground space-y-1">
+                          <p>الكود: {device.device_code}</p>
+                          <p>النوع: {device.device_type}</p>
+                          <p>الموقع: {device.location || '-'}</p>
+                        </div>
                       </div>
-                      <div className="text-sm text-muted-foreground space-y-1">
-                        <p>الرقم التسلسلي: {device.serialNumber}</p>
-                        <p>النوع: {device.type}</p>
-                        <p>الموقع: {device.location}</p>
-                        <p>آخر نشاط: {device.lastActivity}</p>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm">
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button variant="outline" size="sm" className="text-red-600">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Power className="w-4 h-4" />
-                      </Button>
-                      <Button variant="outline" size="sm" className="text-red-600">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
         </CardContent>
       </Card>
@@ -242,7 +348,7 @@ const POSSettings = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">ورديات نقاط البيع</h2>
-        <Dialog>
+        <Dialog open={isShiftDialogOpen} onOpenChange={setIsShiftDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="w-4 h-4 mr-2" />
@@ -255,26 +361,38 @@ const POSSettings = () => {
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label>اسم الوردية</Label>
-                <Input placeholder="مثال: الوردية الصباحية" />
+                <Label>اسم الوردية *</Label>
+                <Input 
+                  placeholder="مثال: الوردية الصباحية" 
+                  value={newShiftName}
+                  onChange={(e) => setNewShiftName(e.target.value)}
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>وقت البدء</Label>
-                  <Input type="time" defaultValue="08:00" />
+                  <Label>وقت البدء *</Label>
+                  <Input 
+                    type="time" 
+                    value={newShiftStart}
+                    onChange={(e) => setNewShiftStart(e.target.value)}
+                  />
                 </div>
                 <div>
-                  <Label>وقت الانتهاء</Label>
-                  <Input type="time" defaultValue="16:00" />
+                  <Label>وقت الانتهاء *</Label>
+                  <Input 
+                    type="time" 
+                    value={newShiftEnd}
+                    onChange={(e) => setNewShiftEnd(e.target.value)}
+                  />
                 </div>
               </div>
               <div>
                 <Label>نوع الوردية</Label>
-                <Select>
+                <Select value={newShiftType} onValueChange={setNewShiftType}>
                   <SelectTrigger>
                     <SelectValue placeholder="اختر نوع الوردية" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-popover">
                     <SelectItem value="morning">صباحية</SelectItem>
                     <SelectItem value="evening">مسائية</SelectItem>
                     <SelectItem value="night">ليلية</SelectItem>
@@ -284,13 +402,14 @@ const POSSettings = () => {
               </div>
               <div>
                 <Label>رصيد الخزنة الافتتاحي</Label>
-                <Input type="number" placeholder="1000" />
+                <Input 
+                  type="number" 
+                  placeholder="1000" 
+                  value={newShiftOpeningBalance}
+                  onChange={(e) => setNewShiftOpeningBalance(e.target.value)}
+                />
               </div>
-              <div className="flex items-center justify-between">
-                <Label>تفعيل الوردية</Label>
-                <Switch defaultChecked />
-              </div>
-              <Button className="w-full">حفظ الوردية</Button>
+              <Button className="w-full" onClick={handleAddShift}>حفظ الوردية</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -320,40 +439,44 @@ const POSSettings = () => {
           <Separator className="my-4" />
 
           <div className="space-y-4">
-            {shifts.map((shift) => (
-              <Card key={shift.id}>
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold">{shift.name}</h3>
-                        <span className={`text-xs px-2 py-1 rounded ${
-                          shift.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"
-                        }`}>
-                          {shift.isActive ? "نشط" : "غير نشط"}
-                        </span>
+            {shifts.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">لا توجد ورديات</p>
+            ) : (
+              shifts.map((shift) => (
+                <Card key={shift.id}>
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold">{shift.shift_name}</h3>
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            shift.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"
+                          }`}>
+                            {shift.is_active ? "نشط" : "غير نشط"}
+                          </span>
+                        </div>
+                        <div className="text-sm text-muted-foreground space-y-1">
+                          <p>النوع: {shift.shift_type}</p>
+                          <p>التوقيت: {shift.start_time} - {shift.end_time}</p>
+                          <p>رصيد الخزنة: {shift.opening_balance?.toFixed(2) || '0.00'} ر.س</p>
+                        </div>
                       </div>
-                      <div className="text-sm text-muted-foreground space-y-1">
-                        <p>النوع: {shift.type}</p>
-                        <p>التوقيت: {shift.startTime} - {shift.endTime}</p>
-                        <p>رصيد الخزنة: {shift.openingCash.toFixed(2)} ر.س</p>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm">
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                        <Button variant="outline" size="sm" className="text-red-600">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Copy className="w-4 h-4" />
-                      </Button>
-                      <Button variant="outline" size="sm" className="text-red-600">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
         </CardContent>
       </Card>

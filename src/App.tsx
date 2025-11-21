@@ -85,6 +85,8 @@ import TaxCompliance from "./pages/TaxCompliance";
 import VATReturns from "./pages/VATReturns";
 import EInvoicing from "./pages/EInvoicing";
 import TaxReports from "./pages/TaxReports";
+import CustomerComplaints from "./pages/CustomerComplaints";
+import ComplaintsReports from "./pages/ComplaintsReports";
 
 const queryClient = new QueryClient();
 
@@ -202,6 +204,8 @@ const AppContent = () => {
           <Route path="/tax/vat-returns" element={<VATReturns />} />
           <Route path="/tax/e-invoicing" element={<EInvoicing />} />
           <Route path="/tax/reports" element={<TaxReports />} />
+          <Route path="/crm/complaints" element={<CustomerComplaints />} />
+          <Route path="/crm/complaints-reports" element={<ComplaintsReports />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

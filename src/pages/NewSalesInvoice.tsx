@@ -39,6 +39,7 @@ const NewSalesInvoice = () => {
   const [dueDate, setDueDate] = useState("");
   const [warehouseId, setWarehouseId] = useState("");
   const [notes, setNotes] = useState("");
+  const [paymentTerms, setPaymentTerms] = useState("");
   const [items, setItems] = useState<InvoiceItem[]>([]);
   const [paymentMethodId, setPaymentMethodId] = useState("");
   const [paymentAmount, setPaymentAmount] = useState(0);
@@ -256,8 +257,10 @@ const NewSalesInvoice = () => {
         tax_amount: totalTax,
         total_amount: totalAmount,
         status: "draft",
-        payment_status: "unpaid",
-        paid_amount: 0,
+        payment_status: paymentAmount >= totalAmount ? "paid" : paymentAmount > 0 ? "partial" : "unpaid",
+        paid_amount: paymentAmount,
+        payment_method_id: paymentMethodId || null,
+        payment_terms: paymentTerms || null,
         notes,
         created_by: userData?.user?.id,
       };
@@ -387,10 +390,26 @@ const NewSalesInvoice = () => {
                 type="number"
                 step="0.01"
                 min="0"
+                max={totalAmount}
                 value={paymentAmount}
                 onChange={(e) => setPaymentAmount(Number(e.target.value))}
                 placeholder="0.00"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="paymentTerms">شروط الدفع</Label>
+              <Select value={paymentTerms} onValueChange={setPaymentTerms}>
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر شروط الدفع" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="فوري">فوري</SelectItem>
+                  <SelectItem value="30 يوم">30 يوم</SelectItem>
+                  <SelectItem value="60 يوم">60 يوم</SelectItem>
+                  <SelectItem value="90 يوم">90 يوم</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -481,6 +500,14 @@ const NewSalesInvoice = () => {
                   <div className="flex justify-between font-bold text-lg border-t pt-2">
                     <span>الإجمالي:</span>
                     <span>{totalAmount.toFixed(2)} ر.س</span>
+                  </div>
+                  <div className="flex justify-between text-green-600 border-t pt-2">
+                    <span>المدفوع:</span>
+                    <span className="font-medium">{paymentAmount.toFixed(2)} ر.س</span>
+                  </div>
+                  <div className="flex justify-between text-orange-600 font-semibold">
+                    <span>المتبقي:</span>
+                    <span className="font-bold">{(totalAmount - paymentAmount).toFixed(2)} ر.س</span>
                   </div>
                 </div>
               </div>

@@ -139,6 +139,23 @@ const POS = () => {
   const [lastInvoiceNumber, setLastInvoiceNumber] = useState("");
   const [sessionStats, setSessionStats] = useState<{ total_sales: number; invoice_count: number } | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [receiptData, setReceiptData] = useState<{
+    invoiceNumber: string;
+    items: {
+      name: string;
+      quantity: number;
+      price: number;
+      discount?: number;
+      total: number;
+    }[];
+    subtotal: number;
+    discount: number;
+    taxAmount: number;
+    totalAmount: number;
+    invoiceDate: string;
+    paymentMethod: string;
+    customerName: string;
+  } | null>(null);
 
   const TAX_RATE = 15;
 
@@ -546,13 +563,33 @@ const POS = () => {
 
       if (itemsError) throw itemsError;
 
+      // Prepare receipt data snapshot before clearing the cart
       setLastInvoiceNumber(invoiceNumber);
+      setReceiptData({
+        invoiceNumber,
+        items: cart.map((item) => ({
+          name: item.product_name,
+          quantity: item.quantity,
+          price: item.unit_price,
+          discount: item.discount_amount,
+          total: item.line_total,
+        })),
+        subtotal,
+        discount: totalDiscount,
+        taxAmount: tax,
+        totalAmount: grandTotal,
+        invoiceDate: new Date().toISOString(),
+        paymentMethod:
+          paymentMethods.find((m) => m.id === selectedPaymentMethod)?.name || "",
+        customerName: selectedCustomer?.name || "عميل عابر",
+      });
+
       toast({
         title: "✅ تمت عملية البيع بنجاح",
         description: `رقم الفاتورة: ${invoiceNumber}`,
       });
 
-      // Print receipt
+      // Print receipt using the snapshot data
       setTimeout(() => {
         handlePrint();
       }, 500);
@@ -969,23 +1006,25 @@ const POS = () => {
       <div className="hidden">
         <POSReceipt
           ref={receiptRef}
-          invoiceNumber={lastInvoiceNumber}
-          items={cart.map((item) => ({
-            name: item.product_name,
-            quantity: item.quantity,
-            price: item.unit_price,
-            discount: item.discount_amount,
-            total: item.line_total,
-          }))}
-          subtotal={subtotal}
-          discount={totalDiscount}
-          taxAmount={tax}
-          totalAmount={grandTotal}
-          invoiceDate={new Date().toLocaleDateString("ar-SA")}
-          paymentMethod={
-            paymentMethods.find((m) => m.id === selectedPaymentMethod)?.name || ""
+          invoiceNumber={receiptData?.invoiceNumber || lastInvoiceNumber}
+          items={
+            receiptData?.items ||
+            cart.map((item) => ({
+              name: item.product_name,
+              quantity: item.quantity,
+              price: item.unit_price,
+              discount: item.discount_amount,
+              total: item.line_total,
+            }))
           }
-          customerName={selectedCustomer?.name || "عميل عابر"}
+          subtotal={receiptData?.subtotal ?? subtotal}
+          discount={receiptData?.discount ?? totalDiscount}
+          taxAmount={receiptData?.taxAmount ?? tax}
+          totalAmount={receiptData?.totalAmount ?? grandTotal}
+          invoiceDate={receiptData?.invoiceDate || new Date().toISOString()}
+          paymentMethod={receiptData?.paymentMethod ||
+            (paymentMethods.find((m) => m.id === selectedPaymentMethod)?.name || "")}
+          customerName={receiptData?.customerName || selectedCustomer?.name || "عميل عابر"}
         />
       </div>
     </div>

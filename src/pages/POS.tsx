@@ -691,15 +691,19 @@ const POS = () => {
                 className="pr-10"
               />
             </div>
-            <Select value={selectedCustomer?.id || ""} onValueChange={(value) => {
-              const customer = customers.find((c) => c.id === value);
-              setSelectedCustomer(customer || null);
+            <Select value={selectedCustomer?.id || "default"} onValueChange={(value) => {
+              if (value === "default") {
+                setSelectedCustomer(null);
+              } else {
+                const customer = customers.find((c) => c.id === value);
+                setSelectedCustomer(customer || null);
+              }
             }}>
               <SelectTrigger className="w-64">
                 <SelectValue placeholder="اختر العميل" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">عميل عابر</SelectItem>
+              <SelectContent className="bg-popover z-50">
+                <SelectItem value="default">عميل عابر</SelectItem>
                 {customers.map((customer) => (
                   <SelectItem key={customer.id} value={customer.id}>
                     {customer.name} - {customer.phone}

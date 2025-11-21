@@ -4130,7 +4130,9 @@ export type Database = {
           invoice_number: string
           notes: string | null
           paid_amount: number
+          payment_method_id: string | null
           payment_status: string
+          payment_terms: string | null
           posted_at: string | null
           posted_by: string | null
           status: string
@@ -4151,7 +4153,9 @@ export type Database = {
           invoice_number: string
           notes?: string | null
           paid_amount?: number
+          payment_method_id?: string | null
           payment_status?: string
+          payment_terms?: string | null
           posted_at?: string | null
           posted_by?: string | null
           status?: string
@@ -4172,7 +4176,9 @@ export type Database = {
           invoice_number?: string
           notes?: string | null
           paid_amount?: number
+          payment_method_id?: string | null
           payment_status?: string
+          payment_terms?: string | null
           posted_at?: string | null
           posted_by?: string | null
           status?: string
@@ -4188,6 +4194,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_invoices_payment_method_id_fkey"
+            columns: ["payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "payment_methods"
             referencedColumns: ["id"]
           },
           {

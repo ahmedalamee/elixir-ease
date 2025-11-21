@@ -155,6 +155,8 @@ const POS = () => {
     invoiceDate: string;
     paymentMethod: string;
     customerName: string;
+    paidAmount: number;
+    changeAmount: number;
   } | null>(null);
 
   const TAX_RATE = 15;
@@ -579,9 +581,10 @@ const POS = () => {
         taxAmount: tax,
         totalAmount: grandTotal,
         invoiceDate: new Date().toISOString(),
-        paymentMethod:
-          paymentMethods.find((m) => m.id === selectedPaymentMethod)?.name || "",
+        paymentMethod: paymentMethods.find((m) => m.id === selectedPaymentMethod)?.name || "نقدي",
         customerName: selectedCustomer?.name || "عميل عابر",
+        paidAmount: parseFloat(paidAmount) || grandTotal,
+        changeAmount: changeAmount > 0 ? changeAmount : 0,
       });
 
       toast({
@@ -1020,11 +1023,14 @@ const POS = () => {
           subtotal={receiptData?.subtotal ?? subtotal}
           discount={receiptData?.discount ?? totalDiscount}
           taxAmount={receiptData?.taxAmount ?? tax}
+          taxRate={TAX_RATE}
           totalAmount={receiptData?.totalAmount ?? grandTotal}
           invoiceDate={receiptData?.invoiceDate || new Date().toISOString()}
           paymentMethod={receiptData?.paymentMethod ||
             (paymentMethods.find((m) => m.id === selectedPaymentMethod)?.name || "")}
           customerName={receiptData?.customerName || selectedCustomer?.name || "عميل عابر"}
+          paidAmount={receiptData?.paidAmount ?? (paidAmount ? parseFloat(paidAmount) : undefined)}
+          changeAmount={receiptData?.changeAmount ?? (changeAmount > 0 ? changeAmount : undefined)}
         />
       </div>
     </div>

@@ -940,6 +940,7 @@ const POS = () => {
       <POSReceipt
         ref={receiptRef}
         invoiceNumber={lastInvoiceNumber}
+        invoiceDate={new Date().toISOString()}
         items={cart.map(item => ({
           name: item.product_name,
           quantity: item.quantity,
@@ -949,8 +950,9 @@ const POS = () => {
         }))}
         subtotal={totals.subtotal}
         discount={totals.discount}
-        tax={totals.taxAmount}
-        total={totals.total}
+        taxAmount={totals.taxAmount}
+        totalAmount={totals.total}
+        paymentMethod={paymentMethods.find(pm => pm.id === paymentMethodId)?.name || "نقدي"}
         customerName={selectedCustomer?.name}
       />
     </div>

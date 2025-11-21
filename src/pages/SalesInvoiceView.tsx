@@ -252,7 +252,14 @@ const SalesInvoiceView = () => {
                   <TableCell className="text-center">{item.uoms?.name || "قطعة"}</TableCell>
                   <TableCell className="text-left">{item.unit_price.toFixed(2)}</TableCell>
                   <TableCell className="text-left">
-                    {item.discount_amount > 0 ? item.discount_amount.toFixed(2) : "-"}
+                    {item.discount_amount > 0 ? (
+                      <div>
+                        <div>{item.discount_percentage}%</div>
+                        <div className="text-sm text-muted-foreground">
+                          ({item.discount_amount.toFixed(2)} ر.س)
+                        </div>
+                      </div>
+                    ) : "-"}
                   </TableCell>
                   <TableCell className="text-left font-medium">
                     {itemAfterDiscount.toFixed(2)}

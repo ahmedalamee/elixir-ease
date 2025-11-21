@@ -67,13 +67,13 @@ const NewSalesInvoice = () => {
     },
   });
 
-  // Fetch products
+  // Fetch products with discount settings
   const { data: products } = useQuery({
     queryKey: ["products"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("*")
+        .select("*, allow_discount, max_discount_percentage, default_discount_percentage")
         .eq("is_active", true)
         .eq("sellable", true)
         .order("name");
@@ -166,8 +166,10 @@ const NewSalesInvoice = () => {
     const taxRate = defaultTax?.rate || 0;
     const taxCode = defaultTax?.tax_code || "";
 
+    // Use product's default discount
     const unitPrice = product.price;
-    const discountAmount = 0;
+    const discountPercentage = product.default_discount_percentage || 0;
+    const discountAmount = (selectedQty * unitPrice * discountPercentage) / 100;
     const lineSubtotal = selectedQty * unitPrice - discountAmount;
     const taxAmount = lineSubtotal * (taxRate / 100);
     const lineTotal = lineSubtotal + taxAmount;
@@ -178,7 +180,7 @@ const NewSalesInvoice = () => {
       uom_id: product.base_uom_id || null,
       qty: selectedQty,
       unit_price: unitPrice,
-      discount_percentage: 0,
+      discount_percentage: discountPercentage,
       discount_amount: discountAmount,
       tax_code: taxCode,
       tax_percentage: taxRate,
@@ -200,9 +202,39 @@ const NewSalesInvoice = () => {
   const handleUpdateItemQty = (index: number, qty: number) => {
     const updatedItems = [...items];
     const item = updatedItems[index];
-    const lineSubtotal = qty * item.unit_price - item.discount_amount;
+    const discountAmount = (qty * item.unit_price * item.discount_percentage) / 100;
+    const lineSubtotal = qty * item.unit_price - discountAmount;
     const taxAmount = lineSubtotal * (item.tax_percentage / 100);
     item.qty = qty;
+    item.discount_amount = discountAmount;
+    item.tax_amount = taxAmount;
+    item.line_total = lineSubtotal + taxAmount;
+    setItems(updatedItems);
+  };
+
+  const handleUpdateItemDiscount = (index: number, discountPercentage: number) => {
+    const product = products?.find((p) => p.id === items[index].item_id);
+    if (!product) return;
+
+    // Validate discount
+    if (!product.allow_discount) {
+      toast.error("❗ هذا المنتج لا يسمح بالخصم");
+      return;
+    }
+
+    const maxDiscount = product.max_discount_percentage || 0;
+    if (discountPercentage > maxDiscount) {
+      toast.error(`❗ أقصى خصم مسموح به ${maxDiscount}%`);
+      return;
+    }
+
+    const updatedItems = [...items];
+    const item = updatedItems[index];
+    const discountAmount = (item.qty * item.unit_price * discountPercentage) / 100;
+    const lineSubtotal = item.qty * item.unit_price - discountAmount;
+    const taxAmount = lineSubtotal * (item.tax_percentage / 100);
+    item.discount_percentage = discountPercentage;
+    item.discount_amount = discountAmount;
     item.tax_amount = taxAmount;
     item.line_total = lineSubtotal + taxAmount;
     setItems(updatedItems);
@@ -435,42 +467,62 @@ const NewSalesInvoice = () => {
                     <TableHead>المنتج</TableHead>
                     <TableHead>الكمية</TableHead>
                     <TableHead>السعر</TableHead>
-                    <TableHead>الخصم</TableHead>
+                    <TableHead>الخصم %</TableHead>
+                    <TableHead>قيمة الخصم</TableHead>
                     <TableHead>الضريبة</TableHead>
                     <TableHead>الإجمالي</TableHead>
                     <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {items.map((item, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{item.item_name}</TableCell>
-                      <TableCell>
-                        <Input
-                          type="number"
-                          min="1"
-                          value={item.qty}
-                          onChange={(e) => handleUpdateItemQty(index, Number(e.target.value))}
-                          className="w-20"
-                        />
-                      </TableCell>
-                      <TableCell>{item.unit_price.toFixed(2)}</TableCell>
-                      <TableCell>{item.discount_amount.toFixed(2)}</TableCell>
-                      <TableCell>
-                        {item.tax_percentage}% ({item.tax_amount.toFixed(2)})
-                      </TableCell>
-                      <TableCell className="font-bold">{item.line_total.toFixed(2)}</TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveItem(index)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {items.map((item, index) => {
+                    const product = products?.find((p) => p.id === item.item_id);
+                    const allowDiscount = product?.allow_discount ?? true;
+                    const maxDiscount = product?.max_discount_percentage || 100;
+                    
+                    return (
+                      <TableRow key={index}>
+                        <TableCell>{item.item_name}</TableCell>
+                        <TableCell>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={item.qty}
+                            onChange={(e) => handleUpdateItemQty(index, Number(e.target.value))}
+                            className="w-20"
+                          />
+                        </TableCell>
+                        <TableCell>{item.unit_price.toFixed(2)}</TableCell>
+                        <TableCell>
+                          <Input
+                            type="number"
+                            min="0"
+                            max={maxDiscount}
+                            step="0.01"
+                            value={item.discount_percentage}
+                            onChange={(e) => handleUpdateItemDiscount(index, Number(e.target.value))}
+                            disabled={!allowDiscount}
+                            className="w-20"
+                            title={!allowDiscount ? "الخصم غير مسموح لهذا المنتج" : `أقصى خصم: ${maxDiscount}%`}
+                          />
+                        </TableCell>
+                        <TableCell>{item.discount_amount.toFixed(2)}</TableCell>
+                        <TableCell>
+                          {item.tax_percentage}% ({item.tax_amount.toFixed(2)})
+                        </TableCell>
+                        <TableCell className="font-bold">{item.line_total.toFixed(2)}</TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveItem(index)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             ) : (

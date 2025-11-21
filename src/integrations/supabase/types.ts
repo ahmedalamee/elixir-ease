@@ -3199,11 +3199,13 @@ export type Database = {
       }
       products: {
         Row: {
+          allow_discount: boolean | null
           barcode: string | null
           base_uom_id: string | null
           category_id: string | null
           cost_price: number
           created_at: string | null
+          default_discount_percentage: number | null
           description: string | null
           expiry_date: string | null
           form: Database["public"]["Enums"]["product_form"] | null
@@ -3213,6 +3215,7 @@ export type Database = {
           is_active: boolean | null
           is_controlled: boolean | null
           manufacturer_id: string | null
+          max_discount_percentage: number | null
           min_quantity: number | null
           name: string
           name_en: string | null
@@ -3230,11 +3233,13 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          allow_discount?: boolean | null
           barcode?: string | null
           base_uom_id?: string | null
           category_id?: string | null
           cost_price?: number
           created_at?: string | null
+          default_discount_percentage?: number | null
           description?: string | null
           expiry_date?: string | null
           form?: Database["public"]["Enums"]["product_form"] | null
@@ -3244,6 +3249,7 @@ export type Database = {
           is_active?: boolean | null
           is_controlled?: boolean | null
           manufacturer_id?: string | null
+          max_discount_percentage?: number | null
           min_quantity?: number | null
           name: string
           name_en?: string | null
@@ -3261,11 +3267,13 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          allow_discount?: boolean | null
           barcode?: string | null
           base_uom_id?: string | null
           category_id?: string | null
           cost_price?: number
           created_at?: string | null
+          default_discount_percentage?: number | null
           description?: string | null
           expiry_date?: string | null
           form?: Database["public"]["Enums"]["product_form"] | null
@@ -3275,6 +3283,7 @@ export type Database = {
           is_active?: boolean | null
           is_controlled?: boolean | null
           manufacturer_id?: string | null
+          max_discount_percentage?: number | null
           min_quantity?: number | null
           name?: string
           name_en?: string | null

@@ -5323,6 +5323,21 @@ export type Database = {
         }
         Relationships: []
       }
+      posted_documents_audit: {
+        Row: {
+          document_date: string | null
+          document_number: string | null
+          document_type: string | null
+          id: string | null
+          party_id: string | null
+          posted_at: string | null
+          posted_by: string | null
+          status: string | null
+          total_amount: number | null
+          warehouse_id: string | null
+        }
+        Relationships: []
+      }
       sales_summary_view: {
         Row: {
           customer_id: string | null
@@ -5352,6 +5367,10 @@ export type Database = {
       }
     }
     Functions: {
+      check_credit_limit: {
+        Args: { p_amount: number; p_customer_id: string }
+        Returns: Json
+      }
       copy_role_permissions: {
         Args: {
           _copied_by: string

@@ -7,12 +7,15 @@ interface ReceiptProps {
     name: string;
     quantity: number;
     price: number;
+    discount?: number;
     total: number;
   }>;
   subtotal: number;
+  discount?: number;
   taxAmount: number;
   totalAmount: number;
   paymentMethod: string;
+  customerName?: string;
   companyInfo?: {
     name: string;
     name_en?: string;
@@ -29,9 +32,11 @@ export const POSReceipt = forwardRef<HTMLDivElement, ReceiptProps>(
       invoiceDate,
       items,
       subtotal,
+      discount,
       taxAmount,
       totalAmount,
       paymentMethod,
+      customerName,
       companyInfo,
     },
     ref
@@ -79,6 +84,12 @@ export const POSReceipt = forwardRef<HTMLDivElement, ReceiptProps>(
             <span>التاريخ:</span>
             <span>{new Date(invoiceDate).toLocaleDateString("ar-SA")}</span>
           </div>
+          {customerName && (
+            <div className="flex justify-between">
+              <span>العميل:</span>
+              <span className="font-bold">{customerName}</span>
+            </div>
+          )}
           <div className="flex justify-between">
             <span>طريقة الدفع:</span>
             <span>{paymentMethod}</span>
@@ -113,6 +124,12 @@ export const POSReceipt = forwardRef<HTMLDivElement, ReceiptProps>(
             <span>المجموع الفرعي:</span>
             <span>{subtotal.toFixed(2)} ر.س</span>
           </div>
+          {discount && discount > 0 && (
+            <div className="flex justify-between text-green-600">
+              <span>الخصم:</span>
+              <span>-{discount.toFixed(2)} ر.س</span>
+            </div>
+          )}
           <div className="flex justify-between">
             <span>الضريبة:</span>
             <span>{taxAmount.toFixed(2)} ر.س</span>

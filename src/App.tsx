@@ -17,6 +17,10 @@ import BatchTracking from "./pages/BatchTracking";
 import InventoryReports from "./pages/InventoryReports";
 import POS from "./pages/POS";
 import POSReports from "./pages/POSReports";
+import POSNewSession from "./pages/POSNewSession";
+import POSProfitReports from "./pages/POSProfitReports";
+import POSSalesReports from "./pages/POSSalesReports";
+import POSSettings from "./pages/POSSettings";
 import Products from "./pages/Products";
 import ProductsAdvanced from "./pages/ProductsAdvanced";
 import Customers from "./pages/Customers";
@@ -118,6 +122,10 @@ const AppContent = () => {
           <Route path="/customer-portal" element={<CustomerPortal />} />
           <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/pos" element={<POS />} />
+            <Route path="/pos/new-session" element={<POSNewSession />} />
+            <Route path="/pos/profit-reports" element={<POSProfitReports />} />
+            <Route path="/pos/sales-reports" element={<POSSalesReports />} />
+            <Route path="/pos/settings" element={<POSSettings />} />
             <Route path="/pos/reports" element={<POSReports />} />
             <Route path="/warehouse-transfers" element={<WarehouseTransfers />} />
             <Route path="/stock-adjustments" element={<StockAdjustments />} />

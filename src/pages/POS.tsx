@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -105,6 +105,7 @@ interface POSSession {
 
 const POS = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const receiptRef = useRef<HTMLDivElement>(null);
 
@@ -580,51 +581,65 @@ const POS = () => {
         {/* Navigation Menu */}
         <nav className="flex-1 p-4 overflow-y-auto">
           <div className="space-y-2">
-            <Button variant="default" className="w-full justify-start text-right">
-              <Package className="ml-2 h-5 w-5" />
-              لوحة البيع الرئيسية
-            </Button>
+            <Link
+              to="/pos"
+              className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
+                location.pathname === "/pos"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-foreground hover:bg-muted"
+              }`}
+            >
+              <Package className="w-5 h-5" />
+              <span>لوحة البيع الرئيسية</span>
+            </Link>
 
-            <div className="space-y-1">
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-right"
-                onClick={() => setShowSessionDialog(true)}
-              >
-                <Settings className="ml-2 h-5 w-5" />
-                إعدادات الجلسة
-              </Button>
+            <Link
+              to="/pos/new-session"
+              className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
+                location.pathname === "/pos/new-session"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-foreground hover:bg-muted"
+              }`}
+            >
+              <FileText className="w-5 h-5" />
+              <span>جلسة جديدة</span>
+            </Link>
 
-              <div className="pr-8 space-y-1">
-                <Button variant="ghost" size="sm" className="w-full justify-start text-right text-xs">
-                  معلومات المستخدم
-                </Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start text-right text-xs">
-                  إدارة الورديات
-                </Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start text-right text-xs">
-                  إعدادات الجهاز
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start text-right text-xs"
-                  onClick={() => setShowSessionDialog(true)}
-                >
-                  إغلاق الجلسة
-                </Button>
-              </div>
-            </div>
+            <Link
+              to="/pos/profit-reports"
+              className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
+                location.pathname === "/pos/profit-reports"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-foreground hover:bg-muted"
+              }`}
+            >
+              <TrendingUp className="w-5 h-5" />
+              <span>تقارير الأرباح</span>
+            </Link>
 
-            <Button variant="ghost" className="w-full justify-start text-right">
-              <BarChart3 className="ml-2 h-5 w-5" />
-              التقارير والإحصائيات
-            </Button>
+            <Link
+              to="/pos/sales-reports"
+              className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
+                location.pathname === "/pos/sales-reports"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-foreground hover:bg-muted"
+              }`}
+            >
+              <BarChart3 className="w-5 h-5" />
+              <span>تقارير المبيعات</span>
+            </Link>
 
-            <Button variant="ghost" className="w-full justify-start text-right">
-              <Settings className="ml-2 h-5 w-5" />
-              إعدادات النظام
-            </Button>
+            <Link
+              to="/pos/settings"
+              className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
+                location.pathname === "/pos/settings"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-foreground hover:bg-muted"
+              }`}
+            >
+              <Settings className="w-5 h-5" />
+              <span>الإعدادات</span>
+            </Link>
           </div>
         </nav>
 

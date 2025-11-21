@@ -3,26 +3,27 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import Navbar from "@/components/Navbar";
 import { POSSessionDialog } from "@/components/pos/POSSessionDialog";
 import { POSReceipt } from "@/components/pos/POSReceipt";
 import { useReactToPrint } from "react-to-print";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   ShoppingCart,
   Search,
   Trash2,
   Plus,
   Minus,
-  Printer,
-  DoorOpen,
-  DoorClosed,
-  AlertCircle,
+  Settings,
   User,
   Package,
   Percent,
   X,
+  CheckCircle,
+  CreditCard,
+  Star,
+  TrendingUp,
 } from "lucide-react";
 import {
   Select,
@@ -31,10 +32,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 
+// Interfaces
 interface Product {
   id: string;
   name: string;
@@ -45,23 +45,21 @@ interface Product {
   max_discount_percentage?: number;
   default_discount_percentage?: number;
   base_uom_id?: string;
-  tax_code?: string;
+  image_url?: string;
+  category_id?: string;
 }
 
-interface CartItem extends Product {
-  cartQuantity: number;
+interface CartItem {
+  product_id: string;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
   discount_percentage: number;
   discount_amount: number;
   line_total: number;
+  allow_discount: boolean;
+  max_discount_percentage: number;
   uom_id?: string;
-}
-
-interface PaymentMethod {
-  id: string;
-  code: string;
-  name: string;
-  name_en: string;
-  is_active: boolean;
 }
 
 interface Customer {
@@ -74,42 +72,47 @@ interface Customer {
   segment: string;
 }
 
+interface Category {
+  id: string;
+  name: string;
+}
+
+interface PaymentMethod {
+  id: string;
+  name: string;
+}
+
 const POS = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const receiptRef = useRef<HTMLDivElement>(null);
+
+  // State
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
-  const [currentSession, setCurrentSession] = useState<any>(null);
-  const [sessionDialogOpen, setSessionDialogOpen] = useState(false);
-  const [companyInfo, setCompanyInfo] = useState<any>(null);
-  const [lastInvoice, setLastInvoice] = useState<any>(null);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [categories, setCategories] = useState<Category[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [customerSearch, setCustomerSearch] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
+  const [posSession, setPosSession] = useState<any>(null);
+  const [showSessionDialog, setShowSessionDialog] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [lastInvoiceNumber, setLastInvoiceNumber] = useState("");
+
+  const taxRate = 15;
 
   const handlePrint = useReactToPrint({
     contentRef: receiptRef,
   });
 
+  // Auth check
   useEffect(() => {
     checkAuth();
     fetchData();
   }, []);
-
-  const fetchData = async () => {
-    await Promise.all([
-      fetchProducts(),
-      fetchPaymentMethods(),
-      fetchCurrentSession(),
-      fetchCompanyInfo(),
-      fetchCustomers(),
-    ]);
-  };
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -118,18 +121,54 @@ const POS = () => {
     }
   };
 
+  const fetchData = async () => {
+    await Promise.all([
+      fetchProducts(),
+      fetchCategories(),
+      fetchCustomers(),
+      fetchPaymentMethods(),
+      fetchPOSSession(),
+    ]);
+  };
+
   const fetchProducts = async () => {
     try {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, barcode, price, quantity, allow_discount, max_discount_percentage, default_discount_percentage, base_uom_id, is_active")
+        .select(`
+          id,
+          name,
+          barcode,
+          price,
+          quantity,
+          allow_discount,
+          max_discount_percentage,
+          default_discount_percentage,
+          base_uom_id,
+          image_url,
+          category_id
+        `)
         .eq("is_active", true)
-        .gt("quantity", 0);
+        .order("name");
 
       if (error) throw error;
       setProducts(data || []);
     } catch (error) {
       console.error("Error fetching products:", error);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("categories")
+        .select("id, name")
+        .order("name");
+
+      if (error) throw error;
+      setCategories(data || []);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
     }
   };
 
@@ -152,21 +191,21 @@ const POS = () => {
     try {
       const { data, error } = await supabase
         .from("payment_methods")
-        .select("*")
+        .select("id, name")
         .eq("is_active", true)
         .order("name");
 
       if (error) throw error;
       setPaymentMethods(data || []);
       if (data && data.length > 0) {
-        setSelectedPaymentMethod(data[0].id);
+        setPaymentMethodId(data[0].id);
       }
     } catch (error) {
       console.error("Error fetching payment methods:", error);
     }
   };
 
-  const fetchCurrentSession = async () => {
+  const fetchPOSSession = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const { data, error } = await supabase
@@ -179,113 +218,109 @@ const POS = () => {
         .single();
 
       if (error && error.code !== "PGRST116") throw error;
-      setCurrentSession(data);
+      setPosSession(data);
     } catch (error) {
-      console.error("Error fetching session:", error);
+      console.error("Error fetching POS session:", error);
     }
   };
 
-  const fetchCompanyInfo = async () => {
-    try {
-      const { data, error } = await (supabase as any)
-        .from("company_profile")
-        .select("*")
-        .limit(1)
-        .single();
+  // Filter products
+  const filteredProducts = products.filter((p) => {
+    const matchesSearch =
+      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.barcode?.includes(searchTerm);
+    const matchesCategory =
+      selectedCategory === "all" || p.category_id === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
-      if (error && error.code !== "PGRST116") {
-        console.error("Error fetching company info:", error);
-        return;
-      }
-      setCompanyInfo(data);
-    } catch (error) {
-      console.error("Error fetching company info:", error);
-    }
-  };
-
-  const filteredProducts = products.filter(
-    (p) =>
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.barcode?.includes(searchQuery)
+  // Filter customers
+  const filteredCustomers = customers.filter(
+    (c) =>
+      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.phone?.includes(searchTerm)
   );
 
+  // Cart operations
   const addToCart = (product: Product) => {
-    const existingItem = cart.find((item) => item.id === product.id);
+    const existingItemIndex = cart.findIndex((item) => item.product_id === product.id);
 
-    if (existingItem) {
-      if (existingItem.cartQuantity >= product.quantity) {
+    if (existingItemIndex >= 0) {
+      const updatedCart = [...cart];
+      const existingItem = updatedCart[existingItemIndex];
+      const newQuantity = existingItem.quantity + 1;
+
+      if (newQuantity > product.quantity) {
         toast({
           title: "تحذير",
-          description: "الكمية المطلوبة غير متوفرة في المخزون",
+          description: "الكمية المتاحة غير كافية",
           variant: "destructive",
         });
         return;
       }
-      updateQuantity(product.id, existingItem.cartQuantity + 1);
+
+      existingItem.quantity = newQuantity;
+      existingItem.discount_amount =
+        (existingItem.unit_price * newQuantity * existingItem.discount_percentage) / 100;
+      existingItem.line_total =
+        existingItem.unit_price * newQuantity - existingItem.discount_amount;
+
+      setCart(updatedCart);
     } else {
       const discountPercentage = product.default_discount_percentage || 0;
-      const itemPrice = product.price;
-      const discountAmount = (itemPrice * discountPercentage) / 100;
-      const lineTotal = itemPrice - discountAmount;
+      const discountAmount = (product.price * discountPercentage) / 100;
+      const lineTotal = product.price - discountAmount;
 
       setCart([
         ...cart,
         {
-          ...product,
-          cartQuantity: 1,
+          product_id: product.id,
+          product_name: product.name,
+          quantity: 1,
+          unit_price: product.price,
           discount_percentage: discountPercentage,
           discount_amount: discountAmount,
           line_total: lineTotal,
+          allow_discount: product.allow_discount || false,
+          max_discount_percentage: product.max_discount_percentage || 0,
+          uom_id: product.base_uom_id,
         },
       ]);
     }
   };
 
-  const removeFromCart = (productId: string) => {
-    setCart(cart.filter((item) => item.id !== productId));
+  const removeFromCart = (index: number) => {
+    setCart(cart.filter((_, i) => i !== index));
   };
 
-  const updateQuantity = (productId: string, newQuantity: number) => {
-    const product = products.find((p) => p.id === productId);
-    if (!product) return;
+  const updateQuantity = (index: number, newQuantity: number) => {
+    if (newQuantity <= 0) {
+      removeFromCart(index);
+      return;
+    }
 
-    if (newQuantity > product.quantity) {
+    const product = products.find((p) => p.id === cart[index].product_id);
+    if (product && newQuantity > product.quantity) {
       toast({
         title: "تحذير",
-        description: "الكمية المطلوبة غير متوفرة في المخزون",
+        description: "الكمية المتاحة غير كافية",
         variant: "destructive",
       });
       return;
     }
 
-    if (newQuantity <= 0) {
-      removeFromCart(productId);
-      return;
-    }
+    const updatedCart = [...cart];
+    updatedCart[index].quantity = newQuantity;
+    updatedCart[index].discount_amount =
+      (updatedCart[index].unit_price * newQuantity * updatedCart[index].discount_percentage) / 100;
+    updatedCart[index].line_total =
+      updatedCart[index].unit_price * newQuantity - updatedCart[index].discount_amount;
 
-    setCart(
-      cart.map((item) => {
-        if (item.id === productId) {
-          const itemPrice = item.price * newQuantity;
-          const discountAmount = (itemPrice * item.discount_percentage) / 100;
-          const lineTotal = itemPrice - discountAmount;
-          return {
-            ...item,
-            cartQuantity: newQuantity,
-            discount_amount: discountAmount,
-            line_total: lineTotal,
-          };
-        }
-        return item;
-      })
-    );
+    setCart(updatedCart);
   };
 
-  const updateDiscount = (productId: string, discountPercentage: number) => {
-    const product = products.find((p) => p.id === productId);
-    if (!product) return;
-
-    if (!product.allow_discount) {
+  const updateDiscount = (index: number, discountPercentage: number) => {
+    if (!cart[index].allow_discount) {
       toast({
         title: "تحذير",
         description: "لا يُسمح بالخصم على هذا المنتج",
@@ -294,62 +329,44 @@ const POS = () => {
       return;
     }
 
-    if (discountPercentage > (product.max_discount_percentage || 0)) {
+    if (discountPercentage > cart[index].max_discount_percentage) {
       toast({
         title: "تحذير",
-        description: `أقصى خصم مسموح به ${product.max_discount_percentage}%`,
+        description: `أقصى خصم مسموح به ${cart[index].max_discount_percentage}%`,
         variant: "destructive",
       });
       return;
     }
 
-    setCart(
-      cart.map((item) => {
-        if (item.id === productId) {
-          const itemPrice = item.price * item.cartQuantity;
-          const discountAmount = (itemPrice * discountPercentage) / 100;
-          const lineTotal = itemPrice - discountAmount;
-          return {
-            ...item,
-            discount_percentage: discountPercentage,
-            discount_amount: discountAmount,
-            line_total: lineTotal,
-          };
-        }
-        return item;
-      })
-    );
+    const updatedCart = [...cart];
+    updatedCart[index].discount_percentage = discountPercentage;
+    updatedCart[index].discount_amount =
+      (updatedCart[index].unit_price * updatedCart[index].quantity * discountPercentage) / 100;
+    updatedCart[index].line_total =
+      updatedCart[index].unit_price * updatedCart[index].quantity -
+      updatedCart[index].discount_amount;
+
+    setCart(updatedCart);
   };
 
-  const calculateSubtotal = () => {
-    return cart.reduce((sum, item) => sum + item.price * item.cartQuantity, 0);
+  const clearCart = () => {
+    setCart([]);
   };
 
-  const calculateTotalDiscount = () => {
-    return cart.reduce((sum, item) => sum + item.discount_amount, 0);
-  };
-
+  // Calculate totals
   const calculateTotal = () => {
-    const subtotal = calculateSubtotal();
-    const discount = calculateTotalDiscount();
+    const subtotal = cart.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
+    const discount = cart.reduce((sum, item) => sum + item.discount_amount, 0);
     const afterDiscount = subtotal - discount;
-    const taxRate = 0.15;
-    const taxAmount = afterDiscount * taxRate;
-    return {
-      subtotal,
-      discount,
-      afterDiscount,
-      taxAmount,
-      total: afterDiscount + taxAmount,
-    };
+    const taxAmount = (afterDiscount * taxRate) / 100;
+    const total = afterDiscount + taxAmount;
+
+    return { subtotal, discount, afterDiscount, taxAmount, total };
   };
 
-  const filteredCustomers = customers.filter(
-    (c) =>
-      c.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
-      c.phone?.includes(customerSearch)
-  );
+  const totals = calculateTotal();
 
+  // Checkout
   const handleCheckout = async () => {
     if (cart.length === 0) {
       toast({
@@ -360,17 +377,17 @@ const POS = () => {
       return;
     }
 
-    if (!currentSession) {
+    if (!posSession) {
       toast({
         title: "خطأ",
         description: "يجب فتح جلسة نقدية أولاً",
         variant: "destructive",
       });
-      setSessionDialogOpen(true);
+      setShowSessionDialog(true);
       return;
     }
 
-    if (!selectedPaymentMethod) {
+    if (!paymentMethodId) {
       toast({
         title: "خطأ",
         description: "الرجاء اختيار طريقة الدفع",
@@ -379,17 +396,21 @@ const POS = () => {
       return;
     }
 
+    setIsProcessing(true);
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      const invoiceNumber = `INV-POS-${Date.now()}`;
-      const totals = calculateTotal();
 
-      // إنشاء فاتورة المبيعات
-      const { data: invoiceData, error: invoiceError } = await (supabase as any)
+      // Generate invoice number
+      const { data: invoiceNumberData } = await supabase.rpc("generate_si_number");
+      const invoiceNumber = invoiceNumberData;
+
+      // Create sales invoice
+      const { data: invoiceData, error: invoiceError } = await supabase
         .from("sales_invoices")
         .insert({
           invoice_number: invoiceNumber,
-          invoice_date: new Date().toISOString(),
+          invoice_date: new Date().toISOString().split("T")[0],
           customer_id: selectedCustomer?.id || null,
           subtotal: totals.subtotal,
           discount_amount: totals.discount,
@@ -397,30 +418,30 @@ const POS = () => {
           total_amount: totals.total,
           paid_amount: totals.total,
           payment_status: "paid",
+          payment_method_id: paymentMethodId,
           status: "posted",
           created_by: user?.id,
           posted_by: user?.id,
           posted_at: new Date().toISOString(),
-          payment_method_id: selectedPaymentMethod,
         })
         .select()
         .single();
 
       if (invoiceError) throw invoiceError;
 
-      // إضافة تفاصيل الفاتورة
+      // Insert invoice items
       const invoiceItems = cart.map((item, index) => ({
         invoice_id: invoiceData.id,
         line_no: index + 1,
-        item_id: item.id,
-        uom_id: item.base_uom_id || null,
-        quantity: item.cartQuantity,
-        unit_price: item.price,
+        item_id: item.product_id,
+        uom_id: item.uom_id || null,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
         discount_percentage: item.discount_percentage,
         discount_amount: item.discount_amount,
-        tax_percentage: 15,
-        tax_amount: item.line_total * 0.15,
-        line_total: item.line_total * 1.15,
+        tax_percentage: taxRate,
+        tax_amount: (item.line_total * taxRate) / 100,
+        line_total: item.line_total + (item.line_total * taxRate) / 100,
       }));
 
       const { error: itemsError } = await supabase
@@ -429,513 +450,509 @@ const POS = () => {
 
       if (itemsError) throw itemsError;
 
-      // تحديث المخزون بشكل آمن (يمنع race conditions)
-      for (const item of cart) {
-        const { data: result, error: stockError } = await (supabase as any)
-          .rpc('decrement_product_quantity', {
-            product_id: item.id,
-            quantity_to_remove: item.cartQuantity
-          });
-
-        if (stockError || !result?.[0]?.success) {
-          // التراجع عن الفاتورة في حالة فشل تحديث المخزون
-          await supabase
-            .from("sales_invoices")
-            .delete()
-            .eq("id", invoiceData.id);
-          
-          await supabase
-            .from("sales_invoice_items")
-            .delete()
-            .eq("invoice_id", invoiceData.id);
-
-          toast({
-            title: "فشلت العملية",
-            description: result?.[0]?.message || "فشل في تحديث المخزون",
-            variant: "destructive",
-          });
-          return;
-        }
-      }
-
-      // تحديث الجلسة النقدية
+      // Update POS session
       await supabase
         .from("pos_sessions")
         .update({
-          expected_cash: (currentSession.expected_cash || currentSession.opening_cash) + totals.total,
+          expected_cash: (posSession.expected_cash || posSession.opening_cash) + totals.total,
         })
-        .eq("id", currentSession.id);
+        .eq("id", posSession.id);
 
-      // التكامل المحاسبي التلقائي مع معالجة أخطاء محسّنة
-      let journalEntryCreated = false;
-      let retryCount = 0;
-      const maxRetries = 3;
-
-      while (!journalEntryCreated && retryCount < maxRetries) {
-        try {
-          const { data: journalData, error: journalError } = await supabase.functions.invoke(
-            'generate-journal-entry',
-            {
-              body: {
-                document_type: "sales_invoice",
-                document_id: invoiceData.id,
-                document_number: invoiceNumber,
-                document_date: new Date().toISOString().split('T')[0],
-                amount: totals.total,
-                customer_id: selectedCustomer?.id || null,
-                payment_method: paymentMethods.find((pm) => pm.id === selectedPaymentMethod)?.code,
-              },
-            }
-          );
-
-          if (journalError) {
-            console.error(`Journal entry attempt ${retryCount + 1} failed:`, journalError);
-            retryCount++;
-            
-            if (retryCount >= maxRetries) {
-              // بعد 3 محاولات فاشلة، نسجل خطأ ولكن لا نلغي الفاتورة
-              console.error("Failed to create journal entry after max retries");
-              toast({
-                title: "تحذير",
-                description: "تم إنشاء الفاتورة ولكن فشل التسجيل المحاسبي. سيتم المحاولة لاحقاً.",
-                variant: "destructive",
-              });
-            } else {
-              // انتظر قليلاً قبل إعادة المحاولة
-              await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
-            }
-          } else if (journalData?.success) {
-            journalEntryCreated = true;
-            console.log("Journal entry created successfully:", journalData);
-          } else {
-            console.warn("Journal entry returned unsuccessful response:", journalData);
-            retryCount++;
-          }
-        } catch (error) {
-          console.error(`Error in journal entry attempt ${retryCount + 1}:`, error);
-          retryCount++;
-          
-          if (retryCount < maxRetries) {
-            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
-          }
-        }
+      // Try to generate journal entry
+      try {
+        await supabase.functions.invoke("generate-journal-entry", {
+          body: {
+            document_type: "sales_invoice",
+            document_id: invoiceData.id,
+            document_number: invoiceNumber,
+            document_date: new Date().toISOString().split("T")[0],
+            amount: totals.total,
+            customer_id: selectedCustomer?.id || null,
+            payment_method: paymentMethods.find((pm) => pm.id === paymentMethodId)?.name,
+          },
+        });
+      } catch (error) {
+        console.error("Journal entry error:", error);
+        // Don't fail the sale if journal entry fails
       }
 
-      // حفظ آخر فاتورة للطباعة
-      setLastInvoice({
-        invoiceNumber,
-        invoiceDate: new Date().toISOString(),
-        items: cart.map((item) => ({
-          name: item.name,
-          quantity: item.cartQuantity,
-          price: item.price,
-          discount: item.discount_amount,
-          total: item.line_total * 1.15,
-        })),
-        subtotal: totals.subtotal,
-        discount: totals.discount,
-        taxAmount: totals.taxAmount,
-        totalAmount: totals.total,
-        paymentMethod: paymentMethods.find((pm) => pm.id === selectedPaymentMethod)?.name || "",
-        customerName: selectedCustomer?.name,
-      });
-
+      // Success
+      setLastInvoiceNumber(invoiceNumber);
       toast({
         title: "تمت العملية بنجاح",
         description: `رقم الفاتورة: ${invoiceNumber}`,
       });
 
+      // Reset
       setCart([]);
       setSelectedCustomer(null);
       fetchProducts();
-      fetchCurrentSession();
+      fetchPOSSession();
 
-      // فتح خيار الطباعة
+      // Print
       setTimeout(() => {
         if (window.confirm("هل تريد طباعة الفاتورة؟")) {
           handlePrint();
         }
       }, 500);
     } catch (error: any) {
+      console.error("Checkout error:", error);
       toast({
         title: "خطأ",
-        description: error.message,
+        description: error.message || "حدث خطأ أثناء إتمام العملية",
         variant: "destructive",
       });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <div className="container mx-auto px-4 py-8">
-        {/* Session Status */}
-        <div className="mb-6 flex items-center justify-between">
+    <div className="h-screen flex flex-col bg-background">
+      {/* Header - Compact */}
+      <div className="border-b bg-card px-6 py-3 shadow-sm">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            {currentSession ? (
-              <Alert className="flex-1">
-                <DoorOpen className="h-4 w-4" />
-                <AlertDescription>
-                  جلسة مفتوحة: {currentSession.session_number} | المبلغ المتوقع:{" "}
-                  {(currentSession.expected_cash || currentSession.opening_cash)?.toFixed(2)} ر.س
-                </AlertDescription>
-              </Alert>
-            ) : (
-              <Alert variant="destructive" className="flex-1">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>لا توجد جلسة مفتوحة - يجب فتح جلسة للبدء</AlertDescription>
-              </Alert>
-            )}
+            <div>
+              <h1 className="text-xl font-bold">💊 نقطة بيع الصيدلية</h1>
+              <p className="text-xs text-muted-foreground">
+                الجلسة: {posSession?.session_number || "غير نشطة"}
+              </p>
+            </div>
           </div>
-          <Button
-            variant={currentSession ? "destructive" : "default"}
-            onClick={() => setSessionDialogOpen(true)}
-            className="gap-2"
-          >
-            {currentSession ? (
-              <>
-                <DoorClosed className="w-4 h-4" />
-                إغلاق الجلسة
-              </>
-            ) : (
-              <>
-                <DoorOpen className="w-4 h-4" />
-                فتح جلسة
-              </>
-            )}
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowSessionDialog(true)}
+              disabled={!posSession}
+            >
+              <Settings className="ml-2 h-4 w-4" />
+              إدارة الجلسة
+            </Button>
+          </div>
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Products Section */}
-          <div className="lg:col-span-2 space-y-4">
-            {/* Customer Selection */}
-            <Card className="p-4">
-              <div className="flex items-center gap-4">
-                <User className="w-5 h-5 text-primary" />
-                <div className="flex-1">
-                  <label className="text-sm font-medium mb-2 block">العميل</label>
-                  <Select
-                    value={selectedCustomer?.id || "walk-in"}
-                    onValueChange={(value) => {
-                      if (value === "walk-in") {
-                        setSelectedCustomer(null);
-                      } else {
-                        const customer = customers.find((c) => c.id === value);
-                        setSelectedCustomer(customer || null);
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="عميل عابر (Walk-in)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="walk-in">عميل عابر (Walk-in)</SelectItem>
-                      {filteredCustomers.slice(0, 50).map((customer) => (
-                        <SelectItem key={customer.id} value={customer.id}>
-                          {customer.name} - {customer.phone}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {selectedCustomer && (
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => setSelectedCustomer(null)}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                )}
+      {/* Main Content - Three Column Layout */}
+      <div className="flex-1 overflow-hidden flex gap-4 p-4">
+        {/* Left Section - Products Display (60%) */}
+        <div className="flex-1 flex flex-col gap-4 min-w-0">
+          {/* Search Bar */}
+          <Card className="p-4">
+            <div className="flex gap-3">
+              <div className="flex-1 relative">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="ابحث بالاسم، الباركود، أو الاسم العلمي..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pr-10 h-11"
+                  autoFocus
+                />
               </div>
-              
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger className="w-[180px] h-11">
+                  <SelectValue placeholder="كل الفئات" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">كل الفئات</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </Card>
+
+          {/* Customer Info Bar */}
+          <Card className="p-3">
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <Select
+                  value={selectedCustomer?.id || "walk-in"}
+                  onValueChange={(value) => {
+                    if (value === "walk-in") {
+                      setSelectedCustomer(null);
+                    } else {
+                      const customer = customers.find((c) => c.id === value);
+                      setSelectedCustomer(customer || null);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder="عميل عابر" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="walk-in">
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        <span>عميل عابر (Walk-in)</span>
+                      </div>
+                    </SelectItem>
+                    {filteredCustomers.slice(0, 50).map((customer) => (
+                      <SelectItem key={customer.id} value={customer.id}>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{customer.name}</span>
+                          <span className="text-xs text-muted-foreground">{customer.phone}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               {selectedCustomer && (
-                <div className="mt-3 grid grid-cols-3 gap-4 p-3 bg-accent rounded-lg">
-                  <div>
-                    <p className="text-xs text-muted-foreground">الرصيد</p>
-                    <p className="font-bold text-sm">{selectedCustomer.balance.toFixed(2)} ر.س</p>
+                <div className="flex gap-6 text-sm">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">الرصيد</p>
+                      <p className="font-semibold">{selectedCustomer.balance?.toFixed(2) || "0.00"}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">حد الائتمان</p>
-                    <p className="font-bold text-sm">{selectedCustomer.credit_limit.toFixed(2)} ر.س</p>
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">الائتمان</p>
+                      <p className="font-semibold">{selectedCustomer.credit_limit?.toFixed(2) || "0.00"}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">نقاط الولاء</p>
-                    <p className="font-bold text-sm">{selectedCustomer.loyalty_points}</p>
+                  <div className="flex items-center gap-2">
+                    <Star className="h-4 w-4 text-yellow-500" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">النقاط</p>
+                      <p className="font-semibold text-yellow-600">{selectedCustomer.loyalty_points || 0}</p>
+                    </div>
                   </div>
                 </div>
               )}
-            </Card>
-
-            {/* Product Search */}
-            <div className="relative">
-              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="ابحث عن منتج بالاسم أو الباركود..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pr-10 text-lg h-12"
-                autoFocus
-              />
             </div>
+          </Card>
 
-            {/* Products Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-              {filteredProducts.map((product) => (
-                <Card
-                  key={product.id}
-                  className="p-4 cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all active:scale-95"
-                  onClick={() => addToCart(product)}
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex-1">
-                      <h3 className="font-bold text-base mb-1 line-clamp-2">{product.name}</h3>
-                      <div className="flex items-center gap-2">
-                        {product.allow_discount && product.default_discount_percentage! > 0 && (
-                          <Badge variant="secondary" className="text-xs">
-                            <Percent className="w-3 h-3 mr-1" />
-                            خصم {product.default_discount_percentage}%
+          {/* Products Grid - 4x4 */}
+          <ScrollArea className="flex-1">
+            <div className="grid grid-cols-4 gap-3 pb-4">
+              {filteredProducts.length === 0 ? (
+                <div className="col-span-4 text-center py-12">
+                  <Package className="h-16 w-16 mx-auto text-muted-foreground mb-3" />
+                  <p className="text-muted-foreground">لا توجد منتجات</p>
+                  <p className="text-sm text-muted-foreground">جرب تغيير معايير البحث</p>
+                </div>
+              ) : (
+                filteredProducts.map((product) => (
+                  <Card
+                    key={product.id}
+                    className="cursor-pointer hover:shadow-md hover:border-primary/50 transition-all group overflow-hidden"
+                    onClick={() => addToCart(product)}
+                  >
+                    {/* Product Image */}
+                    <div className="aspect-square bg-gradient-to-br from-muted to-muted/50 relative overflow-hidden">
+                      {product.image_url ? (
+                        <img
+                          src={product.image_url}
+                          alt={product.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Package className="h-12 w-12 text-muted-foreground/30" />
+                        </div>
+                      )}
+                      
+                      {/* Badges */}
+                      <div className="absolute top-2 left-2 right-2 flex justify-between gap-1">
+                        {product.allow_discount && product.default_discount_percentage > 0 && (
+                          <Badge className="bg-red-500 text-white text-xs shadow-sm">
+                            {product.default_discount_percentage}% خصم
                           </Badge>
                         )}
-                        {product.quantity <= 10 && (
-                          <Badge variant="destructive" className="text-xs">
+                        {product.quantity <= 10 && product.quantity > 0 && (
+                          <Badge variant="outline" className="bg-orange-500/90 text-white border-0 text-xs">
                             قليل
                           </Badge>
                         )}
+                        {product.quantity === 0 && (
+                          <Badge variant="destructive" className="text-xs">
+                            منتهي
+                          </Badge>
+                        )}
+                      </div>
+
+                      {/* Stock Indicator */}
+                      <div className="absolute bottom-2 right-2 left-2 bg-black/60 backdrop-blur-sm rounded px-2 py-1">
+                        <div className="flex items-center justify-between text-white">
+                          <span className="text-xs">متوفر:</span>
+                          <span className="text-xs font-semibold">{product.quantity}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="text-2xl font-bold text-primary">
-                        {product.price.toFixed(2)} <span className="text-sm">ر.س</span>
-                      </p>
-                    </div>
-                    <div className="text-left">
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <Package className="w-4 h-4" />
-                        <span className="text-sm font-bold">{product.quantity}</span>
+
+                    {/* Product Info */}
+                    <CardContent className="p-3">
+                      <h3 className="font-semibold text-sm mb-1 truncate group-hover:text-primary transition-colors line-clamp-2 min-h-[40px]">
+                        {product.name}
+                      </h3>
+                      <div className="flex items-center justify-between mt-2">
+                        <div className="flex flex-col">
+                          <p className="text-lg font-bold text-primary">
+                            {product.price.toFixed(2)}
+                          </p>
+                          <p className="text-xs text-muted-foreground">ر.س</p>
+                        </div>
+                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                          <Plus className="h-4 w-4" />
+                        </Button>
                       </div>
-                    </div>
-                  </div>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </div>
-          </div>
+          </ScrollArea>
+        </div>
 
-          {/* Cart Section */}
-          <div className="space-y-4">
-            <Card className="card-elegant sticky top-4">
-              <div className="flex items-center gap-2 mb-4 pb-4 border-b">
-                <ShoppingCart className="w-5 h-5 text-primary" />
-                <h2 className="text-xl font-bold">السلة</h2>
-                <span className="mr-auto bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm">
-                  {cart.length}
-                </span>
+        {/* Right Section - Cart (40%) */}
+        <div className="w-[450px] flex flex-col gap-4">
+          {/* Cart Header */}
+          <Card className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <ShoppingCart className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold">سلة المشتريات</h2>
+                  <p className="text-xs text-muted-foreground">
+                    {cart.length} {cart.length === 1 ? "منتج" : "منتجات"}
+                  </p>
+                </div>
               </div>
+              {cart.length > 0 && (
+                <Button variant="ghost" size="sm" onClick={clearCart}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          </Card>
 
-              <div className="space-y-3 max-h-96 overflow-y-auto mb-4">
-                {cart.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <ShoppingCart className="w-16 h-16 mx-auto mb-4 opacity-20" />
-                    <p className="text-lg">السلة فارغة</p>
-                    <p className="text-sm">اختر المنتجات لإضافتها</p>
+          {/* Cart Items */}
+          <Card className="flex-1 flex flex-col min-h-0">
+            <ScrollArea className="flex-1 p-4">
+              {cart.length === 0 ? (
+                <div className="text-center py-16">
+                  <div className="h-20 w-20 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
+                    <ShoppingCart className="h-10 w-10 text-muted-foreground" />
                   </div>
-                ) : (
-                  cart.map((item) => (
-                    <div
-                      key={item.id}
-                      className="p-4 bg-accent/50 rounded-lg space-y-3"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h4 className="font-bold text-base mb-1">{item.name}</h4>
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2 text-sm">
-                              <span className="text-muted-foreground">السعر:</span>
-                              <span className="font-bold text-primary">
-                                {item.price.toFixed(2)} ر.س
-                              </span>
-                            </div>
-                            {item.discount_percentage > 0 && (
-                              <div className="flex items-center gap-2 text-sm text-green-600">
-                                <Percent className="w-3 h-3" />
-                                <span>خصم {item.discount_percentage}%</span>
-                                <span>(-{item.discount_amount.toFixed(2)} ر.س)</span>
-                              </div>
-                            )}
-                            <div className="flex items-center gap-2 text-sm">
-                              <span className="text-muted-foreground">الإجمالي:</span>
-                              <span className="font-bold">
-                                {(item.line_total * 1.15).toFixed(2)} ر.س
-                              </span>
-                            </div>
-                          </div>
+                  <p className="text-muted-foreground font-medium mb-1">السلة فارغة</p>
+                  <p className="text-sm text-muted-foreground">ابدأ بإضافة المنتجات</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {cart.map((item, index) => (
+                    <Card key={index} className="p-3 hover:shadow-sm transition-shadow">
+                      {/* Item Header */}
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-sm truncate">{item.product_name}</h4>
+                          <p className="text-xs text-muted-foreground">
+                            {item.unit_price.toFixed(2)} ر.س
+                          </p>
                         </div>
                         <Button
-                          size="icon"
                           variant="ghost"
-                          className="h-8 w-8 text-destructive"
-                          onClick={() => removeFromCart(item.id)}
+                          size="sm"
+                          onClick={() => removeFromCart(index)}
+                          className="h-7 w-7 p-0 hover:bg-destructive/10 hover:text-destructive"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
 
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            className="h-9 w-9"
-                            onClick={() =>
-                              updateQuantity(item.id, item.cartQuantity - 1)
-                            }
-                          >
-                            <Minus className="w-4 h-4" />
-                          </Button>
-                          <span className="w-12 text-center font-bold text-lg">
-                            {item.cartQuantity}
-                          </span>
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            className="h-9 w-9"
-                            onClick={() =>
-                              updateQuantity(item.id, item.cartQuantity + 1)
-                            }
-                          >
-                            <Plus className="w-4 h-4" />
-                          </Button>
+                      {/* Quantity Controls */}
+                      <div className="flex items-center gap-2 mb-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => updateQuantity(index, item.quantity - 1)}
+                          disabled={item.quantity <= 1}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                        <Input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => updateQuantity(index, parseInt(e.target.value) || 1)}
+                          className="text-center h-8 w-16"
+                          min="1"
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => updateQuantity(index, item.quantity + 1)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                        <div className="flex-1 text-left">
+                          <p className="text-xs text-muted-foreground">الكمية</p>
                         </div>
+                      </div>
 
-                        {item.allow_discount && (
+                      {/* Discount Controls */}
+                      {item.allow_discount && (
+                        <div className="mb-3 p-2 bg-muted/50 rounded">
                           <div className="flex items-center gap-2">
+                            <Percent className="h-3.5 w-3.5 text-muted-foreground" />
                             <Input
                               type="number"
-                              min="0"
-                              max={item.max_discount_percentage || 100}
                               value={item.discount_percentage}
-                              onChange={(e) =>
-                                updateDiscount(item.id, parseFloat(e.target.value) || 0)
-                              }
-                              className="w-20 h-9 text-center"
-                              placeholder="0%"
+                              onChange={(e) => updateDiscount(index, parseFloat(e.target.value) || 0)}
+                              className="text-center h-8 flex-1"
+                              min="0"
+                              max={item.max_discount_percentage}
+                              step="0.1"
+                              placeholder="خصم %"
                             />
-                            <Percent className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">
+                              (حد أقصى {item.max_discount_percentage}%)
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Item Summary */}
+                      <div className="space-y-1 pt-3 border-t">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">المجموع:</span>
+                          <span>{(item.quantity * item.unit_price).toFixed(2)} ر.س</span>
+                        </div>
+                        {item.discount_amount > 0 && (
+                          <div className="flex justify-between text-xs text-orange-600">
+                            <span>الخصم ({item.discount_percentage}%):</span>
+                            <span>-{item.discount_amount.toFixed(2)} ر.س</span>
                           </div>
                         )}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {cart.length > 0 && (
-                <>
-                  <Separator className="my-4" />
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-base">
-                      <span className="text-muted-foreground">المجموع الفرعي:</span>
-                      <span className="font-medium">{calculateTotal().subtotal.toFixed(2)} ر.س</span>
-                    </div>
-                    {calculateTotal().discount > 0 && (
-                      <div className="flex justify-between text-base text-green-600">
-                        <div className="flex items-center gap-1">
-                          <Percent className="w-4 h-4" />
-                          <span>الخصم:</span>
+                        <div className="flex justify-between font-semibold text-sm pt-1">
+                          <span>الصافي:</span>
+                          <span className="text-primary">{item.line_total.toFixed(2)} ر.س</span>
                         </div>
-                        <span className="font-medium">-{calculateTotal().discount.toFixed(2)} ر.س</span>
                       </div>
-                    )}
-                    <div className="flex justify-between text-base">
-                      <span className="text-muted-foreground">الضريبة (15%):</span>
-                      <span className="font-medium">{calculateTotal().taxAmount.toFixed(2)} ر.س</span>
-                    </div>
-                    <Separator />
-                    <div className="flex justify-between text-2xl font-bold">
-                      <span>الإجمالي:</span>
-                      <span className="text-primary">
-                        {calculateTotal().total.toFixed(2)} ر.س
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium mb-2">طريقة الدفع</label>
-                    <Select value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="اختر طريقة الدفع" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {paymentMethods.map((method) => (
-                          <SelectItem key={method.id} value={method.id}>
-                            {method.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button
-                      className="flex-1 btn-medical"
-                      onClick={handleCheckout}
-                      disabled={!currentSession}
-                    >
-                      إتمام عملية البيع
-                    </Button>
-                    {lastInvoice && (
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={handlePrint}
-                        title="طباعة آخر فاتورة"
-                      >
-                        <Printer className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </div>
-                </>
-              )}
-
-              {cart.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  <ShoppingCart className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                  <p>السلة فارغة</p>
+                    </Card>
+                  ))}
                 </div>
               )}
+            </ScrollArea>
+          </Card>
+
+          {/* Cart Footer - Payment Section */}
+          {cart.length > 0 && (
+            <Card className="p-4">
+              {/* Totals Summary */}
+              <div className="space-y-2 mb-4 pb-4 border-b">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">المجموع الفرعي:</span>
+                  <span className="font-medium">{totals.subtotal.toFixed(2)} ر.س</span>
+                </div>
+                {totals.discount > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-orange-600">إجمالي الخصم:</span>
+                    <span className="text-orange-600 font-medium">-{totals.discount.toFixed(2)} ر.س</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">الضريبة ({taxRate}%):</span>
+                  <span className="font-medium">{totals.taxAmount.toFixed(2)} ر.س</span>
+                </div>
+                <div className="flex justify-between text-xl font-bold pt-2">
+                  <span>الإجمالي النهائي:</span>
+                  <span className="text-primary">{totals.total.toFixed(2)} ر.س</span>
+                </div>
+              </div>
+
+              {/* Payment Method */}
+              <div className="mb-4">
+                <label className="text-sm font-medium mb-2 block flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  طريقة الدفع
+                </label>
+                <Select value={paymentMethodId || ""} onValueChange={setPaymentMethodId}>
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="اختر طريقة الدفع" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {paymentMethods.map((method) => (
+                      <SelectItem key={method.id} value={method.id}>
+                        <div className="flex items-center gap-2">
+                          <div className="h-2 w-2 rounded-full bg-primary" />
+                          {method.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1 h-12"
+                  onClick={clearCart}
+                  disabled={isProcessing}
+                >
+                  <X className="ml-2 h-5 w-5" />
+                  إلغاء
+                </Button>
+                <Button
+                  className="flex-1 h-12 text-base"
+                  onClick={handleCheckout}
+                  disabled={cart.length === 0 || !paymentMethodId || isProcessing}
+                >
+                  {isProcessing ? (
+                    <span className="flex items-center gap-2">
+                      <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      جاري المعالجة...
+                    </span>
+                  ) : (
+                    <>
+                      <CheckCircle className="ml-2 h-5 w-5" />
+                      إتمام البيع
+                    </>
+                  )}
+                </Button>
+              </div>
             </Card>
-          </div>
+          )}
         </div>
-
-        {/* Hidden Receipt for Printing */}
-        {lastInvoice && (
-          <div style={{ display: "none" }}>
-            <POSReceipt
-              ref={receiptRef}
-              invoiceNumber={lastInvoice.invoiceNumber}
-              invoiceDate={lastInvoice.invoiceDate}
-              items={lastInvoice.items}
-              subtotal={lastInvoice.subtotal}
-              taxAmount={lastInvoice.taxAmount}
-              totalAmount={lastInvoice.totalAmount}
-              paymentMethod={lastInvoice.paymentMethod}
-              companyInfo={companyInfo}
-            />
-          </div>
-        )}
-
-        {/* Session Dialog */}
-        <POSSessionDialog
-          open={sessionDialogOpen}
-          onOpenChange={setSessionDialogOpen}
-          currentSession={currentSession}
-          onSessionUpdate={fetchCurrentSession}
-        />
       </div>
+
+      <POSSessionDialog
+        open={showSessionDialog}
+        onOpenChange={setShowSessionDialog}
+        currentSession={posSession}
+        onSessionUpdate={fetchPOSSession}
+      />
+
+      <POSReceipt
+        ref={receiptRef}
+        invoiceNumber={lastInvoiceNumber}
+        items={cart.map(item => ({
+          name: item.product_name,
+          quantity: item.quantity,
+          price: item.unit_price,
+          discount: item.discount_amount,
+          total: item.line_total + (item.line_total * taxRate / 100)
+        }))}
+        subtotal={totals.subtotal}
+        discount={totals.discount}
+        tax={totals.taxAmount}
+        total={totals.total}
+        customerName={selectedCustomer?.name}
+      />
     </div>
   );
 };

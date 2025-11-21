@@ -82,7 +82,7 @@ export const POSReceipt = forwardRef<HTMLDivElement, ReceiptProps>(
           </div>
           <div className="flex justify-between">
             <span>التاريخ:</span>
-            <span>{new Date(invoiceDate).toLocaleDateString("ar-SA")}</span>
+            <span>{invoiceDate ? new Date(invoiceDate).toLocaleDateString("ar-SA") : new Date().toLocaleDateString("ar-SA")}</span>
           </div>
           {customerName && (
             <div className="flex justify-between">

@@ -51,6 +51,8 @@ const menuItems: MenuItem[] = [
     children: [
       { title: "لوحة CRM", path: "/crm-dashboard" },
       { title: "الحملات التسويقية", path: "/marketing-campaigns" },
+      { title: "شكاوى العملاء", path: "/crm/complaints" },
+      { title: "تقارير الشكاوى", path: "/crm/complaints-reports" },
       { title: "تقارير وتحليلات", path: "/crm-reports" },
     ],
   },

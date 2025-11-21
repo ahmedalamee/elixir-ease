@@ -280,21 +280,33 @@ const SalesInvoiceView = () => {
               <span className="text-lg font-bold">الإجمالي:</span>
               <span className="text-lg font-bold">{invoice.total_amount.toFixed(2)} ر.س</span>
             </div>
-            {invoice.paid_amount > 0 && (
-              <>
-                <div className="flex justify-between py-2 text-green-600">
-                  <span>المدفوع:</span>
-                  <span className="font-medium">{invoice.paid_amount.toFixed(2)} ر.س</span>
-                </div>
-                <div className="flex justify-between py-2 text-red-600">
-                  <span>المتبقي:</span>
-                  <span className="font-medium">
-                    {(invoice.total_amount - invoice.paid_amount).toFixed(2)} ر.س
-                  </span>
-                </div>
-              </>
-            )}
+            <div className="flex justify-between py-2 text-green-600">
+              <span>المدفوع:</span>
+              <span className="font-medium">{invoice.paid_amount?.toFixed(2) || '0.00'} ر.س</span>
+            </div>
+            <div className="flex justify-between py-2 text-orange-600 font-semibold">
+              <span>المتبقي:</span>
+              <span className="font-bold">
+                {(invoice.total_amount - (invoice.paid_amount || 0)).toFixed(2)} ر.س
+              </span>
+            </div>
           </div>
+        </div>
+
+        {/* طريقة الدفع وشروط الدفع */}
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          {invoice.payment_method && (
+            <div className="p-4 bg-muted rounded-lg">
+              <h4 className="font-semibold mb-2">طريقة الدفع:</h4>
+              <p className="text-sm">{invoice.payment_method}</p>
+            </div>
+          )}
+          {invoice.payment_terms && (
+            <div className="p-4 bg-muted rounded-lg">
+              <h4 className="font-semibold mb-2">شروط الدفع:</h4>
+              <p className="text-sm">{invoice.payment_terms}</p>
+            </div>
+          )}
         </div>
 
         {/* الملاحظات */}

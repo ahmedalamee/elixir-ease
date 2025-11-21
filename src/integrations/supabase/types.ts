@@ -1106,6 +1106,69 @@ export type Database = {
           },
         ]
       }
+      e_invoices: {
+        Row: {
+          approved_at: string | null
+          counter_value: number | null
+          created_at: string | null
+          id: string
+          invoice_hash: string | null
+          invoice_number: string
+          invoice_type: string
+          pdf_url: string | null
+          previous_invoice_hash: string | null
+          qr_code: string | null
+          reference_id: string
+          submitted_at: string | null
+          updated_at: string | null
+          uuid: string
+          xml_content: string | null
+          zatca_reference: string | null
+          zatca_response: Json | null
+          zatca_status: string
+        }
+        Insert: {
+          approved_at?: string | null
+          counter_value?: number | null
+          created_at?: string | null
+          id?: string
+          invoice_hash?: string | null
+          invoice_number: string
+          invoice_type: string
+          pdf_url?: string | null
+          previous_invoice_hash?: string | null
+          qr_code?: string | null
+          reference_id: string
+          submitted_at?: string | null
+          updated_at?: string | null
+          uuid: string
+          xml_content?: string | null
+          zatca_reference?: string | null
+          zatca_response?: Json | null
+          zatca_status?: string
+        }
+        Update: {
+          approved_at?: string | null
+          counter_value?: number | null
+          created_at?: string | null
+          id?: string
+          invoice_hash?: string | null
+          invoice_number?: string
+          invoice_type?: string
+          pdf_url?: string | null
+          previous_invoice_hash?: string | null
+          qr_code?: string | null
+          reference_id?: string
+          submitted_at?: string | null
+          updated_at?: string | null
+          uuid?: string
+          xml_content?: string | null
+          zatca_reference?: string | null
+          zatca_response?: Json | null
+          zatca_status?: string
+        }
+        Relationships: []
+      }
       employee_attendance: {
         Row: {
           check_in: string
@@ -1847,6 +1910,42 @@ export type Database = {
           tax_number?: string | null
           updated_at?: string | null
           website?: string | null
+        }
+        Relationships: []
+      }
+      invoice_tax_details: {
+        Row: {
+          created_at: string | null
+          id: string
+          invoice_id: string
+          invoice_type: string
+          item_id: string | null
+          tax_amount: number
+          tax_category: string
+          tax_rate: number
+          taxable_amount: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          invoice_id: string
+          invoice_type: string
+          item_id?: string | null
+          tax_amount: number
+          tax_category: string
+          tax_rate: number
+          taxable_amount: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          invoice_id?: string
+          invoice_type?: string
+          item_id?: string | null
+          tax_amount?: number
+          tax_category?: string
+          tax_rate?: number
+          taxable_amount?: number
         }
         Relationships: []
       }
@@ -3765,6 +3864,165 @@ export type Database = {
           },
         ]
       }
+      purchase_return_items: {
+        Row: {
+          batch_number: string | null
+          condition: string | null
+          created_at: string | null
+          id: string
+          item_id: string
+          line_total: number
+          quantity: number
+          return_id: string
+          return_reason: string | null
+          unit_cost: number
+        }
+        Insert: {
+          batch_number?: string | null
+          condition?: string | null
+          created_at?: string | null
+          id?: string
+          item_id: string
+          line_total: number
+          quantity: number
+          return_id: string
+          return_reason?: string | null
+          unit_cost: number
+        }
+        Update: {
+          batch_number?: string | null
+          condition?: string | null
+          created_at?: string | null
+          id?: string
+          item_id?: string
+          line_total?: number
+          quantity?: number
+          return_id?: string
+          return_reason?: string | null
+          unit_cost?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_return_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_return_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "purchase_return_items_return_id_fkey"
+            columns: ["return_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_returns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_returns: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          notes: string | null
+          posted_at: string | null
+          posted_by: string | null
+          purchase_invoice_id: string | null
+          reason: string
+          refund_amount: number
+          refund_method: string | null
+          return_date: string
+          return_number: string
+          return_type: string
+          status: string
+          subtotal: number
+          supplier_id: string
+          tax_amount: number
+          total_amount: number
+          updated_at: string | null
+          warehouse_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
+          purchase_invoice_id?: string | null
+          reason: string
+          refund_amount?: number
+          refund_method?: string | null
+          return_date?: string
+          return_number: string
+          return_type: string
+          status?: string
+          subtotal?: number
+          supplier_id: string
+          tax_amount?: number
+          total_amount?: number
+          updated_at?: string | null
+          warehouse_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
+          purchase_invoice_id?: string | null
+          reason?: string
+          refund_amount?: number
+          refund_method?: string | null
+          return_date?: string
+          return_number?: string
+          return_type?: string
+          status?: string
+          subtotal?: number
+          supplier_id?: string
+          tax_amount?: number
+          total_amount?: number
+          updated_at?: string | null
+          warehouse_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_returns_purchase_invoice_id_fkey"
+            columns: ["purchase_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_returns_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_returns_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "purchase_returns_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reorder_rules: {
         Row: {
           created_at: string | null
@@ -4465,6 +4723,181 @@ export type Database = {
           },
         ]
       }
+      sales_return_items: {
+        Row: {
+          batch_number: string | null
+          condition: string | null
+          created_at: string | null
+          discount_amount: number | null
+          id: string
+          invoice_item_id: string | null
+          item_id: string
+          line_total: number
+          quantity: number
+          return_id: string
+          return_reason: string | null
+          tax_amount: number | null
+          unit_price: number
+        }
+        Insert: {
+          batch_number?: string | null
+          condition?: string | null
+          created_at?: string | null
+          discount_amount?: number | null
+          id?: string
+          invoice_item_id?: string | null
+          item_id: string
+          line_total: number
+          quantity: number
+          return_id: string
+          return_reason?: string | null
+          tax_amount?: number | null
+          unit_price: number
+        }
+        Update: {
+          batch_number?: string | null
+          condition?: string | null
+          created_at?: string | null
+          discount_amount?: number | null
+          id?: string
+          invoice_item_id?: string | null
+          item_id?: string
+          line_total?: number
+          quantity?: number
+          return_id?: string
+          return_reason?: string | null
+          tax_amount?: number | null
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_return_items_invoice_item_id_fkey"
+            columns: ["invoice_item_id"]
+            isOneToOne: false
+            referencedRelation: "sales_invoice_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_return_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_return_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "sales_return_items_return_id_fkey"
+            columns: ["return_id"]
+            isOneToOne: false
+            referencedRelation: "sales_returns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_returns: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          customer_id: string
+          id: string
+          invoice_id: string | null
+          notes: string | null
+          posted_at: string | null
+          posted_by: string | null
+          reason: string
+          refund_amount: number
+          refund_method: string | null
+          return_date: string
+          return_number: string
+          return_type: string
+          status: string
+          subtotal: number
+          tax_amount: number
+          total_amount: number
+          updated_at: string | null
+          warehouse_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          customer_id: string
+          id?: string
+          invoice_id?: string | null
+          notes?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
+          reason: string
+          refund_amount?: number
+          refund_method?: string | null
+          return_date?: string
+          return_number: string
+          return_type: string
+          status?: string
+          subtotal?: number
+          tax_amount?: number
+          total_amount?: number
+          updated_at?: string | null
+          warehouse_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          customer_id?: string
+          id?: string
+          invoice_id?: string | null
+          notes?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
+          reason?: string
+          refund_amount?: number
+          refund_method?: string | null
+          return_date?: string
+          return_number?: string
+          return_type?: string
+          status?: string
+          subtotal?: number
+          tax_amount?: number
+          total_amount?: number
+          updated_at?: string | null
+          warehouse_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_returns_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_returns_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "sales_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_returns_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "sales_returns_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       so_items: {
         Row: {
           created_at: string | null
@@ -4764,6 +5197,69 @@ export type Database = {
         }
         Relationships: []
       }
+      tax_periods: {
+        Row: {
+          adjustments: number | null
+          amount_due: number | null
+          created_at: string | null
+          end_date: string
+          id: string
+          input_vat: number | null
+          net_vat: number | null
+          notes: string | null
+          output_vat: number | null
+          period_number: string
+          period_type: string
+          start_date: string
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+          total_purchases: number | null
+          total_sales: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          adjustments?: number | null
+          amount_due?: number | null
+          created_at?: string | null
+          end_date: string
+          id?: string
+          input_vat?: number | null
+          net_vat?: number | null
+          notes?: string | null
+          output_vat?: number | null
+          period_number: string
+          period_type: string
+          start_date: string
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          total_purchases?: number | null
+          total_sales?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          adjustments?: number | null
+          amount_due?: number | null
+          created_at?: string | null
+          end_date?: string
+          id?: string
+          input_vat?: number | null
+          net_vat?: number | null
+          notes?: string | null
+          output_vat?: number | null
+          period_number?: string
+          period_type?: string
+          start_date?: string
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          total_purchases?: number | null
+          total_sales?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       taxes: {
         Row: {
           created_at: string | null
@@ -5043,6 +5539,98 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vat_returns: {
+        Row: {
+          amount_due: number | null
+          approved_at: string | null
+          corrections: number | null
+          created_at: string | null
+          exempt_purchases: number | null
+          exempt_sales: number | null
+          filing_date: string
+          id: string
+          input_vat: number | null
+          net_vat: number | null
+          notes: string | null
+          output_vat: number | null
+          return_number: string
+          standard_rated_purchases: number | null
+          standard_rated_sales: number | null
+          status: string
+          submission_reference: string | null
+          submitted_at: string | null
+          submitted_by: string | null
+          tax_period_id: string
+          total_purchases: number | null
+          total_sales: number | null
+          updated_at: string | null
+          zero_rated_purchases: number | null
+          zero_rated_sales: number | null
+        }
+        Insert: {
+          amount_due?: number | null
+          approved_at?: string | null
+          corrections?: number | null
+          created_at?: string | null
+          exempt_purchases?: number | null
+          exempt_sales?: number | null
+          filing_date: string
+          id?: string
+          input_vat?: number | null
+          net_vat?: number | null
+          notes?: string | null
+          output_vat?: number | null
+          return_number: string
+          standard_rated_purchases?: number | null
+          standard_rated_sales?: number | null
+          status?: string
+          submission_reference?: string | null
+          submitted_at?: string | null
+          submitted_by?: string | null
+          tax_period_id: string
+          total_purchases?: number | null
+          total_sales?: number | null
+          updated_at?: string | null
+          zero_rated_purchases?: number | null
+          zero_rated_sales?: number | null
+        }
+        Update: {
+          amount_due?: number | null
+          approved_at?: string | null
+          corrections?: number | null
+          created_at?: string | null
+          exempt_purchases?: number | null
+          exempt_sales?: number | null
+          filing_date?: string
+          id?: string
+          input_vat?: number | null
+          net_vat?: number | null
+          notes?: string | null
+          output_vat?: number | null
+          return_number?: string
+          standard_rated_purchases?: number | null
+          standard_rated_sales?: number | null
+          status?: string
+          submission_reference?: string | null
+          submitted_at?: string | null
+          submitted_by?: string | null
+          tax_period_id?: string
+          total_purchases?: number | null
+          total_sales?: number | null
+          updated_at?: string | null
+          zero_rated_purchases?: number | null
+          zero_rated_sales?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vat_returns_tax_period_id_fkey"
+            columns: ["tax_period_id"]
+            isOneToOne: false
+            referencedRelation: "tax_periods"
             referencedColumns: ["id"]
           },
         ]
@@ -5406,8 +5994,14 @@ export type Database = {
       generate_employee_code: { Args: never; Returns: string }
       generate_pos_session_number: { Args: never; Returns: string }
       generate_prescription_number: { Args: never; Returns: string }
+      generate_purchase_return_number: { Args: never; Returns: string }
+      generate_sales_return_number: { Args: never; Returns: string }
       generate_si_number: { Args: never; Returns: string }
       generate_supplier_code: { Args: never; Returns: string }
+      generate_vat_report: {
+        Args: { p_end_date: string; p_start_date: string }
+        Returns: Json
+      }
       get_role_permissions_count: {
         Args: { _category?: string; _role_id: string }
         Returns: {
@@ -5436,7 +6030,9 @@ export type Database = {
       is_document_posted: { Args: { doc_status: string }; Returns: boolean }
       post_goods_receipt: { Args: { p_grn_id: string }; Returns: Json }
       post_purchase_invoice: { Args: { p_invoice_id: string }; Returns: Json }
+      post_purchase_return: { Args: { p_return_id: string }; Returns: Json }
       post_sales_invoice: { Args: { p_invoice_id: string }; Returns: Json }
+      post_sales_return: { Args: { p_return_id: string }; Returns: Json }
       refresh_inventory_summary: { Args: never; Returns: undefined }
       refresh_sales_summary: { Args: never; Returns: undefined }
       user_has_permission: {

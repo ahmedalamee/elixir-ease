@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { POSSessionDialog } from "@/components/pos/POSSessionDialog";
 import { POSReceipt } from "@/components/pos/POSReceipt";
@@ -19,11 +19,11 @@ import {
   User,
   Package,
   Percent,
-  X,
   CheckCircle,
   CreditCard,
   Star,
-  TrendingUp,
+  DollarSign,
+  AlertCircle,
 } from "lucide-react";
 import {
   Select,
@@ -69,7 +69,6 @@ interface Customer {
   balance: number;
   credit_limit: number;
   loyalty_points: number;
-  segment: string;
 }
 
 interface Category {
@@ -96,7 +95,8 @@ const POS = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-  const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
+  const [paymentMethodId, setPaymentMethodId] = useState<string>("");
+  const [paidAmount, setPaidAmount] = useState<string>("");
   const [posSession, setPosSession] = useState<any>(null);
   const [showSessionDialog, setShowSessionDialog] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -135,19 +135,7 @@ const POS = () => {
     try {
       const { data, error } = await supabase
         .from("products")
-        .select(`
-          id,
-          name,
-          barcode,
-          price,
-          quantity,
-          allow_discount,
-          max_discount_percentage,
-          default_discount_percentage,
-          base_uom_id,
-          image_url,
-          category_id
-        `)
+        .select("id, name, barcode, price, quantity, allow_discount, max_discount_percentage, default_discount_percentage, base_uom_id, image_url, category_id")
         .eq("is_active", true)
         .order("name");
 
@@ -176,7 +164,7 @@ const POS = () => {
     try {
       const { data, error } = await supabase
         .from("customers")
-        .select("id, name, phone, balance, credit_limit, loyalty_points, segment")
+        .select("id, name, phone, balance, credit_limit, loyalty_points")
         .eq("is_active", true)
         .order("name");
 
@@ -215,7 +203,7 @@ const POS = () => {
         .eq("status", "open")
         .order("opened_at", { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== "PGRST116") throw error;
       setPosSession(data);
@@ -234,15 +222,17 @@ const POS = () => {
     return matchesSearch && matchesCategory;
   });
 
-  // Filter customers
-  const filteredCustomers = customers.filter(
-    (c) =>
-      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.phone?.includes(searchTerm)
-  );
-
   // Cart operations
   const addToCart = (product: Product) => {
+    if (product.quantity === 0) {
+      toast({
+        title: "المنتج غير متوفر",
+        description: "هذا المنتج غير متوفر في المخزون",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const existingItemIndex = cart.findIndex((item) => item.product_id === product.id);
 
     if (existingItemIndex >= 0) {
@@ -286,6 +276,11 @@ const POS = () => {
           uom_id: product.base_uom_id,
         },
       ]);
+    }
+
+    // Vibration feedback
+    if (navigator.vibrate) {
+      navigator.vibrate(50);
     }
   };
 
@@ -350,7 +345,12 @@ const POS = () => {
   };
 
   const clearCart = () => {
+    if (cart.length > 0 && !window.confirm("هل أنت متأكد من حذف جميع المنتجات من السلة؟")) {
+      return;
+    }
     setCart([]);
+    setSelectedCustomer(null);
+    setPaidAmount("");
   };
 
   // Calculate totals
@@ -365,6 +365,7 @@ const POS = () => {
   };
 
   const totals = calculateTotal();
+  const changeAmount = paidAmount ? parseFloat(paidAmount) - totals.total : 0;
 
   // Checkout
   const handleCheckout = async () => {
@@ -458,34 +459,17 @@ const POS = () => {
         })
         .eq("id", posSession.id);
 
-      // Try to generate journal entry
-      try {
-        await supabase.functions.invoke("generate-journal-entry", {
-          body: {
-            document_type: "sales_invoice",
-            document_id: invoiceData.id,
-            document_number: invoiceNumber,
-            document_date: new Date().toISOString().split("T")[0],
-            amount: totals.total,
-            customer_id: selectedCustomer?.id || null,
-            payment_method: paymentMethods.find((pm) => pm.id === paymentMethodId)?.name,
-          },
-        });
-      } catch (error) {
-        console.error("Journal entry error:", error);
-        // Don't fail the sale if journal entry fails
-      }
-
       // Success
       setLastInvoiceNumber(invoiceNumber);
       toast({
-        title: "تمت العملية بنجاح",
+        title: "✅ تمت العملية بنجاح",
         description: `رقم الفاتورة: ${invoiceNumber}`,
       });
 
       // Reset
       setCart([]);
       setSelectedCustomer(null);
+      setPaidAmount("");
       fetchProducts();
       fetchPOSSession();
 
@@ -508,214 +492,207 @@ const POS = () => {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-background">
-      {/* Header - Compact */}
-      <div className="border-b bg-card px-6 py-3 shadow-sm">
+    <div className="h-screen flex flex-col bg-muted/30">
+      {/* Header */}
+      <div className="bg-card border-b shadow-sm px-6 py-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <Package className="h-5 w-5 text-primary" />
+            </div>
             <div>
-              <h1 className="text-xl font-bold">💊 نقطة بيع الصيدلية</h1>
+              <h1 className="text-xl font-bold">💊 نقطة البيع</h1>
               <p className="text-xs text-muted-foreground">
-                الجلسة: {posSession?.session_number || "غير نشطة"}
+                {posSession ? `جلسة: ${posSession.session_number}` : "لا توجد جلسة نشطة"}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowSessionDialog(true)}
-              disabled={!posSession}
-            >
-              <Settings className="ml-2 h-4 w-4" />
-              إدارة الجلسة
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowSessionDialog(true)}
+          >
+            <Settings className="ml-2 h-4 w-4" />
+            إدارة الجلسة
+          </Button>
         </div>
       </div>
 
-      {/* Main Content - Three Column Layout */}
-      <div className="flex-1 overflow-hidden flex gap-4 p-4">
-        {/* Left Section - Products Display (60%) */}
-        <div className="flex-1 flex flex-col gap-4 min-w-0">
-          {/* Search Bar */}
-          <Card className="p-4">
-            <div className="flex gap-3">
-              <div className="flex-1 relative">
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="ابحث بالاسم، الباركود، أو الاسم العلمي..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pr-10 h-11"
-                  autoFocus
-                />
-              </div>
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="w-[180px] h-11">
-                  <SelectValue placeholder="كل الفئات" />
+      {/* Main Content */}
+      <div className="flex-1 flex gap-4 p-4 overflow-hidden">
+        {/* Left Section - Products (70%) */}
+        <div className="flex-[7] flex flex-col gap-4 min-w-0">
+          {/* Search & Filters */}
+          <div className="flex gap-3">
+            <div className="flex-1 relative">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="ابحث بالاسم أو الباركود..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pr-10 h-11 bg-card"
+                autoFocus
+              />
+            </div>
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger className="w-[200px] h-11 bg-card">
+                <SelectValue placeholder="كل الفئات" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">كل الفئات</SelectItem>
+                {categories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Customer Selection */}
+          <Card className="p-3">
+            <div className="flex items-center gap-4">
+              <Select
+                value={selectedCustomer?.id || "walk-in"}
+                onValueChange={(value) => {
+                  if (value === "walk-in") {
+                    setSelectedCustomer(null);
+                  } else {
+                    const customer = customers.find((c) => c.id === value);
+                    setSelectedCustomer(customer || null);
+                  }
+                }}
+              >
+                <SelectTrigger className="w-[280px]">
+                  <SelectValue placeholder="عميل عابر" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">كل الفئات</SelectItem>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
+                  <SelectItem value="walk-in">
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      <span>عميل عابر</span>
+                    </div>
+                  </SelectItem>
+                  {customers.slice(0, 50).map((customer) => (
+                    <SelectItem key={customer.id} value={customer.id}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{customer.name}</span>
+                        <span className="text-xs text-muted-foreground">{customer.phone}</span>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-          </Card>
-
-          {/* Customer Info Bar */}
-          <Card className="p-3">
-            <div className="flex items-center gap-4">
-              <div className="flex-1">
-                <Select
-                  value={selectedCustomer?.id || "walk-in"}
-                  onValueChange={(value) => {
-                    if (value === "walk-in") {
-                      setSelectedCustomer(null);
-                    } else {
-                      const customer = customers.find((c) => c.id === value);
-                      setSelectedCustomer(customer || null);
-                    }
-                  }}
-                >
-                  <SelectTrigger className="h-10">
-                    <SelectValue placeholder="عميل عابر" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="walk-in">
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4" />
-                        <span>عميل عابر (Walk-in)</span>
-                      </div>
-                    </SelectItem>
-                    {filteredCustomers.slice(0, 50).map((customer) => (
-                      <SelectItem key={customer.id} value={customer.id}>
-                        <div className="flex flex-col">
-                          <span className="font-medium">{customer.name}</span>
-                          <span className="text-xs text-muted-foreground">{customer.phone}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
 
               {selectedCustomer && (
-                <div className="flex gap-6 text-sm">
-                  <div className="flex items-center gap-2">
-                    <CreditCard className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">الرصيد</p>
-                      <p className="font-semibold">{selectedCustomer.balance?.toFixed(2) || "0.00"}</p>
-                    </div>
+                <div className="flex gap-4 text-sm">
+                  <div className="flex items-center gap-1.5">
+                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">رصيد:</span>
+                    <span className="font-semibold">{selectedCustomer.balance.toFixed(2)}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">الائتمان</p>
-                      <p className="font-semibold">{selectedCustomer.credit_limit?.toFixed(2) || "0.00"}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <Star className="h-4 w-4 text-yellow-500" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">النقاط</p>
-                      <p className="font-semibold text-yellow-600">{selectedCustomer.loyalty_points || 0}</p>
-                    </div>
+                    <span className="text-muted-foreground">نقاط:</span>
+                    <span className="font-semibold text-yellow-600">{selectedCustomer.loyalty_points}</span>
                   </div>
                 </div>
               )}
             </div>
           </Card>
 
-          {/* Products Grid - 4x4 */}
+          {/* Products Grid - 4 columns × 6 rows */}
           <ScrollArea className="flex-1">
             <div className="grid grid-cols-4 gap-3 pb-4">
               {filteredProducts.length === 0 ? (
-                <div className="col-span-4 text-center py-12">
-                  <Package className="h-16 w-16 mx-auto text-muted-foreground mb-3" />
-                  <p className="text-muted-foreground">لا توجد منتجات</p>
-                  <p className="text-sm text-muted-foreground">جرب تغيير معايير البحث</p>
+                <div className="col-span-4 flex flex-col items-center justify-center py-20 text-muted-foreground">
+                  <Package className="h-16 w-16 mb-3 opacity-20" />
+                  <p className="font-medium">لا توجد منتجات</p>
+                  <p className="text-sm">جرب تغيير معايير البحث</p>
                 </div>
               ) : (
-                filteredProducts.map((product) => (
-                  <Card
-                    key={product.id}
-                    className="cursor-pointer hover:shadow-md hover:border-primary/50 transition-all group overflow-hidden"
-                    onClick={() => addToCart(product)}
-                  >
-                    {/* Product Image */}
-                    <div className="aspect-square bg-gradient-to-br from-muted to-muted/50 relative overflow-hidden">
-                      {product.image_url ? (
-                        <img
-                          src={product.image_url}
-                          alt={product.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Package className="h-12 w-12 text-muted-foreground/30" />
+                filteredProducts.map((product) => {
+                  const isOutOfStock = product.quantity === 0;
+                  const isLowStock = product.quantity > 0 && product.quantity <= 10;
+                  const hasDiscount = product.allow_discount && product.default_discount_percentage > 0;
+
+                  return (
+                    <Card
+                      key={product.id}
+                      className={`cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] ${
+                        isOutOfStock ? "opacity-50 cursor-not-allowed" : ""
+                      }`}
+                      onClick={() => !isOutOfStock && addToCart(product)}
+                    >
+                      {/* Product Image */}
+                      <div className="aspect-square bg-gradient-to-br from-muted to-background relative overflow-hidden rounded-t-lg">
+                        {product.image_url ? (
+                          <img
+                            src={product.image_url}
+                            alt={product.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Package className="h-12 w-12 text-muted-foreground/20" />
+                          </div>
+                        )}
+
+                        {/* Status Badges */}
+                        <div className="absolute top-2 left-2 right-2 flex justify-between gap-1">
+                          {hasDiscount && (
+                            <Badge className="bg-red-500 text-white text-xs shadow-lg">
+                              -{product.default_discount_percentage}%
+                            </Badge>
+                          )}
+                          {isLowStock && !isOutOfStock && (
+                            <Badge variant="outline" className="bg-orange-500 text-white border-0 text-xs shadow-lg">
+                              قليل
+                            </Badge>
+                          )}
+                          {isOutOfStock && (
+                            <Badge variant="destructive" className="text-xs shadow-lg">
+                              منتهي
+                            </Badge>
+                          )}
                         </div>
-                      )}
-                      
-                      {/* Badges */}
-                      <div className="absolute top-2 left-2 right-2 flex justify-between gap-1">
-                        {product.allow_discount && product.default_discount_percentage > 0 && (
-                          <Badge className="bg-red-500 text-white text-xs shadow-sm">
-                            {product.default_discount_percentage}% خصم
-                          </Badge>
-                        )}
-                        {product.quantity <= 10 && product.quantity > 0 && (
-                          <Badge variant="outline" className="bg-orange-500/90 text-white border-0 text-xs">
-                            قليل
-                          </Badge>
-                        )}
-                        {product.quantity === 0 && (
-                          <Badge variant="destructive" className="text-xs">
-                            منتهي
-                          </Badge>
-                        )}
+
+                        {/* Stock Indicator */}
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent px-2 py-2">
+                          <div className="flex items-center justify-between text-white text-xs">
+                            <span>متوفر</span>
+                            <span className="font-bold">{product.quantity}</span>
+                          </div>
+                        </div>
                       </div>
 
-                      {/* Stock Indicator */}
-                      <div className="absolute bottom-2 right-2 left-2 bg-black/60 backdrop-blur-sm rounded px-2 py-1">
-                        <div className="flex items-center justify-between text-white">
-                          <span className="text-xs">متوفر:</span>
-                          <span className="text-xs font-semibold">{product.quantity}</span>
+                      {/* Product Info */}
+                      <div className="p-3">
+                        <h3 className="font-semibold text-sm mb-2 line-clamp-2 min-h-[40px]">
+                          {product.name}
+                        </h3>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-xl font-bold text-primary">{product.price.toFixed(2)}</p>
+                            <p className="text-xs text-muted-foreground">ر.س</p>
+                          </div>
+                          {!isOutOfStock && (
+                            <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
+                              <Plus className="h-5 w-5 text-primary" />
+                            </div>
+                          )}
                         </div>
                       </div>
-                    </div>
-
-                    {/* Product Info */}
-                    <CardContent className="p-3">
-                      <h3 className="font-semibold text-sm mb-1 truncate group-hover:text-primary transition-colors line-clamp-2 min-h-[40px]">
-                        {product.name}
-                      </h3>
-                      <div className="flex items-center justify-between mt-2">
-                        <div className="flex flex-col">
-                          <p className="text-lg font-bold text-primary">
-                            {product.price.toFixed(2)}
-                          </p>
-                          <p className="text-xs text-muted-foreground">ر.س</p>
-                        </div>
-                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
+                    </Card>
+                  );
+                })
               )}
             </div>
           </ScrollArea>
         </div>
 
-        {/* Right Section - Cart (40%) */}
-        <div className="w-[450px] flex flex-col gap-4">
+        {/* Right Section - Cart (30%) */}
+        <div className="flex-[3] flex flex-col gap-4">
           {/* Cart Header */}
           <Card className="p-4">
             <div className="flex items-center justify-between">
@@ -724,7 +701,7 @@ const POS = () => {
                   <ShoppingCart className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold">سلة المشتريات</h2>
+                  <h2 className="font-bold">السلة</h2>
                   <p className="text-xs text-muted-foreground">
                     {cart.length} {cart.length === 1 ? "منتج" : "منتجات"}
                   </p>
@@ -732,7 +709,7 @@ const POS = () => {
               </div>
               {cart.length > 0 && (
                 <Button variant="ghost" size="sm" onClick={clearCart}>
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
               )}
             </div>
@@ -742,19 +719,19 @@ const POS = () => {
           <Card className="flex-1 flex flex-col min-h-0">
             <ScrollArea className="flex-1 p-4">
               {cart.length === 0 ? (
-                <div className="text-center py-16">
-                  <div className="h-20 w-20 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
-                    <ShoppingCart className="h-10 w-10 text-muted-foreground" />
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground py-16">
+                  <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center mb-4">
+                    <ShoppingCart className="h-10 w-10" />
                   </div>
-                  <p className="text-muted-foreground font-medium mb-1">السلة فارغة</p>
-                  <p className="text-sm text-muted-foreground">ابدأ بإضافة المنتجات</p>
+                  <p className="font-medium">السلة فارغة</p>
+                  <p className="text-sm">ابدأ بإضافة المنتجات</p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {cart.map((item, index) => (
                     <Card key={index} className="p-3 hover:shadow-sm transition-shadow">
                       {/* Item Header */}
-                      <div className="flex justify-between items-start mb-3">
+                      <div className="flex justify-between items-start mb-2">
                         <div className="flex-1 min-w-0">
                           <h4 className="font-semibold text-sm truncate">{item.product_name}</h4>
                           <p className="text-xs text-muted-foreground">
@@ -772,12 +749,11 @@ const POS = () => {
                       </div>
 
                       {/* Quantity Controls */}
-                      <div className="flex items-center gap-2 mb-3">
+                      <div className="flex items-center gap-2 mb-2">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => updateQuantity(index, item.quantity - 1)}
-                          disabled={item.quantity <= 1}
                           className="h-8 w-8 p-0"
                         >
                           <Minus className="h-3 w-3" />
@@ -797,46 +773,41 @@ const POS = () => {
                         >
                           <Plus className="h-3 w-3" />
                         </Button>
-                        <div className="flex-1 text-left">
-                          <p className="text-xs text-muted-foreground">الكمية</p>
-                        </div>
                       </div>
 
-                      {/* Discount Controls */}
+                      {/* Discount */}
                       {item.allow_discount && (
-                        <div className="mb-3 p-2 bg-muted/50 rounded">
-                          <div className="flex items-center gap-2">
-                            <Percent className="h-3.5 w-3.5 text-muted-foreground" />
-                            <Input
-                              type="number"
-                              value={item.discount_percentage}
-                              onChange={(e) => updateDiscount(index, parseFloat(e.target.value) || 0)}
-                              className="text-center h-8 flex-1"
-                              min="0"
-                              max={item.max_discount_percentage}
-                              step="0.1"
-                              placeholder="خصم %"
-                            />
-                            <span className="text-xs text-muted-foreground whitespace-nowrap">
-                              (حد أقصى {item.max_discount_percentage}%)
-                            </span>
-                          </div>
+                        <div className="mb-2 p-2 bg-muted/50 rounded flex items-center gap-2">
+                          <Percent className="h-3.5 w-3.5 text-muted-foreground" />
+                          <Input
+                            type="number"
+                            value={item.discount_percentage}
+                            onChange={(e) => updateDiscount(index, parseFloat(e.target.value) || 0)}
+                            className="text-center h-7 flex-1"
+                            min="0"
+                            max={item.max_discount_percentage}
+                            step="0.1"
+                            placeholder="خصم %"
+                          />
+                          <span className="text-xs text-muted-foreground">
+                            (حد {item.max_discount_percentage}%)
+                          </span>
                         </div>
                       )}
 
                       {/* Item Summary */}
-                      <div className="space-y-1 pt-3 border-t">
+                      <div className="space-y-1 pt-2 border-t">
                         <div className="flex justify-between text-xs">
                           <span className="text-muted-foreground">المجموع:</span>
                           <span>{(item.quantity * item.unit_price).toFixed(2)} ر.س</span>
                         </div>
                         {item.discount_amount > 0 && (
                           <div className="flex justify-between text-xs text-orange-600">
-                            <span>الخصم ({item.discount_percentage}%):</span>
+                            <span>خصم ({item.discount_percentage}%):</span>
                             <span>-{item.discount_amount.toFixed(2)} ر.س</span>
                           </div>
                         )}
-                        <div className="flex justify-between font-semibold text-sm pt-1">
+                        <div className="flex justify-between font-bold text-sm">
                           <span>الصافي:</span>
                           <span className="text-primary">{item.line_total.toFixed(2)} ر.س</span>
                         </div>
@@ -848,47 +819,44 @@ const POS = () => {
             </ScrollArea>
           </Card>
 
-          {/* Cart Footer - Payment Section */}
+          {/* Payment Section */}
           {cart.length > 0 && (
-            <Card className="p-4">
-              {/* Totals Summary */}
-              <div className="space-y-2 mb-4 pb-4 border-b">
+            <Card className="p-4 space-y-4">
+              {/* Totals */}
+              <div className="space-y-2 pb-3 border-b">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">المجموع الفرعي:</span>
-                  <span className="font-medium">{totals.subtotal.toFixed(2)} ر.س</span>
+                  <span>{totals.subtotal.toFixed(2)} ر.س</span>
                 </div>
                 {totals.discount > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-orange-600">إجمالي الخصم:</span>
-                    <span className="text-orange-600 font-medium">-{totals.discount.toFixed(2)} ر.س</span>
+                  <div className="flex justify-between text-sm text-orange-600">
+                    <span>الخصم:</span>
+                    <span>-{totals.discount.toFixed(2)} ر.س</span>
                   </div>
                 )}
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">الضريبة ({taxRate}%):</span>
-                  <span className="font-medium">{totals.taxAmount.toFixed(2)} ر.س</span>
+                  <span>{totals.taxAmount.toFixed(2)} ر.س</span>
                 </div>
-                <div className="flex justify-between text-xl font-bold pt-2">
-                  <span>الإجمالي النهائي:</span>
+                <div className="flex justify-between text-2xl font-bold pt-2">
+                  <span>الإجمالي:</span>
                   <span className="text-primary">{totals.total.toFixed(2)} ر.س</span>
                 </div>
               </div>
 
               {/* Payment Method */}
-              <div className="mb-4">
-                <label className="text-sm font-medium mb-2 block flex items-center gap-2">
-                  <CreditCard className="h-4 w-4" />
-                  طريقة الدفع
-                </label>
-                <Select value={paymentMethodId || ""} onValueChange={setPaymentMethodId}>
-                  <SelectTrigger className="h-11">
+              <div>
+                <label className="text-sm font-medium mb-2 block">طريقة الدفع</label>
+                <Select value={paymentMethodId} onValueChange={setPaymentMethodId}>
+                  <SelectTrigger>
                     <SelectValue placeholder="اختر طريقة الدفع" />
                   </SelectTrigger>
                   <SelectContent>
                     {paymentMethods.map((method) => (
                       <SelectItem key={method.id} value={method.id}>
                         <div className="flex items-center gap-2">
-                          <div className="h-2 w-2 rounded-full bg-primary" />
-                          {method.name}
+                          <CreditCard className="h-4 w-4" />
+                          <span>{method.name}</span>
                         </div>
                       </SelectItem>
                     ))}
@@ -896,65 +864,88 @@ const POS = () => {
                 </Select>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  className="flex-1 h-12"
-                  onClick={clearCart}
-                  disabled={isProcessing}
-                >
-                  <X className="ml-2 h-5 w-5" />
-                  إلغاء
-                </Button>
-                <Button
-                  className="flex-1 h-12 text-base"
-                  onClick={handleCheckout}
-                  disabled={cart.length === 0 || !paymentMethodId || isProcessing}
-                >
-                  {isProcessing ? (
-                    <span className="flex items-center gap-2">
-                      <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      جاري المعالجة...
+              {/* Paid Amount & Change */}
+              <div className="space-y-2">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">المبلغ المدفوع</label>
+                  <Input
+                    type="number"
+                    value={paidAmount}
+                    onChange={(e) => setPaidAmount(e.target.value)}
+                    placeholder={totals.total.toFixed(2)}
+                    className="text-lg font-semibold"
+                    step="0.01"
+                  />
+                </div>
+                {paidAmount && changeAmount >= 0 && (
+                  <div className="flex justify-between items-center p-3 bg-green-500/10 rounded-lg">
+                    <span className="text-sm font-medium text-green-700">المبلغ المرتجع:</span>
+                    <span className="text-xl font-bold text-green-700">
+                      {changeAmount.toFixed(2)} ر.س
                     </span>
-                  ) : (
-                    <>
-                      <CheckCircle className="ml-2 h-5 w-5" />
-                      إتمام البيع
-                    </>
-                  )}
-                </Button>
+                  </div>
+                )}
+                {paidAmount && changeAmount < 0 && (
+                  <div className="flex items-center gap-2 p-3 bg-red-500/10 rounded-lg text-red-700">
+                    <AlertCircle className="h-4 w-4" />
+                    <span className="text-sm font-medium">
+                      المبلغ المدفوع غير كافٍ (نقص: {Math.abs(changeAmount).toFixed(2)} ر.س)
+                    </span>
+                  </div>
+                )}
               </div>
+
+              {/* Checkout Button */}
+              <Button
+                className="w-full h-12 text-lg font-bold"
+                onClick={handleCheckout}
+                disabled={isProcessing || !paymentMethodId}
+              >
+                {isProcessing ? (
+                  "جاري المعالجة..."
+                ) : (
+                  <>
+                    <CheckCircle className="ml-2 h-5 w-5" />
+                    إتمام البيع ({totals.total.toFixed(2)} ر.س)
+                  </>
+                )}
+              </Button>
             </Card>
           )}
         </div>
       </div>
 
+      {/* Dialogs */}
       <POSSessionDialog
         open={showSessionDialog}
         onOpenChange={setShowSessionDialog}
         currentSession={posSession}
-        onSessionUpdate={fetchPOSSession}
+        onSessionUpdate={() => {
+          fetchPOSSession();
+        }}
       />
 
-      <POSReceipt
-        ref={receiptRef}
-        invoiceNumber={lastInvoiceNumber}
-        invoiceDate={new Date().toISOString()}
-        items={cart.map(item => ({
-          name: item.product_name,
-          quantity: item.quantity,
-          price: item.unit_price,
-          discount: item.discount_amount,
-          total: item.line_total + (item.line_total * taxRate / 100)
-        }))}
-        subtotal={totals.subtotal}
-        discount={totals.discount}
-        taxAmount={totals.taxAmount}
-        totalAmount={totals.total}
-        paymentMethod={paymentMethods.find(pm => pm.id === paymentMethodId)?.name || "نقدي"}
-        customerName={selectedCustomer?.name}
-      />
+      {/* Hidden Receipt for Printing */}
+      <div className="hidden">
+        <POSReceipt
+          ref={receiptRef}
+          invoiceNumber={lastInvoiceNumber}
+          invoiceDate={new Date().toISOString()}
+          items={cart.map(item => ({
+            name: item.product_name,
+            quantity: item.quantity,
+            price: item.unit_price,
+            discount: item.discount_amount,
+            total: item.line_total,
+          }))}
+          subtotal={totals.subtotal}
+          discount={totals.discount}
+          taxAmount={totals.taxAmount}
+          totalAmount={totals.total}
+          paymentMethod={paymentMethods.find(pm => pm.id === paymentMethodId)?.name || "نقدي"}
+          customerName={selectedCustomer?.name}
+        />
+      </div>
     </div>
   );
 };

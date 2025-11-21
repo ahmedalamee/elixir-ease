@@ -15,9 +15,12 @@ interface ReceiptProps {
   subtotal: number;
   discount?: number;
   taxAmount: number;
+  taxRate?: number;
   totalAmount: number;
   paymentMethod: string;
   customerName?: string;
+  paidAmount?: number;
+  changeAmount?: number;
   companyInfo?: {
     name: string;
     name_en?: string;
@@ -44,9 +47,12 @@ export const POSReceipt = forwardRef<HTMLDivElement, ReceiptProps>(
       subtotal,
       discount,
       taxAmount,
+      taxRate = 15,
       totalAmount,
       paymentMethod,
       customerName,
+      paidAmount,
+      changeAmount,
       companyInfo,
     },
     ref
@@ -141,13 +147,27 @@ export const POSReceipt = forwardRef<HTMLDivElement, ReceiptProps>(
             </div>
           )}
           <div className="flex justify-between">
-            <span>الضريبة:</span>
+            <span>ضريبة القيمة المضافة ({taxRate}%):</span>
             <span>{taxAmount.toFixed(2)} ر.س</span>
           </div>
-          <div className="flex justify-between font-bold text-lg border-t pt-2">
+          <div className="flex justify-between font-bold text-lg border-t-2 border-black pt-2 mt-2">
             <span>الإجمالي الكلي:</span>
             <span>{totalAmount.toFixed(2)} ر.س</span>
           </div>
+          {paidAmount !== undefined && paidAmount > 0 && (
+            <>
+              <div className="flex justify-between font-medium mt-2 pt-2 border-t border-gray-300">
+                <span>المبلغ المدفوع:</span>
+                <span>{paidAmount.toFixed(2)} ر.س</span>
+              </div>
+              {changeAmount !== undefined && changeAmount > 0 && (
+                <div className="flex justify-between font-bold text-green-600">
+                  <span>الباقي (المبلغ المرتجع):</span>
+                  <span>{changeAmount.toFixed(2)} ر.س</span>
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         {/* Footer */}

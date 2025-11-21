@@ -10,6 +10,14 @@ import { ArrowLeft, Printer, Download, CheckCircle, Loader2 } from "lucide-react
 import { useReactToPrint } from "react-to-print";
 import { toast } from "sonner";
 
+const formatArabicDate = (value: string | null | undefined): string => {
+  if (!value) return new Date().toLocaleDateString("ar-SA");
+  const date = new Date(value);
+  return isNaN(date.getTime())
+    ? new Date().toLocaleDateString("ar-SA")
+    : date.toLocaleDateString("ar-SA");
+};
+
 const SalesInvoiceView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -190,12 +198,12 @@ const SalesInvoiceView = () => {
                 </div>
                 <div className="flex gap-2">
                   <span className="font-medium">التاريخ:</span>
-                  <span>{new Date(invoice.invoice_date).toLocaleDateString("ar-SA")}</span>
+                  <span>{formatArabicDate(invoice.invoice_date)}</span>
                 </div>
                 {invoice.due_date && (
                   <div className="flex gap-2">
                     <span className="font-medium">تاريخ الاستحقاق:</span>
-                    <span>{new Date(invoice.due_date).toLocaleDateString("ar-SA")}</span>
+                    <span>{formatArabicDate(invoice.due_date)}</span>
                   </div>
                 )}
               </div>
@@ -292,7 +300,7 @@ const SalesInvoiceView = () => {
               </div>
             )}
             <div className="flex justify-between py-2">
-              <span>الضريبة ({((invoice.tax_amount / invoice.subtotal) * 100).toFixed(0)}%):</span>
+              <span>الضريبة ({invoice.subtotal > 0 ? ((invoice.tax_amount / invoice.subtotal) * 100).toFixed(0) : "0"}%):</span>
               <span className="font-medium">{invoice.tax_amount.toFixed(2)} ر.س</span>
             </div>
             <div className="flex justify-between py-3 border-t-2 border-foreground">

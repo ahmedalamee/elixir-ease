@@ -19,7 +19,7 @@ import { CustomerInfoCard } from "@/components/customers/CustomerInfoCard";
 interface InvoiceItem {
   item_id: string;
   item_name: string;
-  uom_id: string;
+  uom_id: string | null;
   qty: number;
   unit_price: number;
   discount_percentage: number;
@@ -174,7 +174,7 @@ const NewSalesInvoice = () => {
     const newItem: InvoiceItem = {
       item_id: product.id,
       item_name: product.name,
-      uom_id: product.base_uom_id || "",
+      uom_id: product.base_uom_id || null,
       qty: selectedQty,
       unit_price: unitPrice,
       discount_percentage: 0,
@@ -258,7 +258,7 @@ const NewSalesInvoice = () => {
         invoice_id: invoice.id,
         line_no: index + 1,
         item_id: item.item_id,
-        uom_id: item.uom_id,
+        uom_id: item.uom_id || null,
         quantity: item.qty,
         unit_price: item.unit_price,
         discount_percentage: item.discount_percentage,

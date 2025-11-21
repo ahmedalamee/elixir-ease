@@ -4896,6 +4896,45 @@ export type Database = {
         }
         Relationships: []
       }
+      user_activity_log: {
+        Row: {
+          action_type: string
+          created_at: string | null
+          id: string
+          ip_address: unknown
+          new_values: Json | null
+          old_values: Json | null
+          record_id: string | null
+          table_name: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown
+          new_values?: Json | null
+          old_values?: Json | null
+          record_id?: string | null
+          table_name?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown
+          new_values?: Json | null
+          old_values?: Json | null
+          record_id?: string | null
+          table_name?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_custom_roles: {
         Row: {
           assigned_at: string | null
@@ -5270,6 +5309,32 @@ export type Database = {
       }
     }
     Views: {
+      inventory_summary_view: {
+        Row: {
+          category_id: string | null
+          cost_price: number | null
+          id: string | null
+          name: string | null
+          price: number | null
+          total_cost_value: number | null
+          total_reserved: number | null
+          total_retail_value: number | null
+          total_stock: number | null
+        }
+        Relationships: []
+      }
+      sales_summary_view: {
+        Row: {
+          customer_id: string | null
+          invoice_count: number | null
+          sale_date: string | null
+          total_discount: number | null
+          total_sales: number | null
+          total_subtotal: number | null
+          total_tax: number | null
+        }
+        Relationships: []
+      }
       stock_alerts: {
         Row: {
           alert_level: string | null
@@ -5311,6 +5376,11 @@ export type Database = {
         }
         Returns: Json
       }
+      decrypt_data: {
+        Args: { encrypted: string; key?: string }
+        Returns: string
+      }
+      encrypt_data: { Args: { data: string; key?: string }; Returns: string }
       generate_campaign_number: { Args: never; Returns: string }
       generate_complaint_number: { Args: never; Returns: string }
       generate_doctor_code: { Args: never; Returns: string }
@@ -5348,6 +5418,8 @@ export type Database = {
       post_goods_receipt: { Args: { p_grn_id: string }; Returns: Json }
       post_purchase_invoice: { Args: { p_invoice_id: string }; Returns: Json }
       post_sales_invoice: { Args: { p_invoice_id: string }; Returns: Json }
+      refresh_inventory_summary: { Args: never; Returns: undefined }
+      refresh_sales_summary: { Args: never; Returns: undefined }
       user_has_permission: {
         Args: { _permission_key: string; _user_id: string }
         Returns: boolean

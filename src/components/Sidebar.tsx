@@ -41,6 +41,7 @@ const menuItems: MenuItem[] = [
       { title: "إدارة الفواتير", path: "/sales/invoices" },
       { title: "إنشاء فاتورة", path: "/sales/new-invoice" },
       { title: "مدفوعات العملاء", path: "/sales/payments" },
+      { title: "مرتجعات المبيعات", path: "/sales/returns" },
       { title: "تقارير المبيعات", path: "/sales/reports" },
     ],
   },
@@ -110,6 +111,7 @@ const menuItems: MenuItem[] = [
     children: [
       { title: "طلبات الشراء", path: "/purchase-orders" },
       { title: "فواتير الشراء", path: "/purchase-invoices" },
+      { title: "مرتجعات المشتريات", path: "/purchases/returns" },
       { title: "إدارة الموردين", path: "/suppliers" },
     ],
   },
@@ -131,6 +133,16 @@ const menuItems: MenuItem[] = [
       { title: "قائمة الدخل", path: "/income-statement" },
       { title: "الميزانية العمومية", path: "/balance-sheet" },
       { title: "التكامل المحاسبي", path: "/accounting-integration" },
+    ],
+  },
+  {
+    title: "الضرائب والتوافق",
+    icon: Shield,
+    children: [
+      { title: "لوحة التحكم الضريبية", path: "/tax/compliance" },
+      { title: "الإقرارات الضريبية", path: "/tax/vat-returns" },
+      { title: "الفواتير الإلكترونية", path: "/tax/e-invoicing" },
+      { title: "التقارير الضريبية", path: "/tax/reports" },
     ],
   },
   {

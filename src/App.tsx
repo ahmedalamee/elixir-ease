@@ -79,6 +79,12 @@ import AccountSettings from "./pages/AccountSettings";
 import RolesPermissions from "./pages/RolesPermissions";
 import CustomerAuth from "./pages/CustomerAuth";
 import CustomerPortal from "./pages/CustomerPortal";
+import SalesReturns from "./pages/SalesReturns";
+import PurchaseReturns from "./pages/PurchaseReturns";
+import TaxCompliance from "./pages/TaxCompliance";
+import VATReturns from "./pages/VATReturns";
+import EInvoicing from "./pages/EInvoicing";
+import TaxReports from "./pages/TaxReports";
 
 const queryClient = new QueryClient();
 
@@ -190,6 +196,12 @@ const AppContent = () => {
           <Route path="/roles-permissions" element={<RolesPermissions />} />
           <Route path="/employee-reports" element={<EmployeeReports />} />
           <Route path="/account-settings" element={<AccountSettings />} />
+          <Route path="/sales/returns" element={<SalesReturns />} />
+          <Route path="/purchases/returns" element={<PurchaseReturns />} />
+          <Route path="/tax/compliance" element={<TaxCompliance />} />
+          <Route path="/tax/vat-returns" element={<VATReturns />} />
+          <Route path="/tax/e-invoicing" element={<EInvoicing />} />
+          <Route path="/tax/reports" element={<TaxReports />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

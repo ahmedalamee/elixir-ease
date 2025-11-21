@@ -2860,59 +2860,164 @@ export type Database = {
           },
         ]
       }
+      pos_devices: {
+        Row: {
+          branch: string | null
+          created_at: string | null
+          created_by: string | null
+          device_code: string
+          device_name: string
+          device_type: string
+          floor_section: string | null
+          id: string
+          ip_address: string | null
+          last_activity: string | null
+          location: string | null
+          operating_system: string | null
+          permissions: Json | null
+          port: number | null
+          printer_settings: Json | null
+          serial_number: string | null
+          status: string
+          updated_at: string | null
+          version: string | null
+        }
+        Insert: {
+          branch?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          device_code: string
+          device_name: string
+          device_type?: string
+          floor_section?: string | null
+          id?: string
+          ip_address?: string | null
+          last_activity?: string | null
+          location?: string | null
+          operating_system?: string | null
+          permissions?: Json | null
+          port?: number | null
+          printer_settings?: Json | null
+          serial_number?: string | null
+          status?: string
+          updated_at?: string | null
+          version?: string | null
+        }
+        Update: {
+          branch?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          device_code?: string
+          device_name?: string
+          device_type?: string
+          floor_section?: string | null
+          id?: string
+          ip_address?: string | null
+          last_activity?: string | null
+          location?: string | null
+          operating_system?: string | null
+          permissions?: Json | null
+          port?: number | null
+          printer_settings?: Json | null
+          serial_number?: string | null
+          status?: string
+          updated_at?: string | null
+          version?: string | null
+        }
+        Relationships: []
+      }
       pos_sessions: {
         Row: {
-          cashier_id: string | null
-          closed_at: string | null
+          cash_difference: number | null
+          closed_by: string | null
           closing_cash: number | null
           created_at: string | null
-          difference: number | null
+          device_id: string | null
+          employee_id: string | null
+          end_time: string | null
           expected_cash: number | null
           id: string
           notes: string | null
-          opened_at: string | null
-          opening_cash: number | null
+          opening_cash: number
+          session_date: string
           session_number: string
-          status: string | null
-          terminal_id: string | null
-          totals: Json | null
+          shift_id: string | null
+          start_time: string | null
+          status: string
+          total_sales: number | null
+          total_transactions: number | null
+          updated_at: string | null
+          user_id: string | null
           warehouse_id: string | null
         }
         Insert: {
-          cashier_id?: string | null
-          closed_at?: string | null
+          cash_difference?: number | null
+          closed_by?: string | null
           closing_cash?: number | null
           created_at?: string | null
-          difference?: number | null
+          device_id?: string | null
+          employee_id?: string | null
+          end_time?: string | null
           expected_cash?: number | null
           id?: string
           notes?: string | null
-          opened_at?: string | null
-          opening_cash?: number | null
+          opening_cash?: number
+          session_date?: string
           session_number: string
-          status?: string | null
-          terminal_id?: string | null
-          totals?: Json | null
+          shift_id?: string | null
+          start_time?: string | null
+          status?: string
+          total_sales?: number | null
+          total_transactions?: number | null
+          updated_at?: string | null
+          user_id?: string | null
           warehouse_id?: string | null
         }
         Update: {
-          cashier_id?: string | null
-          closed_at?: string | null
+          cash_difference?: number | null
+          closed_by?: string | null
           closing_cash?: number | null
           created_at?: string | null
-          difference?: number | null
+          device_id?: string | null
+          employee_id?: string | null
+          end_time?: string | null
           expected_cash?: number | null
           id?: string
           notes?: string | null
-          opened_at?: string | null
-          opening_cash?: number | null
+          opening_cash?: number
+          session_date?: string
           session_number?: string
-          status?: string | null
-          terminal_id?: string | null
-          totals?: Json | null
+          shift_id?: string | null
+          start_time?: string | null
+          status?: string
+          total_sales?: number | null
+          total_transactions?: number | null
+          updated_at?: string | null
+          user_id?: string | null
           warehouse_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "pos_sessions_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "pos_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_sessions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_sessions_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "pos_shifts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pos_sessions_warehouse_id_fkey"
             columns: ["warehouse_id"]
@@ -2928,6 +3033,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pos_shifts: {
+        Row: {
+          active_days: string[] | null
+          allow_credit_sales: boolean | null
+          allowed_devices: string[] | null
+          allowed_users: string[] | null
+          created_at: string | null
+          created_by: string | null
+          credit_limit: number | null
+          description: string | null
+          end_time: string
+          id: string
+          is_active: boolean | null
+          max_balance: number | null
+          opening_balance: number | null
+          shift_name: string
+          shift_type: string
+          start_time: string
+          updated_at: string | null
+        }
+        Insert: {
+          active_days?: string[] | null
+          allow_credit_sales?: boolean | null
+          allowed_devices?: string[] | null
+          allowed_users?: string[] | null
+          created_at?: string | null
+          created_by?: string | null
+          credit_limit?: number | null
+          description?: string | null
+          end_time: string
+          id?: string
+          is_active?: boolean | null
+          max_balance?: number | null
+          opening_balance?: number | null
+          shift_name: string
+          shift_type?: string
+          start_time: string
+          updated_at?: string | null
+        }
+        Update: {
+          active_days?: string[] | null
+          allow_credit_sales?: boolean | null
+          allowed_devices?: string[] | null
+          allowed_users?: string[] | null
+          created_at?: string | null
+          created_by?: string | null
+          credit_limit?: number | null
+          description?: string | null
+          end_time?: string
+          id?: string
+          is_active?: boolean | null
+          max_balance?: number | null
+          opening_balance?: number | null
+          shift_name?: string
+          shift_type?: string
+          start_time?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       posting_rules: {
         Row: {
@@ -4019,13 +4184,6 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sales_pos_session_id_fkey"
-            columns: ["pos_session_id"]
-            isOneToOne: false
-            referencedRelation: "pos_sessions"
             referencedColumns: ["id"]
           },
           {
@@ -5157,6 +5315,7 @@ export type Database = {
       generate_complaint_number: { Args: never; Returns: string }
       generate_doctor_code: { Args: never; Returns: string }
       generate_employee_code: { Args: never; Returns: string }
+      generate_pos_session_number: { Args: never; Returns: string }
       generate_prescription_number: { Args: never; Returns: string }
       generate_si_number: { Args: never; Returns: string }
       generate_supplier_code: { Args: never; Returns: string }

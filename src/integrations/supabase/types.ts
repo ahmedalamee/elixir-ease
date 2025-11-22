@@ -14,6 +14,286 @@ export type Database = {
   }
   public: {
     Tables: {
+      bank_accounts: {
+        Row: {
+          account_name: string
+          account_number: string
+          bank_name: string
+          created_at: string | null
+          currency: string | null
+          current_balance: number | null
+          gl_account_id: string | null
+          iban: string | null
+          id: string
+          is_active: boolean | null
+          opening_balance: number | null
+          swift_code: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          account_name: string
+          account_number: string
+          bank_name: string
+          created_at?: string | null
+          currency?: string | null
+          current_balance?: number | null
+          gl_account_id?: string | null
+          iban?: string | null
+          id?: string
+          is_active?: boolean | null
+          opening_balance?: number | null
+          swift_code?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          account_name?: string
+          account_number?: string
+          bank_name?: string
+          created_at?: string | null
+          currency?: string | null
+          current_balance?: number | null
+          gl_account_id?: string | null
+          iban?: string | null
+          id?: string
+          is_active?: boolean | null
+          opening_balance?: number | null
+          swift_code?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_accounts_gl_account_id_fkey"
+            columns: ["gl_account_id"]
+            isOneToOne: false
+            referencedRelation: "gl_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bank_reconciliation_items: {
+        Row: {
+          cleared_date: string | null
+          created_at: string | null
+          credit_amount: number | null
+          debit_amount: number | null
+          description: string
+          id: string
+          is_cleared: boolean | null
+          item_type: string | null
+          notes: string | null
+          reconciliation_id: string
+          reference_number: string | null
+          transaction_date: string
+        }
+        Insert: {
+          cleared_date?: string | null
+          created_at?: string | null
+          credit_amount?: number | null
+          debit_amount?: number | null
+          description: string
+          id?: string
+          is_cleared?: boolean | null
+          item_type?: string | null
+          notes?: string | null
+          reconciliation_id: string
+          reference_number?: string | null
+          transaction_date: string
+        }
+        Update: {
+          cleared_date?: string | null
+          created_at?: string | null
+          credit_amount?: number | null
+          debit_amount?: number | null
+          description?: string
+          id?: string
+          is_cleared?: boolean | null
+          item_type?: string | null
+          notes?: string | null
+          reconciliation_id?: string
+          reference_number?: string | null
+          transaction_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_reconciliation_items_reconciliation_id_fkey"
+            columns: ["reconciliation_id"]
+            isOneToOne: false
+            referencedRelation: "bank_reconciliations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bank_reconciliations: {
+        Row: {
+          adjusted_balance: number | null
+          bank_account_id: string
+          book_balance: number
+          created_at: string | null
+          id: string
+          notes: string | null
+          reconciled_at: string | null
+          reconciled_by: string | null
+          reconciliation_date: string
+          reconciliation_number: string
+          statement_balance: number
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          adjusted_balance?: number | null
+          bank_account_id: string
+          book_balance: number
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          reconciled_at?: string | null
+          reconciled_by?: string | null
+          reconciliation_date: string
+          reconciliation_number: string
+          statement_balance: number
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          adjusted_balance?: number | null
+          bank_account_id?: string
+          book_balance?: number
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          reconciled_at?: string | null
+          reconciled_by?: string | null
+          reconciliation_date?: string
+          reconciliation_number?: string
+          statement_balance?: number
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_reconciliations_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budget_lines: {
+        Row: {
+          account_id: string
+          actual_amount: number | null
+          budget_id: string
+          budgeted_amount: number
+          cost_center_id: string | null
+          created_at: string | null
+          id: string
+          notes: string | null
+          variance: number | null
+          variance_percentage: number | null
+        }
+        Insert: {
+          account_id: string
+          actual_amount?: number | null
+          budget_id: string
+          budgeted_amount?: number
+          cost_center_id?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          variance?: number | null
+          variance_percentage?: number | null
+        }
+        Update: {
+          account_id?: string
+          actual_amount?: number | null
+          budget_id?: string
+          budgeted_amount?: number
+          cost_center_id?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          variance?: number | null
+          variance_percentage?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_lines_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "gl_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_lines_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "budgets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_lines_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budgets: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          budget_number: string
+          created_at: string | null
+          created_by: string | null
+          end_date: string
+          fiscal_year: number
+          id: string
+          notes: string | null
+          period_type: string
+          start_date: string
+          status: string | null
+          total_expense_budget: number | null
+          total_revenue_budget: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          budget_number: string
+          created_at?: string | null
+          created_by?: string | null
+          end_date: string
+          fiscal_year: number
+          id?: string
+          notes?: string | null
+          period_type: string
+          start_date: string
+          status?: string | null
+          total_expense_budget?: number | null
+          total_revenue_budget?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          budget_number?: string
+          created_at?: string | null
+          created_by?: string | null
+          end_date?: string
+          fiscal_year?: number
+          id?: string
+          notes?: string | null
+          period_type?: string
+          start_date?: string
+          status?: string | null
+          total_expense_budget?: number | null
+          total_revenue_budget?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       campaign_customers: {
         Row: {
           campaign_id: string
@@ -94,6 +374,66 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      cost_centers: {
+        Row: {
+          actual_amount: number | null
+          budget_amount: number | null
+          code: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          manager_id: string | null
+          name: string
+          name_en: string | null
+          parent_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          actual_amount?: number | null
+          budget_amount?: number | null
+          code: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          manager_id?: string | null
+          name: string
+          name_en?: string | null
+          parent_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          actual_amount?: number | null
+          budget_amount?: number | null
+          code?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          manager_id?: string | null
+          name?: string
+          name_en?: string | null
+          parent_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_centers_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cost_centers_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       currencies: {
         Row: {
@@ -5987,6 +6327,10 @@ export type Database = {
       }
     }
     Functions: {
+      calculate_financial_ratios: {
+        Args: { p_end_date: string; p_start_date: string }
+        Returns: Json
+      }
       check_credit_limit: {
         Args: { p_amount: number; p_customer_id: string }
         Returns: Json

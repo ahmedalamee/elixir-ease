@@ -87,6 +87,9 @@ import EInvoicing from "./pages/EInvoicing";
 import TaxReports from "./pages/TaxReports";
 import CustomerComplaints from "./pages/CustomerComplaints";
 import ComplaintsReports from "./pages/ComplaintsReports";
+import CostCenters from "./pages/CostCenters";
+import BankReconciliation from "./pages/BankReconciliation";
+import FinancialRatios from "./pages/FinancialRatios";
 
 const queryClient = new QueryClient();
 
@@ -165,6 +168,9 @@ const AppContent = () => {
           <Route path="/journal-entry/:id" element={<JournalEntryDetail />} />
           <Route path="/income-statement" element={<IncomeStatement />} />
           <Route path="/balance-sheet" element={<BalanceSheet />} />
+          <Route path="/cost-centers" element={<CostCenters />} />
+          <Route path="/bank-reconciliation" element={<BankReconciliation />} />
+          <Route path="/financial-ratios" element={<FinancialRatios />} />
           <Route path="/price-lists" element={<PriceLists />} />
           <Route path="/inventory/alerts" element={<StockAlerts />} />
           <Route path="/goods-receipts" element={<GoodsReceipts />} />

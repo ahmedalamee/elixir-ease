@@ -90,6 +90,11 @@ import ComplaintsReports from "./pages/ComplaintsReports";
 import CostCenters from "./pages/CostCenters";
 import BankReconciliation from "./pages/BankReconciliation";
 import FinancialRatios from "./pages/FinancialRatios";
+import Employees from "./pages/Employees";
+import Attendance from "./pages/Attendance";
+import Leaves from "./pages/Leaves";
+import Performance from "./pages/Performance";
+import Tasks from "./pages/Tasks";
 
 const queryClient = new QueryClient();
 
@@ -202,7 +207,12 @@ const AppContent = () => {
           <Route path="/pharmacy-reports" element={<PharmacyReports />} />
           <Route path="/roles-management" element={<RolesManagement />} />
           <Route path="/roles-permissions" element={<RolesPermissions />} />
-          <Route path="/employee-reports" element={<EmployeeReports />} />
+          <Route path="/hr/employees" element={<Employees />} />
+          <Route path="/hr/attendance" element={<Attendance />} />
+          <Route path="/hr/leaves" element={<Leaves />} />
+          <Route path="/hr/performance" element={<Performance />} />
+          <Route path="/hr/tasks" element={<Tasks />} />
+          <Route path="/hr/employee-reports" element={<EmployeeReports />} />
           <Route path="/account-settings" element={<AccountSettings />} />
           <Route path="/sales/returns" element={<SalesReturns />} />
           <Route path="/purchases/returns" element={<PurchaseReturns />} />

@@ -162,6 +162,18 @@ const menuItems: MenuItem[] = [
     ],
   },
   {
+    title: "الموارد البشرية",
+    icon: Users,
+    children: [
+      { title: "إدارة الموظفين", path: "/hr/employees" },
+      { title: "الحضور والانصراف", path: "/hr/attendance" },
+      { title: "الإجازات والعطلات", path: "/hr/leaves" },
+      { title: "تقييم الأداء", path: "/hr/performance" },
+      { title: "المهام", path: "/hr/tasks" },
+      { title: "تقارير الموظفين", path: "/hr/employee-reports" },
+    ],
+  },
+  {
     title: "الموظفين",
     icon: UserCog,
     children: [
@@ -169,7 +181,6 @@ const menuItems: MenuItem[] = [
       { title: "إدارة الموظفين", path: "/user-management" },
       { title: "الأدوار والصلاحيات", path: "/roles-management" },
       { title: "إدارة الصلاحيات المتقدمة", path: "/roles-permissions" },
-      { title: "تقارير الموظفين", path: "/employee-reports" },
     ],
   },
   {

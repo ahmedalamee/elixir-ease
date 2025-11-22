@@ -116,14 +116,18 @@ const SalesReturns = () => {
         throw new Error("يرجى اختيار فاتورة وإضافة منتجات للمرتجع");
       }
 
+      if (!returnReason.trim()) {
+        throw new Error("يرجى إدخال سبب الإرجاع");
+      }
+
       const items = returnItems.map(item => ({
-        item_id: item.product_id,
         invoice_item_id: item.item_id,
+        item_id: item.product_id,
         quantity: item.return_quantity,
         unit_price: item.unit_price,
-        discount_percentage: item.discount_percentage,
-        tax_percentage: item.tax_percentage,
-        line_total: (item.unit_price * item.return_quantity * (1 - item.discount_percentage / 100)),
+        discount_percentage: item.discount_percentage || 0,
+        tax_percentage: item.tax_percentage || 0,
+        line_total: (item.unit_price * item.return_quantity * (1 - (item.discount_percentage || 0) / 100)),
         condition: item.condition,
       }));
 
@@ -215,9 +219,21 @@ const SalesReturns = () => {
 
   const calculateTotal = () => {
     return returnItems.reduce((sum, item) => {
-      const itemTotal = item.unit_price * item.return_quantity * (1 - item.discount_percentage / 100);
+      const itemTotal = item.unit_price * item.return_quantity * (1 - (item.discount_percentage || 0) / 100);
       return sum + itemTotal;
     }, 0);
+  };
+
+  const calculateTax = () => {
+    return returnItems.reduce((sum, item) => {
+      const itemTotal = item.unit_price * item.return_quantity * (1 - (item.discount_percentage || 0) / 100);
+      const taxAmount = itemTotal * ((item.tax_percentage || 0) / 100);
+      return sum + taxAmount;
+    }, 0);
+  };
+
+  const calculateGrandTotal = () => {
+    return calculateTotal() + calculateTax();
   };
 
   const getStatusBadge = (status: string) => {
@@ -482,10 +498,18 @@ const SalesReturns = () => {
                         </Button>
                       </div>
                     ))}
-                    <div className="pt-3 border-t">
-                      <div className="flex justify-between text-lg font-bold">
+                    <div className="pt-3 border-t space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">المجموع الفرعي:</span>
+                        <span className="font-medium">{calculateTotal().toFixed(2)} ر.س</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">الضريبة:</span>
+                        <span className="font-medium">{calculateTax().toFixed(2)} ر.س</span>
+                      </div>
+                      <div className="flex justify-between text-lg font-bold pt-2 border-t">
                         <span>الإجمالي:</span>
-                        <span>{calculateTotal().toFixed(2)} ر.س</span>
+                        <span>{calculateGrandTotal().toFixed(2)} ر.س</span>
                       </div>
                     </div>
                   </div>
@@ -523,12 +547,17 @@ const SalesReturns = () => {
               </div>
 
               <div>
-                <Label>سبب الإرجاع</Label>
+                <Label>سبب الإرجاع <span className="text-destructive">*</span></Label>
                 <Textarea
-                  placeholder="اذكر سبب الإرجاع..."
+                  placeholder="اذكر سبب الإرجاع... (إلزامي)"
                   value={returnReason}
                   onChange={(e) => setReturnReason(e.target.value)}
+                  required
+                  className={!returnReason && returnItems.length > 0 ? "border-destructive" : ""}
                 />
+                {!returnReason && returnItems.length > 0 && (
+                  <p className="text-sm text-destructive mt-1">هذا الحقل إلزامي</p>
+                )}
               </div>
 
               <div>
@@ -546,9 +575,9 @@ const SalesReturns = () => {
                 </Button>
                 <Button
                   onClick={() => createReturnMutation.mutate()}
-                  disabled={!selectedInvoiceId || returnItems.length === 0 || createReturnMutation.isPending}
+                  disabled={!selectedInvoiceId || returnItems.length === 0 || !returnReason.trim() || createReturnMutation.isPending}
                 >
-                  إنشاء المرتجع
+                  {createReturnMutation.isPending ? "جارٍ الإنشاء..." : "إنشاء المرتجع"}
                 </Button>
               </div>
             </div>

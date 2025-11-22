@@ -6024,7 +6024,7 @@ export type Database = {
           p_return_type: string
           p_sales_invoice_id: string
         }
-        Returns: Json
+        Returns: string
       }
       decrypt_data: {
         Args: { encrypted: string; key?: string }
@@ -6078,20 +6078,13 @@ export type Database = {
         }[]
       }
       get_returnable_sales_invoices: {
-        Args: {
-          p_customer_id?: string
-          p_days_limit?: number
-          p_search?: string
-        }
+        Args: { p_search?: string }
         Returns: {
-          customer_id: string
           customer_name: string
-          days_since_invoice: number
           has_returns: boolean
           invoice_date: string
           invoice_id: string
           invoice_number: string
-          paid_amount: number
           total_amount: number
         }[]
       }
@@ -6125,7 +6118,7 @@ export type Database = {
       post_purchase_invoice: { Args: { p_invoice_id: string }; Returns: Json }
       post_purchase_return: { Args: { p_return_id: string }; Returns: Json }
       post_sales_invoice: { Args: { p_invoice_id: string }; Returns: Json }
-      post_sales_return: { Args: { p_return_id: string }; Returns: Json }
+      post_sales_return: { Args: { p_return_id: string }; Returns: boolean }
       refresh_inventory_summary: { Args: never; Returns: undefined }
       refresh_sales_summary: { Args: never; Returns: undefined }
       user_has_permission: {

@@ -183,4 +183,37 @@ function useToast() {
   };
 }
 
-export { useToast, toast };
+// Helper functions for different notification types
+const showSuccess = (title: string, description?: string) => {
+  return toast({
+    title,
+    description,
+    variant: "success" as any,
+  });
+};
+
+const showError = (title: string, description?: string) => {
+  return toast({
+    title,
+    description,
+    variant: "error" as any,
+  });
+};
+
+const showWarning = (title: string, description?: string) => {
+  return toast({
+    title,
+    description,
+    variant: "warning" as any,
+  });
+};
+
+const showInfo = (title: string, description?: string) => {
+  return toast({
+    title,
+    description,
+    variant: "info" as any,
+  });
+};
+
+export { useToast, toast, showSuccess, showError, showWarning, showInfo };

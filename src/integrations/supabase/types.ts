@@ -3866,42 +3866,58 @@ export type Database = {
       }
       purchase_return_items: {
         Row: {
+          already_returned_qty: number | null
           batch_number: string | null
           condition: string | null
           created_at: string | null
           id: string
+          invoice_item_id: string | null
           item_id: string
           line_total: number
+          max_returnable_qty: number | null
           quantity: number
           return_id: string
           return_reason: string | null
           unit_cost: number
         }
         Insert: {
+          already_returned_qty?: number | null
           batch_number?: string | null
           condition?: string | null
           created_at?: string | null
           id?: string
+          invoice_item_id?: string | null
           item_id: string
           line_total: number
+          max_returnable_qty?: number | null
           quantity: number
           return_id: string
           return_reason?: string | null
           unit_cost: number
         }
         Update: {
+          already_returned_qty?: number | null
           batch_number?: string | null
           condition?: string | null
           created_at?: string | null
           id?: string
+          invoice_item_id?: string | null
           item_id?: string
           line_total?: number
+          max_returnable_qty?: number | null
           quantity?: number
           return_id?: string
           return_reason?: string | null
           unit_cost?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "purchase_return_items_invoice_item_id_fkey"
+            columns: ["invoice_item_id"]
+            isOneToOne: false
+            referencedRelation: "pi_items"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "purchase_return_items_item_id_fkey"
             columns: ["item_id"]
@@ -4725,6 +4741,7 @@ export type Database = {
       }
       sales_return_items: {
         Row: {
+          already_returned_qty: number | null
           batch_number: string | null
           condition: string | null
           created_at: string | null
@@ -4733,6 +4750,7 @@ export type Database = {
           invoice_item_id: string | null
           item_id: string
           line_total: number
+          max_returnable_qty: number | null
           quantity: number
           return_id: string
           return_reason: string | null
@@ -4740,6 +4758,7 @@ export type Database = {
           unit_price: number
         }
         Insert: {
+          already_returned_qty?: number | null
           batch_number?: string | null
           condition?: string | null
           created_at?: string | null
@@ -4748,6 +4767,7 @@ export type Database = {
           invoice_item_id?: string | null
           item_id: string
           line_total: number
+          max_returnable_qty?: number | null
           quantity: number
           return_id: string
           return_reason?: string | null
@@ -4755,6 +4775,7 @@ export type Database = {
           unit_price: number
         }
         Update: {
+          already_returned_qty?: number | null
           batch_number?: string | null
           condition?: string | null
           created_at?: string | null
@@ -4763,6 +4784,7 @@ export type Database = {
           invoice_item_id?: string | null
           item_id?: string
           line_total?: number
+          max_returnable_qty?: number | null
           quantity?: number
           return_id?: string
           return_reason?: string | null
@@ -4816,6 +4838,7 @@ export type Database = {
           return_date: string
           return_number: string
           return_type: string
+          sales_invoice_id: string | null
           status: string
           subtotal: number
           tax_amount: number
@@ -4838,6 +4861,7 @@ export type Database = {
           return_date?: string
           return_number: string
           return_type: string
+          sales_invoice_id?: string | null
           status?: string
           subtotal?: number
           tax_amount?: number
@@ -4860,6 +4884,7 @@ export type Database = {
           return_date?: string
           return_number?: string
           return_type?: string
+          sales_invoice_id?: string | null
           status?: string
           subtotal?: number
           tax_amount?: number
@@ -4878,6 +4903,13 @@ export type Database = {
           {
             foreignKeyName: "sales_returns_invoice_id_fkey"
             columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "sales_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_returns_sales_invoice_id_fkey"
+            columns: ["sales_invoice_id"]
             isOneToOne: false
             referencedRelation: "sales_invoices"
             referencedColumns: ["id"]
@@ -5983,6 +6015,17 @@ export type Database = {
         }
         Returns: Json
       }
+      create_sales_return: {
+        Args: {
+          p_items: Json
+          p_notes?: string
+          p_reason: string
+          p_refund_method: string
+          p_return_type: string
+          p_sales_invoice_id: string
+        }
+        Returns: Json
+      }
       decrypt_data: {
         Args: { encrypted: string; key?: string }
         Returns: string
@@ -6001,6 +6044,56 @@ export type Database = {
       generate_vat_report: {
         Args: { p_end_date: string; p_start_date: string }
         Returns: Json
+      }
+      get_returnable_invoice_items: {
+        Args: { p_invoice_id: string }
+        Returns: {
+          discount_percentage: number
+          item_id: string
+          line_total: number
+          product_id: string
+          product_name: string
+          quantity: number
+          returnable_qty: number
+          returned_qty: number
+          tax_percentage: number
+          unit_price: number
+        }[]
+      }
+      get_returnable_purchase_invoices: {
+        Args: {
+          p_days_limit?: number
+          p_search?: string
+          p_supplier_id?: string
+        }
+        Returns: {
+          days_since_invoice: number
+          has_returns: boolean
+          invoice_date: string
+          invoice_id: string
+          invoice_number: string
+          supplier_id: string
+          supplier_name: string
+          total_amount: number
+        }[]
+      }
+      get_returnable_sales_invoices: {
+        Args: {
+          p_customer_id?: string
+          p_days_limit?: number
+          p_search?: string
+        }
+        Returns: {
+          customer_id: string
+          customer_name: string
+          days_since_invoice: number
+          has_returns: boolean
+          invoice_date: string
+          invoice_id: string
+          invoice_number: string
+          paid_amount: number
+          total_amount: number
+        }[]
       }
       get_role_permissions_count: {
         Args: { _category?: string; _role_id: string }

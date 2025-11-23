@@ -64,7 +64,8 @@ const SalesReturns = () => {
         .select(`
           *,
           customers (name),
-          sales_invoices (invoice_number)
+          sales_invoices (invoice_number),
+          warehouses (name)
         `)
         .order("created_at", { ascending: false });
 
@@ -300,6 +301,7 @@ const SalesReturns = () => {
                   <TableHead>رقم المرتجع</TableHead>
                   <TableHead>الفاتورة الأصلية</TableHead>
                   <TableHead>العميل</TableHead>
+                  <TableHead>المستودع</TableHead>
                   <TableHead>التاريخ</TableHead>
                   <TableHead>المبلغ المسترد</TableHead>
                   <TableHead>الحالة</TableHead>
@@ -312,8 +314,9 @@ const SalesReturns = () => {
                     <TableCell className="font-medium">{returnItem.return_number}</TableCell>
                     <TableCell>{returnItem.sales_invoices?.invoice_number}</TableCell>
                     <TableCell>{returnItem.customers?.name}</TableCell>
+                    <TableCell className="text-muted-foreground">{returnItem.warehouses?.name || 'غير محدد'}</TableCell>
                     <TableCell>{new Date(returnItem.return_date).toLocaleDateString("ar-SA")}</TableCell>
-                    <TableCell>{returnItem.refund_amount?.toFixed(2)} ر.س</TableCell>
+                    <TableCell className="font-medium">{returnItem.refund_amount?.toFixed(2)} ر.س</TableCell>
                     <TableCell>{getStatusBadge(returnItem.status)}</TableCell>
                     <TableCell>
                       {returnItem.status === "draft" && (

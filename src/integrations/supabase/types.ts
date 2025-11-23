@@ -5163,6 +5163,13 @@ export type Database = {
             foreignKeyName: "sales_return_items_return_id_fkey"
             columns: ["return_id"]
             isOneToOne: false
+            referencedRelation: "returns_processing_monitor"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_return_items_return_id_fkey"
+            columns: ["return_id"]
+            isOneToOne: false
             referencedRelation: "sales_returns"
             referencedColumns: ["id"]
           },
@@ -6301,6 +6308,51 @@ export type Database = {
           status: string | null
           total_amount: number | null
           warehouse_id: string | null
+        }
+        Relationships: []
+      }
+      returns_inventory_impact: {
+        Row: {
+          current_stock: number | null
+          customer_name: string | null
+          item_condition: string | null
+          posted_at: string | null
+          posted_by: string | null
+          product_name: string | null
+          product_sku: string | null
+          return_date: string | null
+          return_number: string | null
+          returned_quantity: number | null
+          status: string | null
+          warehouse_name: string | null
+        }
+        Relationships: []
+      }
+      returns_processing_monitor: {
+        Row: {
+          created_at: string | null
+          created_by_email: string | null
+          customer_name: string | null
+          id: string | null
+          items_count: number | null
+          original_invoice: string | null
+          posted_at: string | null
+          refund_amount: number | null
+          return_date: string | null
+          return_number: string | null
+          status: string | null
+          total_amount: number | null
+          warehouse_name: string | null
+        }
+        Relationships: []
+      }
+      returns_statistics: {
+        Row: {
+          average_return_amount: number | null
+          returns_count: number | null
+          status: string | null
+          total_amount: number | null
+          total_refunded: number | null
         }
         Relationships: []
       }

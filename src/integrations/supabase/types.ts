@@ -5086,6 +5086,7 @@ export type Database = {
           condition: string | null
           created_at: string | null
           discount_amount: number | null
+          discount_percentage: number | null
           id: string
           invoice_item_id: string | null
           item_id: string
@@ -5095,6 +5096,7 @@ export type Database = {
           return_id: string
           return_reason: string | null
           tax_amount: number | null
+          tax_percentage: number | null
           unit_price: number
         }
         Insert: {
@@ -5103,6 +5105,7 @@ export type Database = {
           condition?: string | null
           created_at?: string | null
           discount_amount?: number | null
+          discount_percentage?: number | null
           id?: string
           invoice_item_id?: string | null
           item_id: string
@@ -5112,6 +5115,7 @@ export type Database = {
           return_id: string
           return_reason?: string | null
           tax_amount?: number | null
+          tax_percentage?: number | null
           unit_price: number
         }
         Update: {
@@ -5120,6 +5124,7 @@ export type Database = {
           condition?: string | null
           created_at?: string | null
           discount_amount?: number | null
+          discount_percentage?: number | null
           id?: string
           invoice_item_id?: string | null
           item_id?: string
@@ -5129,6 +5134,7 @@ export type Database = {
           return_id?: string
           return_reason?: string | null
           tax_amount?: number | null
+          tax_percentage?: number | null
           unit_price?: number
         }
         Relationships: [

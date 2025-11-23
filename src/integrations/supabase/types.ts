@@ -6468,7 +6468,7 @@ export type Database = {
       post_purchase_invoice: { Args: { p_invoice_id: string }; Returns: Json }
       post_purchase_return: { Args: { p_return_id: string }; Returns: Json }
       post_sales_invoice: { Args: { p_invoice_id: string }; Returns: Json }
-      post_sales_return: { Args: { p_return_id: string }; Returns: boolean }
+      post_sales_return: { Args: { p_return_id: string }; Returns: Json }
       refresh_inventory_summary: { Args: never; Returns: undefined }
       refresh_sales_summary: { Args: never; Returns: undefined }
       user_has_permission: {

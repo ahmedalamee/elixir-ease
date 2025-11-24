@@ -5163,6 +5163,13 @@ export type Database = {
             foreignKeyName: "sales_return_items_return_id_fkey"
             columns: ["return_id"]
             isOneToOne: false
+            referencedRelation: "returns_inventory_impact"
+            referencedColumns: ["return_id"]
+          },
+          {
+            foreignKeyName: "sales_return_items_return_id_fkey"
+            columns: ["return_id"]
+            isOneToOne: false
             referencedRelation: "returns_processing_monitor"
             referencedColumns: ["id"]
           },
@@ -6313,20 +6320,47 @@ export type Database = {
       }
       returns_inventory_impact: {
         Row: {
-          current_stock: number | null
-          customer_name: string | null
           item_condition: string | null
-          posted_at: string | null
-          posted_by: string | null
+          item_id: string | null
           product_name: string | null
-          product_sku: string | null
           return_date: string | null
+          return_id: string | null
           return_number: string | null
           returned_quantity: number | null
           status: string | null
+          warehouse_id: string | null
           warehouse_name: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sales_return_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_return_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "sales_returns_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "sales_returns_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       returns_processing_monitor: {
         Row: {
@@ -6348,11 +6382,13 @@ export type Database = {
       }
       returns_statistics: {
         Row: {
-          average_return_amount: number | null
-          returns_count: number | null
-          status: string | null
-          total_amount: number | null
-          total_refunded: number | null
+          avg_return_amount: number | null
+          customers_with_returns: number | null
+          draft_returns: number | null
+          posted_returns: number | null
+          total_items_returned: number | null
+          total_refunded_amount: number | null
+          total_returns: number | null
         }
         Relationships: []
       }

@@ -6331,7 +6331,7 @@ export type Database = {
       returns_processing_monitor: {
         Row: {
           created_at: string | null
-          created_by_email: string | null
+          created_by_name: string | null
           customer_name: string | null
           id: string | null
           items_count: number | null

@@ -2198,57 +2198,6 @@ export type Database = {
         }
         Relationships: []
       }
-      exchange_rates: {
-        Row: {
-          created_at: string | null
-          created_by: string | null
-          effective_date: string
-          from_currency: string
-          id: string
-          is_active: boolean | null
-          notes: string | null
-          rate: number
-          to_currency: string
-        }
-        Insert: {
-          created_at?: string | null
-          created_by?: string | null
-          effective_date?: string
-          from_currency: string
-          id?: string
-          is_active?: boolean | null
-          notes?: string | null
-          rate: number
-          to_currency: string
-        }
-        Update: {
-          created_at?: string | null
-          created_by?: string | null
-          effective_date?: string
-          from_currency?: string
-          id?: string
-          is_active?: boolean | null
-          notes?: string | null
-          rate?: number
-          to_currency?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "exchange_rates_from_currency_fkey"
-            columns: ["from_currency"]
-            isOneToOne: false
-            referencedRelation: "currencies"
-            referencedColumns: ["code"]
-          },
-          {
-            foreignKeyName: "exchange_rates_to_currency_fkey"
-            columns: ["to_currency"]
-            isOneToOne: false
-            referencedRelation: "currencies"
-            referencedColumns: ["code"]
-          },
-        ]
-      }
       expense_items: {
         Row: {
           account_code: string | null
@@ -4473,11 +4422,9 @@ export type Database = {
       purchase_invoices: {
         Row: {
           attachments: Json | null
-          base_currency_total: number | null
           created_at: string | null
           created_by: string | null
           currency: string | null
-          currency_code: string | null
           discount_amount: number | null
           due_date: string | null
           exchange_rate: number | null
@@ -4503,11 +4450,9 @@ export type Database = {
         }
         Insert: {
           attachments?: Json | null
-          base_currency_total?: number | null
           created_at?: string | null
           created_by?: string | null
           currency?: string | null
-          currency_code?: string | null
           discount_amount?: number | null
           due_date?: string | null
           exchange_rate?: number | null
@@ -4533,11 +4478,9 @@ export type Database = {
         }
         Update: {
           attachments?: Json | null
-          base_currency_total?: number | null
           created_at?: string | null
           created_by?: string | null
           currency?: string | null
-          currency_code?: string | null
           discount_amount?: number | null
           due_date?: string | null
           exchange_rate?: number | null
@@ -4562,13 +4505,6 @@ export type Database = {
           warehouse_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "purchase_invoices_currency_code_fkey"
-            columns: ["currency_code"]
-            isOneToOne: false
-            referencedRelation: "currencies"
-            referencedColumns: ["code"]
-          },
           {
             foreignKeyName: "purchase_invoices_grn_id_fkey"
             columns: ["grn_id"]
@@ -5391,14 +5327,11 @@ export type Database = {
       }
       sales_invoices: {
         Row: {
-          base_currency_total: number | null
           created_at: string | null
           created_by: string | null
-          currency_code: string | null
           customer_id: string
           discount_amount: number
           due_date: string | null
-          exchange_rate: number | null
           id: string
           invoice_date: string
           invoice_number: string
@@ -5417,14 +5350,11 @@ export type Database = {
           warehouse_id: string | null
         }
         Insert: {
-          base_currency_total?: number | null
           created_at?: string | null
           created_by?: string | null
-          currency_code?: string | null
           customer_id: string
           discount_amount?: number
           due_date?: string | null
-          exchange_rate?: number | null
           id?: string
           invoice_date?: string
           invoice_number: string
@@ -5443,14 +5373,11 @@ export type Database = {
           warehouse_id?: string | null
         }
         Update: {
-          base_currency_total?: number | null
           created_at?: string | null
           created_by?: string | null
-          currency_code?: string | null
           customer_id?: string
           discount_amount?: number
           due_date?: string | null
-          exchange_rate?: number | null
           id?: string
           invoice_date?: string
           invoice_number?: string
@@ -5469,13 +5396,6 @@ export type Database = {
           warehouse_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "sales_invoices_currency_code_fkey"
-            columns: ["currency_code"]
-            isOneToOne: false
-            referencedRelation: "currencies"
-            referencedColumns: ["code"]
-          },
           {
             foreignKeyName: "sales_invoices_customer_id_fkey"
             columns: ["customer_id"]
@@ -7020,28 +6940,6 @@ export type Database = {
         }
         Relationships: []
       }
-      sales_by_currency: {
-        Row: {
-          avg_exchange_rate: number | null
-          currency_code: string | null
-          currency_name: string | null
-          currency_symbol: string | null
-          first_invoice_date: string | null
-          invoice_count: number | null
-          last_invoice_date: string | null
-          total_in_base_currency: number | null
-          total_in_currency: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sales_invoices_currency_code_fkey"
-            columns: ["currency_code"]
-            isOneToOne: false
-            referencedRelation: "currencies"
-            referencedColumns: ["code"]
-          },
-        ]
-      }
       sales_summary_view: {
         Row: {
           customer_id: string | null
@@ -7110,15 +7008,6 @@ export type Database = {
           warehouse_name: string
         }[]
       }
-      convert_currency: {
-        Args: {
-          p_amount: number
-          p_date?: string
-          p_from_currency: string
-          p_to_currency: string
-        }
-        Returns: number
-      }
       copy_role_permissions: {
         Args: {
           _copied_by: string
@@ -7180,25 +7069,6 @@ export type Database = {
       get_comprehensive_income_statement: {
         Args: { p_end_date: string; p_start_date: string }
         Returns: Json
-      }
-      get_currency_summary: {
-        Args: { p_end_date?: string; p_start_date?: string }
-        Returns: {
-          currency_code: string
-          currency_name: string
-          exchange_gain_loss: number
-          net_position: number
-          total_purchases: number
-          total_sales: number
-        }[]
-      }
-      get_exchange_rate: {
-        Args: {
-          p_date?: string
-          p_from_currency: string
-          p_to_currency: string
-        }
-        Returns: number
       }
       get_executive_dashboard_stats: { Args: never; Returns: Json }
       get_integration_statistics: {

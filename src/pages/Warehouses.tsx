@@ -18,7 +18,15 @@ interface WarehouseData {
   type: 'main' | 'branch' | 'return' | 'quarantine' | 'damaged';
   address?: string;
   phone?: string;
+  email?: string;
+  manager_name?: string;
+  capacity?: number;
+  parent_warehouse_id?: string;
+  city?: string;
+  country?: string;
+  notes?: string;
   is_active: boolean;
+  is_default?: boolean;
 }
 
 export default function Warehouses() {
@@ -32,7 +40,15 @@ export default function Warehouses() {
     type: 'main',
     address: '',
     phone: '',
+    email: '',
+    manager_name: '',
+    capacity: undefined,
+    parent_warehouse_id: '',
+    city: '',
+    country: 'المملكة العربية السعودية',
+    notes: '',
     is_active: true,
+    is_default: false,
   });
 
   useEffect(() => {
@@ -119,7 +135,15 @@ export default function Warehouses() {
       type: 'main',
       address: '',
       phone: '',
+      email: '',
+      manager_name: '',
+      capacity: undefined,
+      parent_warehouse_id: '',
+      city: '',
+      country: 'المملكة العربية السعودية',
+      notes: '',
       is_active: true,
+      is_default: false,
     });
     setEditingWarehouse(null);
   };
@@ -152,82 +176,199 @@ export default function Warehouses() {
                   إضافة مخزن
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>
                     {editingWarehouse ? 'تعديل المخزن' : 'إضافة مخزن جديد'}
                   </DialogTitle>
                 </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  {/* معلومات أساسية */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold text-muted-foreground">المعلومات الأساسية</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="code">الرمز *</Label>
+                        <Input
+                          id="code"
+                          value={formData.code}
+                          onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                          required
+                          placeholder="مثال: WH-001"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="type">النوع *</Label>
+                        <Select
+                          value={formData.type}
+                          onValueChange={(value: any) => setFormData({ ...formData, type: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="main">مخزن رئيسي</SelectItem>
+                            <SelectItem value="branch">فرع</SelectItem>
+                            <SelectItem value="return">مرتجعات</SelectItem>
+                            <SelectItem value="quarantine">حجر</SelectItem>
+                            <SelectItem value="damaged">تالف</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="name">الاسم بالعربية *</Label>
+                        <Input
+                          id="name"
+                          value={formData.name}
+                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                          required
+                          placeholder="مثال: مخزن الرياض الرئيسي"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="name_en">الاسم بالإنجليزية</Label>
+                        <Input
+                          id="name_en"
+                          value={formData.name_en}
+                          onChange={(e) => setFormData({ ...formData, name_en: e.target.value })}
+                          placeholder="Riyadh Main Warehouse"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* الموقع */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold text-muted-foreground">الموقع</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="city">المدينة</Label>
+                        <Input
+                          id="city"
+                          value={formData.city}
+                          onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                          placeholder="مثال: الرياض"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="country">الدولة</Label>
+                        <Input
+                          id="country"
+                          value={formData.country}
+                          onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                        />
+                      </div>
+                    </div>
+
                     <div>
-                      <Label htmlFor="code">الرمز *</Label>
+                      <Label htmlFor="address">العنوان التفصيلي</Label>
                       <Input
-                        id="code"
-                        value={formData.code}
-                        onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                        required
+                        id="address"
+                        value={formData.address}
+                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                        placeholder="مثال: شارع الملك فهد، حي العليا"
                       />
                     </div>
-                    <div>
-                      <Label htmlFor="type">النوع *</Label>
-                      <Select
-                        value={formData.type}
-                        onValueChange={(value: any) => setFormData({ ...formData, type: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="main">مخزن رئيسي</SelectItem>
-                          <SelectItem value="branch">فرع</SelectItem>
-                          <SelectItem value="return">مرتجعات</SelectItem>
-                          <SelectItem value="quarantine">حجر</SelectItem>
-                          <SelectItem value="damaged">تالف</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="name">الاسم بالعربية *</Label>
-                      <Input
-                        id="name"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        required
-                      />
+                  {/* معلومات الاتصال */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold text-muted-foreground">معلومات الاتصال</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="phone">الهاتف</Label>
+                        <Input
+                          id="phone"
+                          value={formData.phone}
+                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                          placeholder="+966 50 123 4567"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="email">البريد الإلكتروني</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                          placeholder="warehouse@example.com"
+                        />
+                      </div>
                     </div>
                     <div>
-                      <Label htmlFor="name_en">الاسم بالإنجليزية</Label>
+                      <Label htmlFor="manager_name">اسم المدير</Label>
                       <Input
-                        id="name_en"
-                        value={formData.name_en}
-                        onChange={(e) => setFormData({ ...formData, name_en: e.target.value })}
+                        id="manager_name"
+                        value={formData.manager_name}
+                        onChange={(e) => setFormData({ ...formData, manager_name: e.target.value })}
+                        placeholder="مثال: أحمد محمد"
                       />
                     </div>
                   </div>
 
-                  <div>
-                    <Label htmlFor="address">العنوان</Label>
-                    <Input
-                      id="address"
-                      value={formData.address}
-                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    />
+                  {/* إعدادات إضافية */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold text-muted-foreground">إعدادات إضافية</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="capacity">السعة القصوى (وحدة)</Label>
+                        <Input
+                          id="capacity"
+                          type="number"
+                          value={formData.capacity || ''}
+                          onChange={(e) => setFormData({ ...formData, capacity: e.target.value ? parseFloat(e.target.value) : undefined })}
+                          placeholder="مثال: 10000"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="parent_warehouse_id">المخزن الرئيسي (للفروع)</Label>
+                        <Select
+                          value={formData.parent_warehouse_id || 'none'}
+                          onValueChange={(value) => setFormData({ ...formData, parent_warehouse_id: value === 'none' ? undefined : value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="اختر المخزن الرئيسي" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">بدون</SelectItem>
+                            {warehouses
+                              .filter(w => w.type === 'main' && w.id !== editingWarehouse?.id)
+                              .map((wh) => (
+                                <SelectItem key={wh.id} value={wh.id!}>
+                                  {wh.name}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="notes">ملاحظات</Label>
+                      <Input
+                        id="notes"
+                        value={formData.notes}
+                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                        placeholder="أي ملاحظات إضافية"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 pt-2">
+                      <input
+                        type="checkbox"
+                        id="is_default"
+                        checked={formData.is_default || false}
+                        onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })}
+                        className="h-4 w-4"
+                      />
+                      <Label htmlFor="is_default" className="cursor-pointer">
+                        تعيين كمستودع افتراضي
+                      </Label>
+                    </div>
                   </div>
 
-                  <div>
-                    <Label htmlFor="phone">الهاتف</Label>
-                    <Input
-                      id="phone"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="flex gap-2 justify-end">
+                  <div className="flex gap-2 justify-end pt-4 border-t">
                     <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                       إلغاء
                     </Button>
@@ -242,25 +383,77 @@ export default function Warehouses() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {warehouses.map((warehouse) => (
-                <Card key={warehouse.id} className="relative">
+                <Card key={warehouse.id} className="relative hover:shadow-lg transition-shadow">
                   <CardContent className="pt-6">
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-start">
-                        <h3 className="font-bold text-lg">{warehouse.name}</h3>
-                        <span className={`px-2 py-1 text-xs rounded ${warehouse.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-bold text-lg">{warehouse.name}</h3>
+                            {warehouse.is_default && (
+                              <span className="px-2 py-0.5 text-xs rounded-full bg-primary/10 text-primary border border-primary/20">
+                                افتراضي
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground">{warehouse.code}</p>
+                        </div>
+                        <span className={`px-2 py-1 text-xs rounded-full ${warehouse.is_active ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}`}>
                           {warehouse.is_active ? 'نشط' : 'غير نشط'}
                         </span>
                       </div>
-                      <p className="text-sm text-muted-foreground">{warehouse.code}</p>
-                      <p className="text-sm text-muted-foreground">{getTypeLabel(warehouse.type)}</p>
-                      {warehouse.address && (
-                        <p className="text-sm">{warehouse.address}</p>
-                      )}
-                      {warehouse.phone && (
-                        <p className="text-sm">{warehouse.phone}</p>
-                      )}
-                      <div className="flex gap-2 pt-4">
-                        <Button size="sm" variant="outline" onClick={() => handleEdit(warehouse)}>
+
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-muted-foreground">النوع:</span>
+                          <span>{getTypeLabel(warehouse.type)}</span>
+                        </div>
+                        
+                        {warehouse.manager_name && (
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-muted-foreground">المدير:</span>
+                            <span>{warehouse.manager_name}</span>
+                          </div>
+                        )}
+                        
+                        {warehouse.city && (
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-muted-foreground">المدينة:</span>
+                            <span>{warehouse.city}</span>
+                          </div>
+                        )}
+                        
+                        {warehouse.address && (
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-muted-foreground">العنوان:</span>
+                            <span className="text-xs">{warehouse.address}</span>
+                          </div>
+                        )}
+                        
+                        {warehouse.phone && (
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-muted-foreground">الهاتف:</span>
+                            <span>{warehouse.phone}</span>
+                          </div>
+                        )}
+                        
+                        {warehouse.email && (
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-muted-foreground">البريد:</span>
+                            <span className="text-xs">{warehouse.email}</span>
+                          </div>
+                        )}
+                        
+                        {warehouse.capacity && (
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-muted-foreground">السعة:</span>
+                            <span>{warehouse.capacity.toLocaleString()} وحدة</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex gap-2 pt-4 border-t">
+                        <Button size="sm" variant="outline" onClick={() => handleEdit(warehouse)} className="flex-1">
                           <Edit className="h-4 w-4 ml-1" />
                           تعديل
                         </Button>

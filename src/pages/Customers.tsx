@@ -2,10 +2,13 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
   CardContent,
@@ -29,7 +32,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Edit, Trash, Search } from "lucide-react";
+import { Plus, Edit, Trash, Search, Eye } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 
 interface Customer {
   id: string;
@@ -40,12 +45,23 @@ interface Customer {
   credit_limit: number;
   balance: number;
   loyalty_points: number;
+  currency_code?: string;
+  is_active: boolean;
+  last_transaction_date: string | null;
   created_at: string;
+}
+
+interface Currency {
+  code: string;
+  name: string;
+  symbol: string;
 }
 
 const Customers = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("active");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [formData, setFormData] = useState({
@@ -54,14 +70,18 @@ const Customers = () => {
     email: "",
     address: "",
     credit_limit: 0,
+    currency_code: "SAR",
+    is_active: true,
   });
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     checkAuth();
     fetchCustomers();
-  }, []);
+    fetchCurrencies();
+  }, [statusFilter]);
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -71,10 +91,12 @@ const Customers = () => {
   };
 
   const fetchCustomers = async () => {
-    const { data, error } = await supabase
+    const query = supabase
       .from("customers")
       .select("*")
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false }) as any;
+    
+    const { data, error } = await query;
 
     if (error) {
       toast({
@@ -83,7 +105,25 @@ const Customers = () => {
         variant: "destructive",
       });
     } else {
-      setCustomers(data || []);
+      setCustomers((data || []) as any);
+    }
+  };
+
+  const fetchCurrencies = async () => {
+    const { data, error } = await supabase
+      .from("currencies")
+      .select("code, name, symbol")
+      .eq("is_active", true)
+      .order("code");
+
+    if (error) {
+      toast({
+        title: "خطأ في تحميل العملات",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      setCurrencies(data || []);
     }
   };
 
@@ -107,6 +147,10 @@ const Customers = () => {
           title: "تم التحديث بنجاح",
         });
         fetchCustomers();
+        // Invalidate all customer queries to refresh the data everywhere
+        queryClient.invalidateQueries({ 
+          predicate: (query) => query.queryKey[0] === "customers" 
+        });
         resetForm();
       }
     } else {
@@ -123,12 +167,22 @@ const Customers = () => {
           title: "تم الإضافة بنجاح",
         });
         fetchCustomers();
+        // Invalidate all customer queries to refresh the data everywhere
+        queryClient.invalidateQueries({ 
+          predicate: (query) => query.queryKey[0] === "customers" 
+        });
         resetForm();
       }
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, name: string) => {
+    const confirmed = window.confirm(
+      `هل أنت متأكد من حذف العميل "${name}"؟\n\nتحذير: سيتم حذف جميع البيانات المرتبطة بهذا العميل.`
+    );
+
+    if (!confirmed) return;
+
     const { error } = await supabase.from("customers").delete().eq("id", id);
 
     if (error) {
@@ -142,6 +196,9 @@ const Customers = () => {
         title: "تم الحذف بنجاح",
       });
       fetchCustomers();
+      queryClient.invalidateQueries({ 
+        predicate: (query) => query.queryKey[0] === "customers" 
+      });
     }
   };
 
@@ -152,6 +209,8 @@ const Customers = () => {
       email: "",
       address: "",
       credit_limit: 0,
+      currency_code: "SAR",
+      is_active: true,
     });
     setEditingCustomer(null);
     setIsDialogOpen(false);
@@ -165,15 +224,24 @@ const Customers = () => {
       email: customer.email || "",
       address: customer.address || "",
       credit_limit: customer.credit_limit,
+      currency_code: customer.currency_code || "SAR",
+      is_active: customer.is_active,
     });
     setIsDialogOpen(true);
   };
 
   const filteredCustomers = customers.filter(
-    (customer) =>
-      customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer.phone?.includes(searchTerm) ||
-      customer.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    (customer) => {
+      const matchesSearch = customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        customer.phone?.includes(searchTerm) ||
+        customer.email?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesStatus = statusFilter === "all" ? true :
+        statusFilter === "active" ? customer.is_active :
+        !customer.is_active;
+      
+      return matchesSearch && matchesStatus;
+    }
   );
 
   return (
@@ -263,6 +331,43 @@ const Customers = () => {
                         }
                       />
                     </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="currency_code">العملة</Label>
+                      <Select
+                        value={formData.currency_code}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, currency_code: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="اختر العملة" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {currencies.map((currency) => (
+                            <SelectItem key={currency.code} value={currency.code}>
+                              {currency.code} - {currency.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-center justify-between space-x-2">
+                      <Label htmlFor="is_active" className="cursor-pointer">
+                        حالة العميل
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">
+                          {formData.is_active ? "نشط" : "غير نشط"}
+                        </span>
+                        <Switch
+                          id="is_active"
+                          checked={formData.is_active}
+                          onCheckedChange={(checked) =>
+                            setFormData({ ...formData, is_active: checked })
+                          }
+                        />
+                      </div>
+                    </div>
                     <div className="flex gap-2">
                       <Button type="submit" className="flex-1">
                         {editingCustomer ? "تحديث" : "إضافة"}
@@ -281,8 +386,9 @@ const Customers = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="mb-4">
-              <div className="relative">
+            {/* Filters */}
+            <div className="mb-4 flex flex-col md:flex-row gap-4">
+              <div className="flex-1 relative">
                 <Search className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="البحث بالاسم، الهاتف أو البريد الإلكتروني..."
@@ -291,6 +397,18 @@ const Customers = () => {
                   className="pr-10"
                 />
               </div>
+              
+              <Tabs value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
+                <TabsList>
+                  <TabsTrigger value="all">الكل</TabsTrigger>
+                  <TabsTrigger value="active">نشط</TabsTrigger>
+                  <TabsTrigger value="inactive">غير نشط</TabsTrigger>
+                </TabsList>
+              </Tabs>
+
+              <Badge variant="outline" className="flex items-center gap-2">
+                {filteredCustomers.length} عميل
+              </Badge>
             </div>
 
             <div className="rounded-md border">
@@ -302,7 +420,8 @@ const Customers = () => {
                     <TableHead>البريد الإلكتروني</TableHead>
                     <TableHead>الرصيد</TableHead>
                     <TableHead>نقاط الولاء</TableHead>
-                    <TableHead>حد الائتمان</TableHead>
+                    <TableHead>آخر معاملة</TableHead>
+                    <TableHead>الحالة</TableHead>
                     <TableHead className="text-left">الإجراءات</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -313,14 +432,36 @@ const Customers = () => {
                         {customer.name}
                       </TableCell>
                       <TableCell>{customer.phone || "-"}</TableCell>
-                      <TableCell>{customer.email || "-"}</TableCell>
-                      <TableCell>{customer.balance.toFixed(2)} ر.س</TableCell>
-                      <TableCell>{customer.loyalty_points}</TableCell>
+                      <TableCell className="text-sm">{customer.email || "-"}</TableCell>
                       <TableCell>
-                        {customer.credit_limit.toFixed(2)} ر.س
+                        <span className={customer.balance > 0 ? "text-red-600 font-medium" : ""}>
+                          {customer.balance.toFixed(2)} ر.س
+                        </span>
+                      </TableCell>
+                      <TableCell>{customer.loyalty_points}</TableCell>
+                      <TableCell className="text-sm">
+                        {customer.last_transaction_date
+                          ? new Date(customer.last_transaction_date).toLocaleDateString("ar-SA", {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })
+                          : "-"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={customer.is_active ? "default" : "secondary"}>
+                          {customer.is_active ? "نشط" : "غير نشط"}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-left">
                         <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => navigate(`/customers/${customer.id}`)}
+                          >
+                            عرض
+                          </Button>
                           <Button
                             size="sm"
                             variant="outline"
@@ -331,7 +472,7 @@ const Customers = () => {
                           <Button
                             size="sm"
                             variant="destructive"
-                            onClick={() => handleDelete(customer.id)}
+                            onClick={() => handleDelete(customer.id, customer.name)}
                           >
                             <Trash className="h-4 w-4" />
                           </Button>

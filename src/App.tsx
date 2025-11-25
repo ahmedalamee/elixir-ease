@@ -95,6 +95,7 @@ import Attendance from "./pages/Attendance";
 import Leaves from "./pages/Leaves";
 import Performance from "./pages/Performance";
 import Tasks from "./pages/Tasks";
+import InventoryDashboard from "./pages/InventoryDashboard";
 
 const queryClient = new QueryClient();
 
@@ -156,6 +157,7 @@ const AppContent = () => {
           <Route path="/suppliers" element={<Suppliers />} />
           <Route path="/categories" element={<Categories />} />
           <Route path="/inventory" element={<Inventory />} />
+          <Route path="/inventory-dashboard" element={<InventoryDashboard />} />
           <Route path="/warehouses" element={<Warehouses />} />
           <Route path="/purchase-orders" element={<PurchaseOrders />} />
           <Route path="/reports" element={<Reports />} />

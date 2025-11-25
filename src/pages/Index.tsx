@@ -47,19 +47,12 @@ const Index = () => {
             حل شامل لإدارة الصيدليات بكفاءة عالية - من المبيعات إلى المخزون والتقارير
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <div className="flex gap-4 justify-center">
             <Button
               onClick={() => navigate("/auth")}
               className="btn-medical text-lg px-8 py-6"
             >
-              دخول الموظفين
-            </Button>
-            <Button
-              onClick={() => navigate("/customer-auth")}
-              variant="secondary"
-              className="text-lg px-8 py-6"
-            >
-              بوابة العملاء
+              ابدأ الآن
             </Button>
             <Button
               onClick={() => navigate("/dashboard")}

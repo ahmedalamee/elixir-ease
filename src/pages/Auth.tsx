@@ -15,22 +15,6 @@ const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const validatePassword = (pass: string): string | null => {
-    if (pass.length < 8) {
-      return "كلمة المرور يجب أن تكون 8 أحرف على الأقل";
-    }
-    if (!/[A-Z]/.test(pass)) {
-      return "كلمة المرور يجب أن تحتوي على حرف كبير";
-    }
-    if (!/[a-z]/.test(pass)) {
-      return "كلمة المرور يجب أن تحتوي على حرف صغير";
-    }
-    if (!/[0-9]/.test(pass)) {
-      return "كلمة المرور يجب أن تحتوي على رقم";
-    }
-    return null;
-  };
-
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -48,18 +32,6 @@ const Auth = () => {
         });
         navigate("/dashboard");
       } else {
-        // Validate password strength
-        const passwordError = validatePassword(password);
-        if (passwordError) {
-          toast({
-            title: "كلمة مرور ضعيفة",
-            description: passwordError,
-            variant: "destructive",
-          });
-          setLoading(false);
-          return;
-        }
-
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -130,13 +102,7 @@ const Auth = () => {
               required
               className="input-medical"
               placeholder="••••••••"
-              minLength={8}
             />
-            {!isLogin && (
-              <p className="text-xs text-muted-foreground">
-                8 أحرف على الأقل، تحتوي على أحرف كبيرة وصغيرة وأرقام
-              </p>
-            )}
           </div>
 
           <Button

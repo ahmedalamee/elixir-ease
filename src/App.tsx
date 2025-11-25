@@ -98,6 +98,7 @@ import Tasks from "./pages/Tasks";
 import InventoryDashboard from "./pages/InventoryDashboard";
 import ReportsDashboard from "./pages/ReportsDashboard";
 import SupplierReports from "./pages/SupplierReports";
+import ActivityLog from "./pages/ActivityLog";
 
 const queryClient = new QueryClient();
 
@@ -218,6 +219,9 @@ const AppContent = () => {
           <Route path="/hr/tasks" element={<Tasks />} />
           <Route path="/hr/employee-reports" element={<EmployeeReports />} />
           <Route path="/account-settings" element={<AccountSettings />} />
+          <Route path="/activity-log" element={<ActivityLog />} />
+          <Route path="/reports-dashboard" element={<ReportsDashboard />} />
+          <Route path="/supplier-reports" element={<SupplierReports />} />
           <Route path="/sales/returns" element={<SalesReturns />} />
           <Route path="/purchases/returns" element={<PurchaseReturns />} />
           <Route path="/tax/compliance" element={<TaxCompliance />} />

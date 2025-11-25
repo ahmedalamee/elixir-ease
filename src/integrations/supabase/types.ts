@@ -6689,6 +6689,11 @@ export type Database = {
         Args: { p_end_date: string; p_start_date: string }
         Returns: Json
       }
+      get_balance_sheet: { Args: { p_as_of_date?: string }; Returns: Json }
+      get_comprehensive_income_statement: {
+        Args: { p_end_date: string; p_start_date: string }
+        Returns: Json
+      }
       get_executive_dashboard_stats: { Args: never; Returns: Json }
       get_integration_statistics: {
         Args: { p_end_date?: string; p_start_date?: string }
@@ -6744,6 +6749,10 @@ export type Database = {
           total_count: number
         }[]
       }
+      get_user_comprehensive_permissions: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
       has_any_role: {
         Args: {
           _roles: Database["public"]["Enums"]["app_role"][]
@@ -6772,11 +6781,33 @@ export type Database = {
         }
         Returns: string
       }
+      log_user_activity: {
+        Args: {
+          p_action: string
+          p_details?: Json
+          p_ip_address?: string
+          p_module?: string
+          p_resource_id?: string
+          p_resource_type: string
+          p_user_agent?: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       post_goods_receipt: { Args: { p_grn_id: string }; Returns: Json }
       post_purchase_invoice: { Args: { p_invoice_id: string }; Returns: Json }
       post_purchase_return: { Args: { p_return_id: string }; Returns: Json }
       post_sales_invoice: { Args: { p_invoice_id: string }; Returns: Json }
       post_sales_return: { Args: { p_return_id: string }; Returns: Json }
+      process_system_events: {
+        Args: never
+        Returns: {
+          event_id: string
+          event_type: string
+          processed: boolean
+          result: string
+        }[]
+      }
       refresh_inventory_summary: { Args: never; Returns: undefined }
       refresh_sales_summary: { Args: never; Returns: undefined }
       user_has_permission: {

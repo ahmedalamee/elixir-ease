@@ -14,6 +14,59 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounting_integration_log: {
+        Row: {
+          created_at: string | null
+          document_id: string
+          document_number: string
+          document_type: string
+          error_message: string | null
+          id: string
+          journal_entry_id: string | null
+          processed_at: string | null
+          retry_count: number | null
+          status: string | null
+          total_credit: number | null
+          total_debit: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          document_id: string
+          document_number: string
+          document_type: string
+          error_message?: string | null
+          id?: string
+          journal_entry_id?: string | null
+          processed_at?: string | null
+          retry_count?: number | null
+          status?: string | null
+          total_credit?: number | null
+          total_debit?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          document_id?: string
+          document_number?: string
+          document_type?: string
+          error_message?: string | null
+          id?: string
+          journal_entry_id?: string | null
+          processed_at?: string | null
+          retry_count?: number | null
+          status?: string | null
+          total_credit?: number | null
+          total_debit?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_integration_log_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bank_accounts: {
         Row: {
           account_name: string
@@ -5371,6 +5424,86 @@ export type Database = {
           },
         ]
       }
+      stock_integration_log: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          error_message: string | null
+          id: string
+          product_id: string | null
+          quantity_after: number | null
+          quantity_before: number | null
+          quantity_change: number
+          reference_id: string
+          reference_type: string
+          status: string | null
+          transaction_type: string
+          unit_cost: number | null
+          warehouse_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          product_id?: string | null
+          quantity_after?: number | null
+          quantity_before?: number | null
+          quantity_change: number
+          reference_id: string
+          reference_type: string
+          status?: string | null
+          transaction_type: string
+          unit_cost?: number | null
+          warehouse_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          product_id?: string | null
+          quantity_after?: number | null
+          quantity_before?: number | null
+          quantity_change?: number
+          reference_id?: string
+          reference_type?: string
+          status?: string | null
+          transaction_type?: string
+          unit_cost?: number | null
+          warehouse_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_integration_log_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_integration_log_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "stock_integration_log_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "stock_integration_log_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_ledger: {
         Row: {
           balance_after: number | null
@@ -5556,6 +5689,42 @@ export type Database = {
           phone?: string | null
           tax_number?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      system_events: {
+        Row: {
+          error_message: string | null
+          event_data: Json
+          event_source: string
+          event_type: string
+          id: string
+          processed: boolean | null
+          processed_at: string | null
+          triggered_at: string | null
+          triggered_by: string | null
+        }
+        Insert: {
+          error_message?: string | null
+          event_data: Json
+          event_source: string
+          event_type: string
+          id?: string
+          processed?: boolean | null
+          processed_at?: string | null
+          triggered_at?: string | null
+          triggered_by?: string | null
+        }
+        Update: {
+          error_message?: string | null
+          event_data?: Json
+          event_source?: string
+          event_type?: string
+          id?: string
+          processed?: boolean | null
+          processed_at?: string | null
+          triggered_at?: string | null
+          triggered_by?: string | null
         }
         Relationships: []
       }
@@ -5790,9 +5959,11 @@ export type Database = {
           created_at: string | null
           id: string
           ip_address: unknown
+          module: string | null
           new_values: Json | null
           old_values: Json | null
           record_id: string | null
+          severity: string | null
           table_name: string | null
           user_agent: string | null
           user_id: string
@@ -5802,9 +5973,11 @@ export type Database = {
           created_at?: string | null
           id?: string
           ip_address?: unknown
+          module?: string | null
           new_values?: Json | null
           old_values?: Json | null
           record_id?: string | null
+          severity?: string | null
           table_name?: string | null
           user_agent?: string | null
           user_id: string
@@ -5814,9 +5987,11 @@ export type Database = {
           created_at?: string | null
           id?: string
           ip_address?: unknown
+          module?: string | null
           new_values?: Json | null
           old_values?: Json | null
           record_id?: string | null
+          severity?: string | null
           table_name?: string | null
           user_agent?: string | null
           user_id?: string
@@ -6421,6 +6596,24 @@ export type Database = {
       }
     }
     Functions: {
+      analyze_stock_movement: {
+        Args: {
+          p_end_date?: string
+          p_product_id?: string
+          p_start_date?: string
+          p_warehouse_id?: string
+        }
+        Returns: {
+          avg_transaction_value: number
+          net_movement: number
+          product_id: string
+          product_name: string
+          total_in: number
+          total_out: number
+          transaction_count: number
+          warehouse_name: string
+        }[]
+      }
       calculate_financial_ratios: {
         Args: { p_end_date: string; p_start_date: string }
         Returns: Json
@@ -6428,6 +6621,19 @@ export type Database = {
       check_credit_limit: {
         Args: { p_amount: number; p_customer_id: string }
         Returns: Json
+      }
+      check_reorder_levels: {
+        Args: never
+        Returns: {
+          current_qty: number
+          max_quantity: number
+          product_id: string
+          product_name: string
+          reorder_level: number
+          shortage: number
+          warehouse_id: string
+          warehouse_name: string
+        }[]
       }
       copy_role_permissions: {
         Args: {
@@ -6481,6 +6687,11 @@ export type Database = {
       generate_supplier_code: { Args: never; Returns: string }
       generate_vat_report: {
         Args: { p_end_date: string; p_start_date: string }
+        Returns: Json
+      }
+      get_executive_dashboard_stats: { Args: never; Returns: Json }
+      get_integration_statistics: {
+        Args: { p_end_date?: string; p_start_date?: string }
         Returns: Json
       }
       get_returnable_invoice_items: {
@@ -6552,6 +6763,15 @@ export type Database = {
         Returns: boolean
       }
       is_document_posted: { Args: { doc_status: string }; Returns: boolean }
+      log_system_event: {
+        Args: {
+          p_event_data: Json
+          p_event_source: string
+          p_event_type: string
+          p_triggered_by?: string
+        }
+        Returns: string
+      }
       post_goods_receipt: { Args: { p_grn_id: string }; Returns: Json }
       post_purchase_invoice: { Args: { p_invoice_id: string }; Returns: Json }
       post_purchase_return: { Args: { p_return_id: string }; Returns: Json }

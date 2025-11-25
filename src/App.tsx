@@ -96,6 +96,8 @@ import Leaves from "./pages/Leaves";
 import Performance from "./pages/Performance";
 import Tasks from "./pages/Tasks";
 import InventoryDashboard from "./pages/InventoryDashboard";
+import ReportsDashboard from "./pages/ReportsDashboard";
+import SupplierReports from "./pages/SupplierReports";
 
 const queryClient = new QueryClient();
 
@@ -224,6 +226,11 @@ const AppContent = () => {
           <Route path="/tax/reports" element={<TaxReports />} />
           <Route path="/crm/complaints" element={<CustomerComplaints />} />
           <Route path="/crm/complaints-reports" element={<ComplaintsReports />} />
+          <Route path="/reports-dashboard" element={<ReportsDashboard />} />
+          <Route path="/supplier-reports" element={<SupplierReports />} />
+          <Route path="/inventory-reports" element={<InventoryReports />} />
+          <Route path="/stock-alerts" element={<StockAlerts />} />
+          <Route path="/complaints-reports" element={<ComplaintsReports />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

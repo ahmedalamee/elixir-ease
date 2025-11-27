@@ -401,6 +401,379 @@ export type Database = {
           },
         ]
       }
+      cash_boxes: {
+        Row: {
+          box_code: string
+          box_name: string
+          box_name_en: string | null
+          box_type: string | null
+          created_at: string | null
+          created_by: string | null
+          currency_code: string | null
+          current_balance: number | null
+          daily_limit: number | null
+          gl_account_id: string | null
+          id: string
+          is_active: boolean | null
+          is_main: boolean | null
+          location: string | null
+          notes: string | null
+          opening_balance: number | null
+          responsible_user_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          box_code: string
+          box_name: string
+          box_name_en?: string | null
+          box_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          currency_code?: string | null
+          current_balance?: number | null
+          daily_limit?: number | null
+          gl_account_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_main?: boolean | null
+          location?: string | null
+          notes?: string | null
+          opening_balance?: number | null
+          responsible_user_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          box_code?: string
+          box_name?: string
+          box_name_en?: string | null
+          box_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          currency_code?: string | null
+          current_balance?: number | null
+          daily_limit?: number | null
+          gl_account_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_main?: boolean | null
+          location?: string | null
+          notes?: string | null
+          opening_balance?: number | null
+          responsible_user_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_boxes_gl_account_id_fkey"
+            columns: ["gl_account_id"]
+            isOneToOne: false
+            referencedRelation: "gl_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cash_payments: {
+        Row: {
+          amount: number
+          bank_name: string | null
+          cash_box_id: string
+          check_date: string | null
+          check_number: string | null
+          created_at: string | null
+          created_by: string | null
+          currency_code: string | null
+          description: string
+          id: string
+          notes: string | null
+          paid_to: string
+          payment_date: string
+          payment_method: string | null
+          payment_number: string
+          posted_at: string | null
+          posted_by: string | null
+          status: string | null
+          supplier_id: string | null
+        }
+        Insert: {
+          amount: number
+          bank_name?: string | null
+          cash_box_id: string
+          check_date?: string | null
+          check_number?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          currency_code?: string | null
+          description: string
+          id?: string
+          notes?: string | null
+          paid_to: string
+          payment_date?: string
+          payment_method?: string | null
+          payment_number: string
+          posted_at?: string | null
+          posted_by?: string | null
+          status?: string | null
+          supplier_id?: string | null
+        }
+        Update: {
+          amount?: number
+          bank_name?: string | null
+          cash_box_id?: string
+          check_date?: string | null
+          check_number?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          currency_code?: string | null
+          description?: string
+          id?: string
+          notes?: string | null
+          paid_to?: string
+          payment_date?: string
+          payment_method?: string | null
+          payment_number?: string
+          posted_at?: string | null
+          posted_by?: string | null
+          status?: string | null
+          supplier_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_payments_cash_box_id_fkey"
+            columns: ["cash_box_id"]
+            isOneToOne: false
+            referencedRelation: "cash_boxes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_payments_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cash_receipts: {
+        Row: {
+          amount: number
+          bank_name: string | null
+          cash_box_id: string
+          check_date: string | null
+          check_number: string | null
+          created_at: string | null
+          created_by: string | null
+          currency_code: string | null
+          customer_id: string | null
+          description: string
+          id: string
+          notes: string | null
+          payment_method: string | null
+          posted_at: string | null
+          posted_by: string | null
+          receipt_date: string
+          receipt_number: string
+          received_from: string
+          status: string | null
+        }
+        Insert: {
+          amount: number
+          bank_name?: string | null
+          cash_box_id: string
+          check_date?: string | null
+          check_number?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          currency_code?: string | null
+          customer_id?: string | null
+          description: string
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
+          receipt_date?: string
+          receipt_number: string
+          received_from: string
+          status?: string | null
+        }
+        Update: {
+          amount?: number
+          bank_name?: string | null
+          cash_box_id?: string
+          check_date?: string | null
+          check_number?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          currency_code?: string | null
+          customer_id?: string | null
+          description?: string
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
+          receipt_date?: string
+          receipt_number?: string
+          received_from?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_receipts_cash_box_id_fkey"
+            columns: ["cash_box_id"]
+            isOneToOne: false
+            referencedRelation: "cash_boxes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_receipts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cash_transactions: {
+        Row: {
+          amount: number
+          approved_at: string | null
+          approved_by: string | null
+          cash_box_id: string
+          created_at: string | null
+          created_by: string | null
+          currency_code: string | null
+          description: string | null
+          id: string
+          notes: string | null
+          posted_at: string | null
+          posted_by: string | null
+          reference_id: string | null
+          reference_number: string | null
+          reference_type: string | null
+          status: string | null
+          transaction_date: string
+          transaction_number: string
+          transaction_type: string
+        }
+        Insert: {
+          amount: number
+          approved_at?: string | null
+          approved_by?: string | null
+          cash_box_id: string
+          created_at?: string | null
+          created_by?: string | null
+          currency_code?: string | null
+          description?: string | null
+          id?: string
+          notes?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
+          reference_id?: string | null
+          reference_number?: string | null
+          reference_type?: string | null
+          status?: string | null
+          transaction_date?: string
+          transaction_number: string
+          transaction_type: string
+        }
+        Update: {
+          amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          cash_box_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          currency_code?: string | null
+          description?: string | null
+          id?: string
+          notes?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
+          reference_id?: string | null
+          reference_number?: string | null
+          reference_type?: string | null
+          status?: string | null
+          transaction_date?: string
+          transaction_number?: string
+          transaction_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_transactions_cash_box_id_fkey"
+            columns: ["cash_box_id"]
+            isOneToOne: false
+            referencedRelation: "cash_boxes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cash_transfers: {
+        Row: {
+          amount: number
+          created_at: string | null
+          created_by: string | null
+          currency_code: string | null
+          description: string | null
+          from_cash_box_id: string
+          id: string
+          notes: string | null
+          posted_at: string | null
+          posted_by: string | null
+          status: string | null
+          to_cash_box_id: string
+          transfer_date: string
+          transfer_number: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          created_by?: string | null
+          currency_code?: string | null
+          description?: string | null
+          from_cash_box_id: string
+          id?: string
+          notes?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
+          status?: string | null
+          to_cash_box_id: string
+          transfer_date?: string
+          transfer_number: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          created_by?: string | null
+          currency_code?: string | null
+          description?: string | null
+          from_cash_box_id?: string
+          id?: string
+          notes?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
+          status?: string | null
+          to_cash_box_id?: string
+          transfer_date?: string
+          transfer_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_transfers_from_cash_box_id_fkey"
+            columns: ["from_cash_box_id"]
+            isOneToOne: false
+            referencedRelation: "cash_boxes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_transfers_to_cash_box_id_fkey"
+            columns: ["to_cash_box_id"]
+            isOneToOne: false
+            referencedRelation: "cash_boxes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           created_at: string | null
@@ -1824,6 +2197,57 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      exchange_rates: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          effective_date: string
+          from_currency: string
+          id: string
+          is_active: boolean | null
+          notes: string | null
+          rate: number
+          to_currency: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          effective_date?: string
+          from_currency: string
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          rate: number
+          to_currency: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          effective_date?: string
+          from_currency?: string
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          rate?: number
+          to_currency?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exchange_rates_from_currency_fkey"
+            columns: ["from_currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "exchange_rates_to_currency_fkey"
+            columns: ["to_currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       expense_items: {
         Row: {
@@ -4049,9 +4473,11 @@ export type Database = {
       purchase_invoices: {
         Row: {
           attachments: Json | null
+          base_currency_total: number | null
           created_at: string | null
           created_by: string | null
           currency: string | null
+          currency_code: string | null
           discount_amount: number | null
           due_date: string | null
           exchange_rate: number | null
@@ -4077,9 +4503,11 @@ export type Database = {
         }
         Insert: {
           attachments?: Json | null
+          base_currency_total?: number | null
           created_at?: string | null
           created_by?: string | null
           currency?: string | null
+          currency_code?: string | null
           discount_amount?: number | null
           due_date?: string | null
           exchange_rate?: number | null
@@ -4105,9 +4533,11 @@ export type Database = {
         }
         Update: {
           attachments?: Json | null
+          base_currency_total?: number | null
           created_at?: string | null
           created_by?: string | null
           currency?: string | null
+          currency_code?: string | null
           discount_amount?: number | null
           due_date?: string | null
           exchange_rate?: number | null
@@ -4132,6 +4562,13 @@ export type Database = {
           warehouse_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "purchase_invoices_currency_code_fkey"
+            columns: ["currency_code"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
           {
             foreignKeyName: "purchase_invoices_grn_id_fkey"
             columns: ["grn_id"]
@@ -4954,11 +5391,14 @@ export type Database = {
       }
       sales_invoices: {
         Row: {
+          base_currency_total: number | null
           created_at: string | null
           created_by: string | null
+          currency_code: string | null
           customer_id: string
           discount_amount: number
           due_date: string | null
+          exchange_rate: number | null
           id: string
           invoice_date: string
           invoice_number: string
@@ -4977,11 +5417,14 @@ export type Database = {
           warehouse_id: string | null
         }
         Insert: {
+          base_currency_total?: number | null
           created_at?: string | null
           created_by?: string | null
+          currency_code?: string | null
           customer_id: string
           discount_amount?: number
           due_date?: string | null
+          exchange_rate?: number | null
           id?: string
           invoice_date?: string
           invoice_number: string
@@ -5000,11 +5443,14 @@ export type Database = {
           warehouse_id?: string | null
         }
         Update: {
+          base_currency_total?: number | null
           created_at?: string | null
           created_by?: string | null
+          currency_code?: string | null
           customer_id?: string
           discount_amount?: number
           due_date?: string | null
+          exchange_rate?: number | null
           id?: string
           invoice_date?: string
           invoice_number?: string
@@ -5023,6 +5469,13 @@ export type Database = {
           warehouse_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "sales_invoices_currency_code_fkey"
+            columns: ["currency_code"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
           {
             foreignKeyName: "sales_invoices_customer_id_fkey"
             columns: ["customer_id"]
@@ -6567,6 +7020,28 @@ export type Database = {
         }
         Relationships: []
       }
+      sales_by_currency: {
+        Row: {
+          avg_exchange_rate: number | null
+          currency_code: string | null
+          currency_name: string | null
+          currency_symbol: string | null
+          first_invoice_date: string | null
+          invoice_count: number | null
+          last_invoice_date: string | null
+          total_in_base_currency: number | null
+          total_in_currency: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_invoices_currency_code_fkey"
+            columns: ["currency_code"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       sales_summary_view: {
         Row: {
           customer_id: string | null
@@ -6635,6 +7110,15 @@ export type Database = {
           warehouse_name: string
         }[]
       }
+      convert_currency: {
+        Args: {
+          p_amount: number
+          p_date?: string
+          p_from_currency: string
+          p_to_currency: string
+        }
+        Returns: number
+      }
       copy_role_permissions: {
         Args: {
           _copied_by: string
@@ -6679,12 +7163,15 @@ export type Database = {
       generate_complaint_number: { Args: never; Returns: string }
       generate_doctor_code: { Args: never; Returns: string }
       generate_employee_code: { Args: never; Returns: string }
+      generate_payment_number: { Args: never; Returns: string }
       generate_pos_session_number: { Args: never; Returns: string }
       generate_prescription_number: { Args: never; Returns: string }
       generate_purchase_return_number: { Args: never; Returns: string }
+      generate_receipt_number: { Args: never; Returns: string }
       generate_sales_return_number: { Args: never; Returns: string }
       generate_si_number: { Args: never; Returns: string }
       generate_supplier_code: { Args: never; Returns: string }
+      generate_transfer_number: { Args: never; Returns: string }
       generate_vat_report: {
         Args: { p_end_date: string; p_start_date: string }
         Returns: Json
@@ -6693,6 +7180,25 @@ export type Database = {
       get_comprehensive_income_statement: {
         Args: { p_end_date: string; p_start_date: string }
         Returns: Json
+      }
+      get_currency_summary: {
+        Args: { p_end_date?: string; p_start_date?: string }
+        Returns: {
+          currency_code: string
+          currency_name: string
+          exchange_gain_loss: number
+          net_position: number
+          total_purchases: number
+          total_sales: number
+        }[]
+      }
+      get_exchange_rate: {
+        Args: {
+          p_date?: string
+          p_from_currency: string
+          p_to_currency: string
+        }
+        Returns: number
       }
       get_executive_dashboard_stats: { Args: never; Returns: Json }
       get_integration_statistics: {
@@ -6794,6 +7300,8 @@ export type Database = {
         }
         Returns: string
       }
+      post_cash_payment: { Args: { p_payment_id: string }; Returns: Json }
+      post_cash_receipt: { Args: { p_receipt_id: string }; Returns: Json }
       post_goods_receipt: { Args: { p_grn_id: string }; Returns: Json }
       post_purchase_invoice: { Args: { p_invoice_id: string }; Returns: Json }
       post_purchase_return: { Args: { p_return_id: string }; Returns: Json }

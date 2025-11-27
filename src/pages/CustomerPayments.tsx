@@ -173,7 +173,27 @@ const CustomerPayments = () => {
     },
   });
 
-  const resetForm = () => {
+  const postPaymentMutation = useMutation({
+    mutationFn: async (paymentId: string) => {
+      const { data, error } = await supabase.rpc('post_customer_payment', {
+        p_payment_id: paymentId,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("تم ترحيل الدفعة وتحديث رصيد العميل");
+      queryClient.invalidateQueries({ queryKey: ["customer-payments"] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["sales-invoices"] });
+    },
+    onError: (error: any) => {
+      console.error("Error posting payment:", error);
+      toast.error(error.message || "حدث خطأ أثناء ترحيل الدفعة");
+    },
+  });
+ 
+   const resetForm = () => {
     setCustomerId("");
     setPaymentDate(new Date().toISOString().split("T")[0]);
     setPaymentMethodId("");
@@ -266,9 +286,20 @@ const CustomerPayments = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="sm">
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      {payment.status === 'draft' ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => postPaymentMutation.mutate(payment.id)}
+                          disabled={postPaymentMutation.isPending}
+                        >
+                          {postPaymentMutation.isPending ? "جارٍ الترحيل..." : "ترحيل"}
+                        </Button>
+                      ) : (
+                        <Button variant="ghost" size="sm">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

@@ -41,7 +41,7 @@ const CustomerPayments = () => {
         .order("payment_date", { ascending: false });
 
       if (searchTerm) {
-        query = query.or(`payment_number.ilike.%${searchTerm}%,reference_no.ilike.%${searchTerm}%`);
+        query = query.or(`payment_number.ilike.%${searchTerm}%,reference_number.ilike.%${searchTerm}%`);
       }
 
       const { data, error } = await query;
@@ -114,7 +114,7 @@ const CustomerPayments = () => {
         payment_date: paymentDate,
         payment_method_id: paymentMethodId,
         amount: parseFloat(amount),
-        reference_no: referenceNo || null,
+        reference_number: referenceNo || null,
         notes: notes || null,
         created_by: userData?.user?.id,
       };
@@ -242,7 +242,7 @@ const CustomerPayments = () => {
                       ر.س
                     </TableCell>
                     <TableCell>{payment.payment_methods?.name}</TableCell>
-                    <TableCell>{payment.reference_no || "-"}</TableCell>
+                    <TableCell>{payment.reference_number || "-"}</TableCell>
                     <TableCell>
                       <Button variant="ghost" size="sm">
                         <Eye className="h-4 w-4" />

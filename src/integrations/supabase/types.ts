@@ -7302,6 +7302,7 @@ export type Database = {
       }
       post_cash_payment: { Args: { p_payment_id: string }; Returns: Json }
       post_cash_receipt: { Args: { p_receipt_id: string }; Returns: Json }
+      post_customer_payment: { Args: { p_payment_id: string }; Returns: Json }
       post_goods_receipt: { Args: { p_grn_id: string }; Returns: Json }
       post_purchase_invoice: { Args: { p_invoice_id: string }; Returns: Json }
       post_purchase_return: { Args: { p_return_id: string }; Returns: Json }

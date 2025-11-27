@@ -116,9 +116,11 @@ const CustomerPayments = () => {
         amount: parseFloat(amount),
         reference_number: referenceNo || null,
         notes: notes || null,
+        status: 'draft',
         created_by: userData?.user?.id,
       };
 
+      // Step 1: Insert payment
       const { data: payment, error: paymentError } = await (supabase as any)
         .from("customer_payments")
         .insert(paymentData)
@@ -127,27 +129,41 @@ const CustomerPayments = () => {
 
       if (paymentError) throw paymentError;
 
-      // Insert allocations if any
+      // Step 2: Insert allocations if any
       if (selectedInvoices.length > 0) {
-        const allocations = selectedInvoices.map((inv) => ({
-          payment_id: payment.id,
-          invoice_id: inv.invoice_id,
-          allocated_amount: inv.allocated_amount,
-        }));
+        const allocations = selectedInvoices
+          .filter(inv => inv.allocated_amount > 0)
+          .map((inv) => ({
+            payment_id: payment.id,
+            invoice_id: inv.invoice_id,
+            allocated_amount: inv.allocated_amount,
+          }));
 
-        const { error: allocError } = await (supabase as any)
-          .from("customer_payment_allocations")
-          .insert(allocations);
+        if (allocations.length > 0) {
+          const { error: allocError } = await (supabase as any)
+            .from("customer_payment_allocations")
+            .insert(allocations);
 
-        if (allocError) throw allocError;
+          if (allocError) throw allocError;
+        }
       }
 
-      return payment;
+      // Step 3: Post the payment (this will update customer balance and invoice statuses)
+      const { data: postResult, error: postError } = await supabase.rpc(
+        'post_customer_payment',
+        { p_payment_id: payment.id }
+      );
+
+      if (postError) throw postError;
+
+      return { payment, postResult };
     },
     onSuccess: () => {
-      toast.success("تم حفظ الدفعة بنجاح");
+      toast.success("تم حفظ وترحيل الدفعة بنجاح وتحديث رصيد العميل");
       queryClient.invalidateQueries({ queryKey: ["customer-payments"] });
       queryClient.invalidateQueries({ queryKey: ["sales-invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["unpaid-invoices"] });
       resetForm();
       setIsAddPaymentDialogOpen(false);
     },
@@ -223,6 +239,7 @@ const CustomerPayments = () => {
                   <TableHead>المبلغ</TableHead>
                   <TableHead>طريقة الدفع</TableHead>
                   <TableHead>المرجع</TableHead>
+                  <TableHead>الحالة</TableHead>
                   <TableHead>الإجراءات</TableHead>
                 </TableRow>
               </TableHeader>
@@ -243,6 +260,11 @@ const CustomerPayments = () => {
                     </TableCell>
                     <TableCell>{payment.payment_methods?.name}</TableCell>
                     <TableCell>{payment.reference_number || "-"}</TableCell>
+                    <TableCell>
+                      <Badge variant={payment.status === 'posted' ? 'default' : 'secondary'}>
+                        {payment.status === 'posted' ? 'مرحلة' : 'مسودة'}
+                      </Badge>
+                    </TableCell>
                     <TableCell>
                       <Button variant="ghost" size="sm">
                         <Eye className="h-4 w-4" />

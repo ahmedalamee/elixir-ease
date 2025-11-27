@@ -115,6 +115,10 @@ const ReportsDashboard = () => {
         { name: "الميزانية العمومية", path: "/balance-sheet", icon: Building2 },
         { name: "لوحة التحكم التنفيذية", path: "/executive-dashboard", icon: BarChart3 },
         { name: "النسب المالية", path: "/financial-ratios", icon: PieChart },
+        { name: "ربحية المنتجات", path: "/product-profitability", icon: Package },
+        { name: "الأداء التشغيلي", path: "/operational-performance", icon: Activity },
+        { name: "دوران المخزون", path: "/inventory-turnover", icon: Activity },
+        { name: "الإيرادات حسب الفئة", path: "/revenue-by-category", icon: PieChart },
       ],
     },
     {

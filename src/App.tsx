@@ -90,6 +90,10 @@ import ComplaintsReports from "./pages/ComplaintsReports";
 import CostCenters from "./pages/CostCenters";
 import BankReconciliation from "./pages/BankReconciliation";
 import FinancialRatios from "./pages/FinancialRatios";
+import ProductProfitability from "./pages/ProductProfitability";
+import OperationalPerformance from "./pages/OperationalPerformance";
+import InventoryTurnover from "./pages/InventoryTurnover";
+import RevenueByCategory from "./pages/RevenueByCategory";
 import Employees from "./pages/Employees";
 import Attendance from "./pages/Attendance";
 import Leaves from "./pages/Leaves";
@@ -181,6 +185,10 @@ const AppContent = () => {
           <Route path="/cost-centers" element={<CostCenters />} />
           <Route path="/bank-reconciliation" element={<BankReconciliation />} />
           <Route path="/financial-ratios" element={<FinancialRatios />} />
+          <Route path="/product-profitability" element={<ProductProfitability />} />
+          <Route path="/operational-performance" element={<OperationalPerformance />} />
+          <Route path="/inventory-turnover" element={<InventoryTurnover />} />
+          <Route path="/revenue-by-category" element={<RevenueByCategory />} />
           <Route path="/price-lists" element={<PriceLists />} />
           <Route path="/inventory/alerts" element={<StockAlerts />} />
           <Route path="/goods-receipts" element={<GoodsReceipts />} />

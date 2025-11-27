@@ -7071,6 +7071,55 @@ export type Database = {
       }
     }
     Functions: {
+      analyze_inventory_turnover: {
+        Args: { p_end_date?: string; p_start_date?: string }
+        Returns: {
+          average_inventory: number
+          beginning_inventory: number
+          category: string
+          cogs: number
+          days_to_sell: number
+          ending_inventory: number
+          product_id: string
+          product_name: string
+          purchases: number
+          sales: number
+          stock_status: string
+          turnover_ratio: number
+        }[]
+      }
+      analyze_product_profitability: {
+        Args: {
+          p_end_date?: string
+          p_product_category?: string
+          p_start_date?: string
+        }
+        Returns: {
+          avg_selling_price: number
+          category: string
+          gross_profit: number
+          inventory_turnover: number
+          product_id: string
+          product_name: string
+          profit_margin: number
+          total_cost: number
+          total_quantity_sold: number
+          total_revenue: number
+        }[]
+      }
+      analyze_revenue_by_category: {
+        Args: { p_end_date?: string; p_start_date?: string }
+        Returns: {
+          category_name: string
+          gross_profit: number
+          invoice_count: number
+          profit_margin: number
+          quantity_sold: number
+          revenue_percentage: number
+          total_cost: number
+          total_revenue: number
+        }[]
+      }
       analyze_stock_movement: {
         Args: {
           p_end_date?: string
@@ -7202,6 +7251,10 @@ export type Database = {
       }
       get_executive_dashboard_stats: { Args: never; Returns: Json }
       get_integration_statistics: {
+        Args: { p_end_date?: string; p_start_date?: string }
+        Returns: Json
+      }
+      get_operational_performance: {
         Args: { p_end_date?: string; p_start_date?: string }
         Returns: Json
       }

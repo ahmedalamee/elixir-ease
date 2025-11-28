@@ -268,6 +268,11 @@ export const menuTree: TreeMenuItem[] = [
     icon: FileStack,
     children: [
       {
+        id: "accounting-chart-of-accounts",
+        label: "شجرة الحسابات",
+        route: "/chart-of-accounts",
+      },
+      {
         id: "accounting-journal-entries",
         label: "قيود اليومية",
         route: "/accounting",

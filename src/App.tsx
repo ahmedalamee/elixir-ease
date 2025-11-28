@@ -10,6 +10,7 @@ import { menuTree } from "./data/menu-tree";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import ChartOfAccountsPage from "./pages/ChartOfAccountsPage";
 import SalesReports from "./pages/SalesReports";
 import ExecutiveDashboard from "./pages/ExecutiveDashboard";
 import WarehouseTransfers from "./pages/WarehouseTransfers";
@@ -178,6 +179,7 @@ const AppContent = () => {
           <Route path="/product-settings/default-taxes" element={<DefaultTaxes />} />
           <Route path="/product-settings/barcode-settings" element={<BarcodeSettings />} />
           <Route path="/accounting" element={<Accounting />} />
+          <Route path="/chart-of-accounts" element={<ChartOfAccountsPage />} />
           <Route path="/general-ledger" element={<GeneralLedger />} />
           <Route path="/trial-balance" element={<TrialBalance />} />
           <Route path="/journal-entry/:id" element={<JournalEntryDetail />} />

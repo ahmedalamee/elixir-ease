@@ -1,12 +1,12 @@
 import { Plus, Edit2, Trash2 } from "lucide-react";
-import { AccountNode } from "@/data/chart-of-accounts";
+import type { GlAccountTreeNode } from "@/types/accounting";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 interface SelectedAccountInfoProps {
-  account: AccountNode | null;
+  account: GlAccountTreeNode | null;
   onAddChild: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -22,7 +22,7 @@ export const SelectedAccountInfo = ({
 
   // Handle mock actions with toast notifications
   const handleAddChild = () => {
-    // TODO: call API to create new sub-account
+    // TODO (Phase 3): Wire this button to createGlAccount()
     toast({
       title: "إضافة حساب فرعي",
       description: "سيتم إضافة الوظيفة لاحقاً",
@@ -31,7 +31,7 @@ export const SelectedAccountInfo = ({
   };
 
   const handleEdit = () => {
-    // TODO: call API to update account
+    // TODO (Phase 3): Wire this button to updateGlAccount()
     toast({
       title: "تعديل الحساب",
       description: "سيتم إضافة الوظيفة لاحقاً",
@@ -40,7 +40,7 @@ export const SelectedAccountInfo = ({
   };
 
   const handleDelete = () => {
-    // TODO: call API to delete account (with confirmation dialog)
+    // TODO (Phase 3): Wire this button to deactivateGlAccount()
     toast({
       title: "حذف الحساب",
       description: "سيتم إضافة الوظيفة لاحقاً",
@@ -88,7 +88,7 @@ export const SelectedAccountInfo = ({
                 رقم الحساب
               </label>
               <div className="mt-1.5 text-lg font-mono font-semibold text-foreground">
-                {account.code}
+                {account.accountCode}
               </div>
             </div>
 
@@ -100,21 +100,53 @@ export const SelectedAccountInfo = ({
                 اسم الحساب
               </label>
               <div className="mt-1.5 text-lg font-semibold text-foreground">
-                {account.name}
+                {account.accountName}
               </div>
             </div>
+
+            {/* English Name (if exists) */}
+            {account.accountNameEn && (
+              <>
+                <Separator />
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    الاسم بالإنجليزية
+                  </label>
+                  <div className="mt-1.5 text-base text-foreground">
+                    {account.accountNameEn}
+                  </div>
+                </div>
+              </>
+            )}
 
             <Separator />
 
             {/* Parent Account */}
-            {account.parentCode && (
+            {account.parentAccountId && (
               <>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
                     الحساب الأعلى
                   </label>
-                  <div className="mt-1.5 text-base text-foreground font-mono">
-                    {account.parentCode}
+                  <div className="mt-1.5 text-base text-foreground font-mono text-sm">
+                    {account.parentAccountId}
+                  </div>
+                </div>
+                <Separator />
+              </>
+            )}
+
+            {/* Is Header Account */}
+            {account.isHeader && (
+              <>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    نوع الحساب
+                  </label>
+                  <div className="mt-1.5">
+                    <span className="inline-flex px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-700">
+                      حساب رئيسي (Header)
+                    </span>
                   </div>
                 </div>
                 <Separator />
@@ -122,45 +154,27 @@ export const SelectedAccountInfo = ({
             )}
 
             {/* Account Level */}
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">
-                مستوى الحساب
-              </label>
-              <div className="mt-1.5 text-base text-foreground">
-                المستوى {account.level}
-              </div>
-            </div>
-
-            <Separator />
+            {account.level !== undefined && (
+              <>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    مستوى الحساب
+                  </label>
+                  <div className="mt-1.5 text-base text-foreground">
+                    المستوى {account.level}
+                  </div>
+                </div>
+                <Separator />
+              </>
+            )}
 
             {/* Account Type */}
             <div>
               <label className="text-sm font-medium text-muted-foreground">
-                نوع الحساب
-              </label>
-              <div className="mt-1.5">
-                <span
-                  className={cn(
-                    "inline-flex px-3 py-1 rounded-full text-sm font-medium",
-                    account.type === "debit"
-                      ? "bg-blue-100 text-blue-700"
-                      : "bg-green-100 text-green-700"
-                  )}
-                >
-                  {account.type === "debit" ? "مدين" : "دائن"}
-                </span>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Account Category */}
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">
-                فئة الحساب
+                تصنيف الحساب
               </label>
               <div className="mt-1.5 text-base text-foreground">
-                {getCategoryLabel(account.category)}
+                {getAccountTypeLabel(account.accountType)}
               </div>
             </div>
 
@@ -175,6 +189,21 @@ export const SelectedAccountInfo = ({
                 {account.currency}
               </div>
             </div>
+
+            {/* Description (if exists) */}
+            {account.description && (
+              <>
+                <Separator />
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    الوصف
+                  </label>
+                  <div className="mt-1.5 text-sm text-foreground">
+                    {account.description}
+                  </div>
+                </div>
+              </>
+            )}
 
             <Separator />
 
@@ -236,14 +265,15 @@ export const SelectedAccountInfo = ({
   );
 };
 
-// Helper function to get Arabic category label
-function getCategoryLabel(category: string): string {
+// Helper function to get Arabic account type label
+function getAccountTypeLabel(accountType: string): string {
   const labels: Record<string, string> = {
-    assets: "أصول",
-    liabilities: "خصوم",
+    asset: "أصول",
+    liability: "خصوم",
     equity: "حقوق الملكية",
     revenue: "إيرادات",
-    expenses: "مصروفات",
+    expense: "مصروفات",
+    cogs: "تكلفة البضاعة المباعة",
   };
-  return labels[category] || category;
+  return labels[accountType] || accountType;
 }

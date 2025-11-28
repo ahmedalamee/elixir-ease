@@ -14,27 +14,28 @@ export default function ChartOfAccountsPage() {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Load accounts tree from Supabase on mount
-  useEffect(() => {
-    async function loadAccounts() {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const accounts = await fetchGlAccountsTree();
-        setTreeData(accounts);
-      } catch (err) {
-        console.error("Error loading GL accounts:", err);
-        setError("حدث خطأ أثناء تحميل شجرة الحسابات");
-        toast({
-          title: "خطأ في التحميل",
-          description: "حدث خطأ أثناء تحميل شجرة الحسابات",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
+  // Load accounts tree from Supabase
+  const loadAccounts = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const accounts = await fetchGlAccountsTree();
+      setTreeData(accounts);
+    } catch (err) {
+      console.error("Error loading GL accounts:", err);
+      setError("حدث خطأ أثناء تحميل شجرة الحسابات");
+      toast({
+        title: "خطأ في التحميل",
+        description: "حدث خطأ أثناء تحميل شجرة الحسابات",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
+  };
 
+  // Load accounts tree on mount
+  useEffect(() => {
     loadAccounts();
   }, [toast]);
 
@@ -96,18 +97,7 @@ export default function ChartOfAccountsPage() {
             <div className="lg:col-span-3">
               <SelectedAccountInfo 
                 account={selectedAccount}
-                onAddChild={() => {
-                  // TODO (Phase 3): Wire this button to createGlAccount()
-                  console.log("TODO: Add child account");
-                }}
-                onEdit={() => {
-                  // TODO (Phase 3): Wire this button to updateGlAccount()
-                  console.log("TODO: Edit account", selectedAccount);
-                }}
-                onDelete={() => {
-                  // TODO (Phase 3): Wire this button to deactivateGlAccount()
-                  console.log("TODO: Delete account", selectedAccount);
-                }}
+                onRefresh={loadAccounts}
               />
             </div>
           </div>

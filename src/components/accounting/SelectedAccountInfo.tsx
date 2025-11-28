@@ -1,52 +1,150 @@
+import { useState } from "react";
 import { Plus, Edit2, Trash2 } from "lucide-react";
 import type { GlAccountTreeNode } from "@/types/accounting";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { AddAccountDialog } from "./AddAccountDialog";
+import { EditAccountDialog } from "./EditAccountDialog";
+import { createGlAccount, updateGlAccount, deactivateGlAccount } from "@/lib/accounting";
+import type { GlAccountInsert, GlAccountUpdate } from "@/types/accounting";
 
 interface SelectedAccountInfoProps {
   account: GlAccountTreeNode | null;
-  onAddChild: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
+  onRefresh: () => void;
 }
 
 export const SelectedAccountInfo = ({
   account,
-  onAddChild,
-  onEdit,
-  onDelete,
+  onRefresh,
 }: SelectedAccountInfoProps) => {
   const { toast } = useToast();
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  // Handle mock actions with toast notifications
   const handleAddChild = () => {
-    // TODO (Phase 3): Wire this button to createGlAccount()
-    toast({
-      title: "إضافة حساب فرعي",
-      description: "سيتم إضافة الوظيفة لاحقاً",
-    });
-    onAddChild();
+    if (!account) {
+      toast({
+        title: "خطأ",
+        description: "الرجاء اختيار حساب رئيسي أولاً",
+        variant: "destructive",
+      });
+      return;
+    }
+    setShowAddDialog(true);
   };
 
   const handleEdit = () => {
-    // TODO (Phase 3): Wire this button to updateGlAccount()
-    toast({
-      title: "تعديل الحساب",
-      description: "سيتم إضافة الوظيفة لاحقاً",
-    });
-    onEdit();
+    if (!account) {
+      toast({
+        title: "خطأ",
+        description: "الرجاء اختيار حساب للتعديل",
+        variant: "destructive",
+      });
+      return;
+    }
+    setShowEditDialog(true);
   };
 
   const handleDelete = () => {
-    // TODO (Phase 3): Wire this button to deactivateGlAccount()
-    toast({
-      title: "حذف الحساب",
-      description: "سيتم إضافة الوظيفة لاحقاً",
-      variant: "destructive",
-    });
-    onDelete();
+    if (!account) {
+      toast({
+        title: "خطأ",
+        description: "الرجاء اختيار حساب للحذف",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if account has children
+    if (account.children && account.children.length > 0) {
+      toast({
+        title: "لا يمكن الحذف",
+        description:
+          "لا يمكن حذف حساب يحتوي على حسابات فرعية. يرجى حذف أو نقل الحسابات الفرعية أولاً.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!account) return;
+
+    setIsDeleting(true);
+    try {
+      // TODO: before deactivating, check if account has any journal entries
+      // TODO: add server-side constraint to prevent deactivating accounts in use
+      await deactivateGlAccount(account.id);
+      toast({
+        title: "تم بنجاح",
+        description: "تم إلغاء تفعيل الحساب بنجاح",
+      });
+      setShowDeleteDialog(false);
+      onRefresh();
+    } catch (error) {
+      console.error("Error deactivating account:", error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء حذف الحساب",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleAddSuccess = async (data: GlAccountInsert) => {
+    try {
+      await createGlAccount(data);
+      toast({
+        title: "تم بنجاح",
+        description: "تم إضافة الحساب بنجاح",
+      });
+      onRefresh();
+    } catch (error) {
+      console.error("Error creating account:", error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء إضافة الحساب",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const handleEditSuccess = async (id: string, updates: GlAccountUpdate) => {
+    try {
+      await updateGlAccount(id, updates);
+      toast({
+        title: "تم بنجاح",
+        description: "تم تعديل الحساب بنجاح",
+      });
+      onRefresh();
+    } catch (error) {
+      console.error("Error updating account:", error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء تعديل الحساب",
+        variant: "destructive",
+      });
+      throw error;
+    }
   };
 
   // Empty state
@@ -261,6 +359,49 @@ export const SelectedAccountInfo = ({
           </Button>
         </div>
       </div>
+
+      {/* Dialogs */}
+      {account && (
+        <>
+          <AddAccountDialog
+            open={showAddDialog}
+            onOpenChange={setShowAddDialog}
+            parentAccount={account}
+            onSuccess={() => onRefresh()}
+            onAdd={handleAddSuccess}
+          />
+
+          <EditAccountDialog
+            open={showEditDialog}
+            onOpenChange={setShowEditDialog}
+            account={account}
+            onSuccess={() => onRefresh()}
+            onUpdate={handleEditSuccess}
+          />
+
+          <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+            <AlertDialogContent dir="rtl">
+              <AlertDialogHeader>
+                <AlertDialogTitle>تأكيد حذف الحساب</AlertDialogTitle>
+                <AlertDialogDescription>
+                  هل أنت متأكد من رغبتك في حذف هذا الحساب؟ سيتم إلغاء تفعيله ولن يظهر
+                  في الحركات الجديدة.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={confirmDelete}
+                  disabled={isDeleting}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {isDeleting ? "جاري الحذف..." : "تأكيد الحذف"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
+      )}
     </div>
   );
 };

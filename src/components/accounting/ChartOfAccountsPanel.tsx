@@ -8,10 +8,16 @@ export const ChartOfAccountsPanel = () => {
   const [selectedAccount, setSelectedAccount] = useState<AccountNode | null>(null);
 
   return (
-    <div dir="rtl">
-      <h2 className="text-xl font-bold mb-4">ترميز الدليل المحاسبي</h2>
-      <Card className="p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+    <div dir="rtl" className="space-y-6">
+      {/* Page Header */}
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">ترميز الدليل المحاسبي</h1>
+        <p className="text-muted-foreground">إدارة وتنظيم الحسابات المالية للمؤسسة</p>
+      </div>
+
+      {/* Main Content Card */}
+      <Card className="shadow-sm">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 p-6">
           {/* Left Side - Tree View (35-40%) */}
           <div className="lg:col-span-2">
             <ChartOfAccountsTree

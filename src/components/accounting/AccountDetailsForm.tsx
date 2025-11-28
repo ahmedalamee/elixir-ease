@@ -45,17 +45,24 @@ export const AccountDetailsForm = ({ account }: AccountDetailsFormProps) => {
 
   if (!formData) {
     return (
-      <div className="flex items-center justify-center h-[600px] border rounded-lg bg-card" dir="rtl">
-        <p className="text-muted-foreground">اختر حساباً من الشجرة لعرض تفاصيله</p>
+      <div className="flex flex-col items-center justify-center h-[600px] border rounded-lg bg-card" dir="rtl">
+        <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
+          <span className="text-3xl">📊</span>
+        </div>
+        <p className="text-muted-foreground text-center px-4">اختر حساباً من الشجرة لعرض تفاصيله</p>
       </div>
     );
   }
 
   return (
-    <div className="border rounded-lg bg-card p-6 h-[600px] overflow-y-auto" dir="rtl">
-      <h3 className="text-lg font-semibold mb-6">تفاصيل الحساب</h3>
-
-      <div className="space-y-4">
+    <div className="border rounded-lg bg-card h-[600px] overflow-hidden flex flex-col" dir="rtl">
+      <div className="p-4 border-b bg-muted/30">
+        <h3 className="text-lg font-semibold text-foreground">تفاصيل الحساب</h3>
+        <p className="text-xs text-muted-foreground mt-1">عرض وتعديل معلومات الحساب المحدد</p>
+      </div>
+      
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="space-y-4">
         {/* Account Code */}
         <div>
           <Label htmlFor="code">رقم الحساب</Label>
@@ -178,13 +185,14 @@ export const AccountDetailsForm = ({ account }: AccountDetailsFormProps) => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-3 pt-4">
-          <Button onClick={handleSave} className="flex-1">
-            حفظ
+        <div className="flex gap-3 pt-6 border-t">
+          <Button onClick={handleSave} className="flex-1" size="lg">
+            حفظ التعديلات
           </Button>
-          <Button onClick={handleCancel} variant="outline" className="flex-1">
+          <Button onClick={handleCancel} variant="outline" className="flex-1" size="lg">
             إلغاء
           </Button>
+        </div>
         </div>
       </div>
     </div>

@@ -5,7 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import Sidebar from "./components/Sidebar";
+import { TreeSidebar } from "./components/TreeSidebar";
+import { menuTree } from "./data/menu-tree";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -136,8 +137,8 @@ const AppContent = () => {
   }
 
   return (
-    <div className="flex min-h-screen" dir="rtl">
-      {showSidebar && <Sidebar />}
+    <div className="flex min-h-screen w-full" dir="rtl">
+      {showSidebar && <TreeSidebar menuData={menuTree} />}
       <div className="flex-1 overflow-auto">
         <Routes>
           <Route path="/" element={<Index />} />

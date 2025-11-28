@@ -1,10 +1,9 @@
-import { useState } from "react";
 import { AccountTreeNode } from "./AccountTreeNode";
-import { AccountNode } from "@/data/chart-of-accounts";
+import type { GlAccountTreeNode } from "@/types/accounting";
 
 interface AccountsTreeViewProps {
-  accounts: AccountNode[];
-  onSelect: (account: AccountNode) => void;
+  accounts: GlAccountTreeNode[];
+  onSelect: (account: GlAccountTreeNode) => void;
   selectedId?: string;
 }
 
@@ -25,16 +24,23 @@ export const AccountsTreeView = ({
 
       {/* Tree Content - Scrollable */}
       <div className="flex-1 overflow-y-auto p-3">
-        {/* TODO: replace with data from backend */}
-        {accounts.map((account) => (
-          <AccountTreeNode
-            key={account.id}
-            node={account}
-            depth={0}
-            onSelect={onSelect}
-            selectedId={selectedId}
-          />
-        ))}
+        {accounts.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <p className="text-sm text-muted-foreground">
+              لا توجد حسابات في الدليل المحاسبي
+            </p>
+          </div>
+        ) : (
+          accounts.map((account) => (
+            <AccountTreeNode
+              key={account.id}
+              node={account}
+              depth={0}
+              onSelect={onSelect}
+              selectedId={selectedId}
+            />
+          ))
+        )}
       </div>
     </div>
   );

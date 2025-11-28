@@ -1,11 +1,42 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 import { AccountsTreeView } from "@/components/accounting/AccountsTreeView";
 import { SelectedAccountInfo } from "@/components/accounting/SelectedAccountInfo";
-import { chartOfAccountsData, AccountNode } from "@/data/chart-of-accounts";
+import { fetchGlAccountsTree } from "@/lib/accounting";
+import type { GlAccountTreeNode } from "@/types/accounting";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ChartOfAccountsPage() {
-  const [selectedAccount, setSelectedAccount] = useState<AccountNode | null>(null);
+  const [treeData, setTreeData] = useState<GlAccountTreeNode[]>([]);
+  const [selectedAccount, setSelectedAccount] = useState<GlAccountTreeNode | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  // Load accounts tree from Supabase on mount
+  useEffect(() => {
+    async function loadAccounts() {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const accounts = await fetchGlAccountsTree();
+        setTreeData(accounts);
+      } catch (err) {
+        console.error("Error loading GL accounts:", err);
+        setError("حدث خطأ أثناء تحميل شجرة الحسابات");
+        toast({
+          title: "خطأ في التحميل",
+          description: "حدث خطأ أثناء تحميل شجرة الحسابات",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadAccounts();
+  }, [toast]);
 
   return (
     <div dir="rtl" className="container mx-auto p-6 space-y-6">
@@ -21,26 +52,66 @@ export default function ChartOfAccountsPage() {
 
       {/* Main Content Card */}
       <Card className="shadow-sm overflow-hidden">
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-0">
-          {/* Right Side - Tree View (40%) */}
-          <div className="lg:col-span-2 border-l border-border">
-            <AccountsTreeView
-              accounts={chartOfAccountsData}
-              onSelect={setSelectedAccount}
-              selectedId={selectedAccount?.id}
-            />
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex flex-col items-center justify-center py-24 px-6">
+            <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
+            <p className="text-lg font-medium text-foreground">
+              جاري تحميل شجرة الحسابات...
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              الرجاء الانتظار
+            </p>
           </div>
+        )}
 
-          {/* Left Side - Selected Account Info (60%) */}
-          <div className="lg:col-span-3">
-            <SelectedAccountInfo 
-              account={selectedAccount}
-              onAddChild={() => console.log("TODO: Add child account")}
-              onEdit={() => console.log("TODO: Edit account", selectedAccount)}
-              onDelete={() => console.log("TODO: Delete account", selectedAccount)}
-            />
+        {/* Error State */}
+        {error && !isLoading && (
+          <div className="flex flex-col items-center justify-center py-24 px-6">
+            <div className="w-20 h-20 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+              <span className="text-4xl">⚠️</span>
+            </div>
+            <p className="text-lg font-semibold text-foreground mb-2">
+              حدث خطأ أثناء تحميل البيانات
+            </p>
+            <p className="text-sm text-muted-foreground text-center max-w-md">
+              {error}
+            </p>
           </div>
-        </div>
+        )}
+
+        {/* Loaded State */}
+        {!isLoading && !error && (
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-0">
+            {/* Right Side - Tree View (40%) */}
+            <div className="lg:col-span-2 border-l border-border">
+              <AccountsTreeView
+                accounts={treeData}
+                onSelect={setSelectedAccount}
+                selectedId={selectedAccount?.id}
+              />
+            </div>
+
+            {/* Left Side - Selected Account Info (60%) */}
+            <div className="lg:col-span-3">
+              <SelectedAccountInfo 
+                account={selectedAccount}
+                onAddChild={() => {
+                  // TODO (Phase 3): Wire this button to createGlAccount()
+                  console.log("TODO: Add child account");
+                }}
+                onEdit={() => {
+                  // TODO (Phase 3): Wire this button to updateGlAccount()
+                  console.log("TODO: Edit account", selectedAccount);
+                }}
+                onDelete={() => {
+                  // TODO (Phase 3): Wire this button to deactivateGlAccount()
+                  console.log("TODO: Delete account", selectedAccount);
+                }}
+              />
+            </div>
+          </div>
+        )}
       </Card>
     </div>
   );

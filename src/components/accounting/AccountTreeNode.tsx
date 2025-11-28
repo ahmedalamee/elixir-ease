@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronDown } from "lucide-react";
-import { AccountNode } from "@/data/chart-of-accounts";
+import type { GlAccountTreeNode } from "@/types/accounting";
 import { cn } from "@/lib/utils";
 
 interface AccountTreeNodeProps {
-  node: AccountNode;
+  node: GlAccountTreeNode;
   depth: number;
-  onSelect: (node: AccountNode) => void;
+  onSelect: (node: GlAccountTreeNode) => void;
   selectedId?: string;
 }
 
@@ -71,10 +71,10 @@ export const AccountTreeNode = ({
           )}
         >
           <span className="font-mono text-muted-foreground ml-2 inline-block min-w-[4rem]">
-            {node.code}
+            {node.accountCode}
           </span>
           <span className="mr-1">-</span>
-          <span className="break-words">{node.name}</span>
+          <span className="break-words">{node.accountName}</span>
         </span>
       </div>
 

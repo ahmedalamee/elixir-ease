@@ -146,15 +146,15 @@ function mapDbAccountToGlAccount(dbAccount: any): GlAccount {
 
 /**
  * Helper: Build hierarchical tree from flat account list
- * Computes level based on parent relationships
+ * Computes level based on parent relationships (level 1 = root)
  */
 function buildAccountTree(accounts: GlAccount[]): GlAccountTreeNode[] {
   const accountMap = new Map<string, GlAccountTreeNode>();
   const rootAccounts: GlAccountTreeNode[] = [];
 
-  // First pass: create tree nodes with level 0
+  // First pass: create tree nodes with level 1 (root level)
   accounts.forEach(account => {
-    accountMap.set(account.id, { ...account, children: [], level: 0 });
+    accountMap.set(account.id, { ...account, children: [], level: 1 });
   });
 
   // Second pass: build parent-child relationships and compute levels
@@ -166,7 +166,7 @@ function buildAccountTree(accounts: GlAccount[]): GlAccountTreeNode[] {
       if (parent) {
         parent.children = parent.children || [];
         parent.children.push(node);
-        node.level = (parent.level || 0) + 1;
+        node.level = (parent.level || 1) + 1;
       } else {
         // Parent not found, treat as root
         rootAccounts.push(node);

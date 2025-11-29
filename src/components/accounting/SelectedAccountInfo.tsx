@@ -3,6 +3,7 @@ import { Plus, Edit2, Trash2 } from "lucide-react";
 import type { GlAccountTreeNode } from "@/types/accounting";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { useUserRole } from "@/hooks/useUserRole";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,10 +31,15 @@ export const SelectedAccountInfo = ({
   onRefresh,
 }: SelectedAccountInfoProps) => {
   const { toast } = useToast();
+  const { hasAnyRole, loading: rolesLoading } = useUserRole();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Check if user has permission to manage accounts
+  // Only admin and inventory_manager can create/edit/delete accounts
+  const canManageAccounts = hasAnyRole(['admin', 'inventory_manager']);
 
   const handleAddChild = () => {
     if (!account) {
@@ -329,35 +335,46 @@ export const SelectedAccountInfo = ({
 
       {/* Action Buttons - Fixed at Bottom */}
       <div className="p-6 border-t bg-muted/20 flex-shrink-0">
-        <div className="flex gap-3">
-          <Button
-            onClick={handleAddChild}
-            variant="default"
-            className="flex-1"
-            size="lg"
-          >
-            <Plus className="w-4 h-4 ml-2" />
-            إضافة حساب فرعي
-          </Button>
-          <Button
-            onClick={handleEdit}
-            variant="outline"
-            size="lg"
-            className="flex-1"
-          >
-            <Edit2 className="w-4 h-4 ml-2" />
-            تعديل
-          </Button>
-          <Button
-            onClick={handleDelete}
-            variant="destructive"
-            size="lg"
-            className="flex-1"
-          >
-            <Trash2 className="w-4 h-4 ml-2" />
-            حذف
-          </Button>
-        </div>
+        {canManageAccounts ? (
+          <div className="flex gap-3">
+            <Button
+              onClick={handleAddChild}
+              variant="default"
+              className="flex-1"
+              size="lg"
+              disabled={rolesLoading}
+            >
+              <Plus className="w-4 h-4 ml-2" />
+              إضافة حساب فرعي
+            </Button>
+            <Button
+              onClick={handleEdit}
+              variant="outline"
+              size="lg"
+              className="flex-1"
+              disabled={rolesLoading}
+            >
+              <Edit2 className="w-4 h-4 ml-2" />
+              تعديل
+            </Button>
+            <Button
+              onClick={handleDelete}
+              variant="destructive"
+              size="lg"
+              className="flex-1"
+              disabled={rolesLoading}
+            >
+              <Trash2 className="w-4 h-4 ml-2" />
+              حذف
+            </Button>
+          </div>
+        ) : (
+          <div className="text-center p-4 bg-muted/50 rounded-lg border border-border">
+            <p className="text-sm text-muted-foreground">
+              لا تملك صلاحيات كافية لإدارة الحسابات. يمكنك فقط عرض المعلومات.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Dialogs */}

@@ -4,12 +4,13 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Search, Eye, Edit3 } from "lucide-react";
 import { AccountsTreeView } from "@/components/accounting/AccountsTreeView";
 import { SelectedAccountInfo } from "@/components/accounting/SelectedAccountInfo";
 import { fetchGlAccountsTree } from "@/lib/accounting";
 import type { GlAccountTreeNode } from "@/types/accounting";
 import { useToast } from "@/hooks/use-toast";
+import { useUserRole } from "@/hooks/useUserRole";
 
 // Helper function to filter tree by search term and filters
 const filterTree = (
@@ -70,11 +71,15 @@ export default function ChartOfAccountsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const { hasAnyRole, loading: rolesLoading } = useUserRole();
 
   // Search and filter state
   const [searchTerm, setSearchTerm] = useState("");
   const [hideInactive, setHideInactive] = useState(false);
   const [accountTypeFilter, setAccountTypeFilter] = useState<string>("all");
+
+  // Check if user can manage accounts
+  const canManageAccounts = hasAnyRole(['admin', 'inventory_manager']);
 
   // Load accounts tree from Supabase
   const loadAccounts = async () => {
@@ -111,12 +116,35 @@ export default function ChartOfAccountsPage() {
     <div dir="rtl" className="container mx-auto p-6 space-y-6">
       {/* Page Header */}
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">
-          ترميز الدليل المحاسبي
-        </h1>
-        <p className="text-muted-foreground">
-          إدارة وتنظيم الحسابات المالية للمؤسسة بشكل هرمي ومرن
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">
+              ترميز الدليل المحاسبي
+            </h1>
+            <p className="text-muted-foreground">
+              إدارة وتنظيم الحسابات المالية للمؤسسة بشكل هرمي ومرن
+            </p>
+          </div>
+          {!rolesLoading && (
+            <div className="flex items-center gap-2 px-4 py-2 rounded-lg border bg-muted/30">
+              {canManageAccounts ? (
+                <>
+                  <Edit3 className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-medium text-foreground">
+                    صلاحيات كاملة
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Eye className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-muted-foreground">
+                    عرض فقط
+                  </span>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Main Content Card */}

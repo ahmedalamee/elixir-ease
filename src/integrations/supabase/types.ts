@@ -2198,6 +2198,63 @@ export type Database = {
         }
         Relationships: []
       }
+      erp_account_mappings: {
+        Row: {
+          branch_id: string | null
+          created_at: string
+          created_by: string | null
+          credit_account_id: string | null
+          debit_account_id: string | null
+          id: string
+          is_active: boolean
+          module: string
+          notes: string | null
+          operation: string
+          updated_at: string
+        }
+        Insert: {
+          branch_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          credit_account_id?: string | null
+          debit_account_id?: string | null
+          id?: string
+          is_active?: boolean
+          module: string
+          notes?: string | null
+          operation: string
+          updated_at?: string
+        }
+        Update: {
+          branch_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          credit_account_id?: string | null
+          debit_account_id?: string | null
+          id?: string
+          is_active?: boolean
+          module?: string
+          notes?: string | null
+          operation?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "erp_account_mappings_credit_account_id_fkey"
+            columns: ["credit_account_id"]
+            isOneToOne: false
+            referencedRelation: "gl_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "erp_account_mappings_debit_account_id_fkey"
+            columns: ["debit_account_id"]
+            isOneToOne: false
+            referencedRelation: "gl_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exchange_rates: {
         Row: {
           created_at: string | null
@@ -7330,6 +7387,14 @@ export type Database = {
       generate_vat_report: {
         Args: { p_end_date: string; p_start_date: string }
         Returns: Json
+      }
+      get_account_mapping: {
+        Args: { p_branch_id?: string; p_module: string; p_operation: string }
+        Returns: {
+          credit_account_id: string
+          debit_account_id: string
+          notes: string
+        }[]
       }
       get_balance_sheet: { Args: { p_as_of_date?: string }; Returns: Json }
       get_comprehensive_income_statement: {

@@ -183,3 +183,60 @@ export interface JournalEntryBuilder {
     description?: string;
   }>;
 }
+
+// ============================================================================
+// ACCOUNT MAPPING TYPES (Phase 5)
+// ============================================================================
+
+/**
+ * ERP Account Mapping
+ * Maps ERP modules/operations to GL accounts for automatic posting
+ */
+export interface ErpAccountMapping {
+  id: string;
+  module: string;              // 'sales', 'purchases', 'inventory', 'cash', 'pos'
+  operation: string;           // 'invoice_cash', 'invoice_credit', 'purchase_invoice', etc.
+  branchId?: string | null;    // Branch-specific mapping (optional)
+  debitAccountId?: string | null;
+  creditAccountId?: string | null;
+  notes?: string;
+  isActive: boolean;
+  createdBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Insert type for creating new account mappings
+ */
+export interface ErpAccountMappingInsert {
+  module: string;
+  operation: string;
+  branchId?: string | null;
+  debitAccountId?: string | null;
+  creditAccountId?: string | null;
+  notes?: string;
+  isActive?: boolean;
+}
+
+/**
+ * Update type for modifying account mappings
+ */
+export interface ErpAccountMappingUpdate {
+  module?: string;
+  operation?: string;
+  branchId?: string | null;
+  debitAccountId?: string | null;
+  creditAccountId?: string | null;
+  notes?: string;
+  isActive?: boolean;
+}
+
+/**
+ * Account mapping lookup result
+ */
+export interface AccountMappingResult {
+  debitAccountId?: string | null;
+  creditAccountId?: string | null;
+  notes?: string;
+}

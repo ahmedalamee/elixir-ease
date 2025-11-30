@@ -2464,6 +2464,111 @@ export type Database = {
           },
         ]
       }
+      gl_journal_entries: {
+        Row: {
+          branch_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          entry_date: string
+          entry_no: string
+          id: string
+          is_posted: boolean
+          is_reversed: boolean
+          posting_date: string
+          reversed_by: string | null
+          source_document_id: string | null
+          source_module: string | null
+          updated_at: string
+        }
+        Insert: {
+          branch_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          entry_date: string
+          entry_no: string
+          id?: string
+          is_posted?: boolean
+          is_reversed?: boolean
+          posting_date?: string
+          reversed_by?: string | null
+          source_document_id?: string | null
+          source_module?: string | null
+          updated_at?: string
+        }
+        Update: {
+          branch_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          entry_date?: string
+          entry_no?: string
+          id?: string
+          is_posted?: boolean
+          is_reversed?: boolean
+          posting_date?: string
+          reversed_by?: string | null
+          source_document_id?: string | null
+          source_module?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      gl_journal_lines: {
+        Row: {
+          account_id: string
+          branch_id: string | null
+          cost_center_id: string | null
+          created_at: string
+          credit: number
+          debit: number
+          description: string | null
+          id: string
+          journal_id: string
+          line_no: number
+        }
+        Insert: {
+          account_id: string
+          branch_id?: string | null
+          cost_center_id?: string | null
+          created_at?: string
+          credit?: number
+          debit?: number
+          description?: string | null
+          id?: string
+          journal_id: string
+          line_no: number
+        }
+        Update: {
+          account_id?: string
+          branch_id?: string | null
+          cost_center_id?: string | null
+          created_at?: string
+          credit?: number
+          debit?: number
+          description?: string | null
+          id?: string
+          journal_id?: string
+          line_no?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gl_journal_lines_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "gl_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gl_journal_lines_journal_id_fkey"
+            columns: ["journal_id"]
+            isOneToOne: false
+            referencedRelation: "gl_journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goods_receipts: {
         Row: {
           created_at: string | null
@@ -7212,6 +7317,7 @@ export type Database = {
       generate_complaint_number: { Args: never; Returns: string }
       generate_doctor_code: { Args: never; Returns: string }
       generate_employee_code: { Args: never; Returns: string }
+      generate_journal_entry_number: { Args: never; Returns: string }
       generate_payment_number: { Args: never; Returns: string }
       generate_pos_session_number: { Args: never; Returns: string }
       generate_prescription_number: { Args: never; Returns: string }

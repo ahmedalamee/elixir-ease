@@ -65,3 +65,121 @@ export interface GlAccountTreeNode extends GlAccount {
   children?: GlAccountTreeNode[];
   level?: number; // Computed during tree building
 }
+
+// ============================================================================
+// JOURNAL ENTRIES TYPES (Phase 4)
+// ============================================================================
+
+/**
+ * Source modules that can create journal entries
+ */
+export type JournalSourceModule = 
+  | "sales" 
+  | "purchases" 
+  | "inventory" 
+  | "pos" 
+  | "manual"
+  | "returns"
+  | "adjustments";
+
+/**
+ * GL Journal Entry Header
+ * Maps to public.gl_journal_entries table
+ */
+export interface GlJournalEntry {
+  id: string;
+  entryNo: string;              // Maps to entry_no
+  entryDate: string;            // Maps to entry_date (ISO date string)
+  postingDate: string;          // Maps to posting_date (ISO date string)
+  description?: string;
+  sourceModule?: JournalSourceModule; // Maps to source_module
+  sourceDocumentId?: string;    // Maps to source_document_id
+  branchId?: string | null;     // Maps to branch_id
+  isPosted: boolean;            // Maps to is_posted
+  isReversed: boolean;          // Maps to is_reversed
+  reversedBy?: string | null;   // Maps to reversed_by (ID of reversing entry)
+  createdBy?: string;           // Maps to created_by (auth user id)
+  createdAt: string;            // Maps to created_at (ISO timestamp)
+  updatedAt: string;            // Maps to updated_at (ISO timestamp)
+}
+
+/**
+ * GL Journal Entry Line (Detail)
+ * Maps to public.gl_journal_lines table
+ */
+export interface GlJournalLine {
+  id: string;
+  journalId: string;            // Maps to journal_id
+  accountId: string;            // Maps to account_id
+  debit: number;
+  credit: number;
+  description?: string;
+  costCenterId?: string | null; // Maps to cost_center_id
+  branchId?: string | null;     // Maps to branch_id
+  lineNo: number;               // Maps to line_no
+  createdAt: string;            // Maps to created_at (ISO timestamp)
+}
+
+/**
+ * Insert type for creating new journal entries
+ * Used when posting from various modules
+ */
+export interface GlJournalEntryInsert {
+  entryNo?: string;             // If not provided, auto-generated
+  entryDate: string;            // ISO date string
+  postingDate?: string;         // ISO date string, defaults to today
+  description?: string;
+  sourceModule?: JournalSourceModule;
+  sourceDocumentId?: string;
+  branchId?: string | null;
+  isPosted?: boolean;           // Default: true
+  lines: GlJournalLineInsert[]; // Must have at least 2 lines
+}
+
+/**
+ * Insert type for journal entry lines
+ */
+export interface GlJournalLineInsert {
+  accountId: string;            // GL account ID (must exist and be active)
+  debit?: number;               // Either debit OR credit must be > 0
+  credit?: number;              // Either debit OR credit must be > 0
+  description?: string;
+  costCenterId?: string | null;
+  branchId?: string | null;
+  lineNo: number;               // Line ordering (1, 2, 3, ...)
+}
+
+/**
+ * Full journal entry with its lines (joined data)
+ * Used for display and reporting
+ */
+export interface GlJournalEntryWithLines extends GlJournalEntry {
+  lines: GlJournalLine[];
+  totalDebit?: number;          // Computed sum of debit lines
+  totalCredit?: number;         // Computed sum of credit lines
+}
+
+/**
+ * Journal entry validation result
+ */
+export interface JournalValidationResult {
+  isValid: boolean;
+  errors: string[];
+  warnings?: string[];
+}
+
+/**
+ * Helper type for building journal entries programmatically
+ */
+export interface JournalEntryBuilder {
+  date: string;
+  description: string;
+  sourceModule?: JournalSourceModule;
+  sourceDocumentId?: string;
+  lines: Array<{
+    accountCode: string;        // Will be resolved to accountId
+    debit?: number;
+    credit?: number;
+    description?: string;
+  }>;
+}

@@ -42,8 +42,8 @@ import Brands from "./pages/ProductSettings/Brands";
 import DefaultTaxes from "./pages/ProductSettings/DefaultTaxes";
 import BarcodeSettings from "./pages/ProductSettings/BarcodeSettings";
 import NotFound from "./pages/NotFound";
-import Accounting from "./pages/Accounting";
-import GeneralLedger from "./pages/GeneralLedger";
+import ManualJournalEntry from "./pages/ManualJournalEntry";
+import JournalEntriesList from "./pages/JournalEntriesList";
 import TrialBalance from "./pages/TrialBalance";
 import JournalEntryDetail from "./pages/JournalEntryDetail";
 import IncomeStatement from "./pages/IncomeStatement";
@@ -179,12 +179,12 @@ const AppContent = () => {
           <Route path="/product-settings/brands" element={<Brands />} />
           <Route path="/product-settings/default-taxes" element={<DefaultTaxes />} />
           <Route path="/product-settings/barcode-settings" element={<BarcodeSettings />} />
-          <Route path="/accounting" element={<Accounting />} />
+          <Route path="/accounting/manual-journal" element={<ManualJournalEntry />} />
+          <Route path="/accounting/journal-entries" element={<JournalEntriesList />} />
+          <Route path="/accounting/journal/:id" element={<JournalEntryDetail />} />
           <Route path="/chart-of-accounts" element={<ChartOfAccountsPage />} />
           <Route path="/account-ledger" element={<AccountLedger />} />
-          <Route path="/general-ledger" element={<GeneralLedger />} />
           <Route path="/trial-balance" element={<TrialBalance />} />
-          <Route path="/journal-entry/:id" element={<JournalEntryDetail />} />
           <Route path="/income-statement" element={<IncomeStatement />} />
           <Route path="/balance-sheet" element={<BalanceSheet />} />
           <Route path="/cost-centers" element={<CostCenters />} />

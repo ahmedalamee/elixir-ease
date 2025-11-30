@@ -42,6 +42,16 @@ export const SelectedAccountInfo = ({
   const canManageAccounts = hasAnyRole(['admin', 'inventory_manager']);
 
   const handleAddChild = () => {
+    // Security guard: check permissions
+    if (!canManageAccounts) {
+      toast({
+        title: "غير مسموح",
+        description: "لا تملك صلاحيات كافية لإضافة حسابات",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (!account) {
       toast({
         title: "خطأ",
@@ -54,6 +64,16 @@ export const SelectedAccountInfo = ({
   };
 
   const handleEdit = () => {
+    // Security guard: check permissions
+    if (!canManageAccounts) {
+      toast({
+        title: "غير مسموح",
+        description: "لا تملك صلاحيات كافية لتعديل الحسابات",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (!account) {
       toast({
         title: "خطأ",
@@ -66,6 +86,16 @@ export const SelectedAccountInfo = ({
   };
 
   const handleDelete = () => {
+    // Security guard: check permissions
+    if (!canManageAccounts) {
+      toast({
+        title: "غير مسموح",
+        description: "لا تملك صلاحيات كافية لحذف الحسابات",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (!account) {
       toast({
         title: "خطأ",
@@ -335,14 +365,19 @@ export const SelectedAccountInfo = ({
 
       {/* Action Buttons - Fixed at Bottom */}
       <div className="p-6 border-t bg-muted/20 flex-shrink-0">
-        {canManageAccounts ? (
+        {rolesLoading ? (
+          <div className="text-center p-4 bg-muted/50 rounded-lg border border-border">
+            <p className="text-sm text-muted-foreground">
+              جاري التحقق من الصلاحيات...
+            </p>
+          </div>
+        ) : canManageAccounts ? (
           <div className="flex gap-3">
             <Button
               onClick={handleAddChild}
               variant="default"
               className="flex-1"
               size="lg"
-              disabled={rolesLoading}
             >
               <Plus className="w-4 h-4 ml-2" />
               إضافة حساب فرعي
@@ -352,7 +387,6 @@ export const SelectedAccountInfo = ({
               variant="outline"
               size="lg"
               className="flex-1"
-              disabled={rolesLoading}
             >
               <Edit2 className="w-4 h-4 ml-2" />
               تعديل
@@ -362,7 +396,6 @@ export const SelectedAccountInfo = ({
               variant="destructive"
               size="lg"
               className="flex-1"
-              disabled={rolesLoading}
             >
               <Trash2 className="w-4 h-4 ml-2" />
               حذف

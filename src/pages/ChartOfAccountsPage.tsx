@@ -125,25 +125,30 @@ export default function ChartOfAccountsPage() {
               إدارة وتنظيم الحسابات المالية للمؤسسة بشكل هرمي ومرن
             </p>
           </div>
-          {!rolesLoading && (
-            <div className="flex items-center gap-2 px-4 py-2 rounded-lg border bg-muted/30">
-              {canManageAccounts ? (
-                <>
-                  <Edit3 className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-medium text-foreground">
-                    صلاحيات كاملة
-                  </span>
-                </>
-              ) : (
-                <>
-                  <Eye className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium text-muted-foreground">
-                    عرض فقط
-                  </span>
-                </>
-              )}
-            </div>
-          )}
+          <div className="flex items-center gap-2 px-4 py-2 rounded-lg border bg-muted/30">
+            {rolesLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                <span className="text-sm font-medium text-muted-foreground">
+                  جاري التحقق...
+                </span>
+              </>
+            ) : canManageAccounts ? (
+              <>
+                <Edit3 className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium text-foreground">
+                  صلاحيات كاملة
+                </span>
+              </>
+            ) : (
+              <>
+                <Eye className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm font-medium text-muted-foreground">
+                  عرض فقط
+                </span>
+              </>
+            )}
+          </div>
         </div>
       </div>
 

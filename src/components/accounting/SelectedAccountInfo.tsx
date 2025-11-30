@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Plus, Edit2, Trash2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Plus, Edit2, Trash2, BookOpen } from "lucide-react";
 import type { GlAccountTreeNode } from "@/types/accounting";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -31,6 +32,7 @@ export const SelectedAccountInfo = ({
   onRefresh,
 }: SelectedAccountInfoProps) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const { hasAnyRole, loading: rolesLoading } = useUserRole();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -40,6 +42,11 @@ export const SelectedAccountInfo = ({
   // Check if user has permission to manage accounts
   // Only admin and inventory_manager can create/edit/delete accounts
   const canManageAccounts = hasAnyRole(['admin', 'inventory_manager']);
+
+  const handleViewLedger = () => {
+    if (!account) return;
+    navigate(`/account-ledger?accountId=${account.id}`);
+  };
 
   const handleAddChild = () => {
     // Security guard: check permissions
@@ -364,7 +371,20 @@ export const SelectedAccountInfo = ({
       </div>
 
       {/* Action Buttons - Fixed at Bottom */}
-      <div className="p-6 border-t bg-muted/20 flex-shrink-0">
+      <div className="p-6 border-t bg-muted/20 flex-shrink-0 space-y-3">
+        {/* View Ledger Button - Available for all users */}
+        {!account.isHeader && (
+          <Button
+            onClick={handleViewLedger}
+            variant="secondary"
+            className="w-full"
+            size="lg"
+          >
+            <BookOpen className="w-4 h-4 ml-2" />
+            عرض حركة الحساب
+          </Button>
+        )}
+
         {rolesLoading ? (
           <div className="text-center p-4 bg-muted/50 rounded-lg border border-border">
             <p className="text-sm text-muted-foreground">

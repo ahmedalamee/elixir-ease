@@ -453,20 +453,77 @@ export async function postJournalEntry(journalId: string): Promise<void> {
 }
 
 /**
- * TODO (Phase 5): Implement journal entry reversal
- * Creates a reversing entry with opposite debit/credit amounts
+ * Reverse a posted journal entry
+ * Creates a new entry with opposite debit/credit amounts
+ * 
+ * @param journalId - ID of the entry to reverse
+ * @param reversalDate - Date for the reversal entry
+ * @param description - Optional description for the reversal
+ * @returns ID of the newly created reversal entry
  */
 export async function reverseJournalEntry(
   journalId: string,
   reversalDate: string,
   description?: string
 ): Promise<string> {
-  // TODO: Implement reversal logic
   // 1. Fetch original journal entry and lines
-  // 2. Create new entry with opposite debits/credits
-  // 3. Mark both entries with reversed_by relationship
-  // 4. Return new journal entry ID
-  throw new Error("Journal entry reversal not yet implemented");
+  const originalEntry = await fetchJournalEntryWithLines(journalId);
+  
+  if (!originalEntry) {
+    throw new Error("القيد الأصلي غير موجود");
+  }
+
+  // Check if already posted
+  if (!originalEntry.is_posted) {
+    throw new Error("لا يمكن عكس قيد غير مرحّل");
+  }
+
+  // Check if already reversed
+  if (originalEntry.is_reversed) {
+    throw new Error("هذا القيد تم عكسه مسبقاً");
+  }
+
+  // 2. Create reversal entry with opposite debits/credits
+  const reversalLines = originalEntry.lines.map((line: any, index: number) => ({
+    accountId: line.account_id,
+    debit: line.credit || 0, // Swap: credit becomes debit
+    credit: line.debit || 0,  // Swap: debit becomes credit
+    description: line.description || "",
+    costCenterId: line.cost_center_id,
+    branchId: line.branch_id,
+    lineNo: index + 1,
+  }));
+
+  const reversalDescription = description || `عكس القيد ${originalEntry.entry_no}`;
+
+  // 3. Create the reversal entry
+  const { journalId: reversalJournalId, entryNo: reversalEntryNo } = await createJournalEntry(
+    {
+      entryDate: reversalDate,
+      postingDate: reversalDate,
+      description: reversalDescription,
+      sourceModule: "reversal",
+      sourceDocumentId: originalEntry.id,
+      isPosted: true, // Post immediately
+    },
+    reversalLines
+  );
+
+  // 4. Mark original entry as reversed
+  const { error: updateError } = await supabase
+    .from("gl_journal_entries")
+    .update({ 
+      is_reversed: true,
+      reversed_by: reversalJournalId,
+    })
+    .eq("id", journalId);
+
+  if (updateError) {
+    console.error("Error marking original entry as reversed:", updateError);
+    throw updateError;
+  }
+
+  return reversalJournalId;
 }
 
 // ============================================================================

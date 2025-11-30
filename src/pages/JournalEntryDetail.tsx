@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, FileText, CheckCircle, XCircle } from "lucide-react";
+import { ArrowLeft, FileText, CheckCircle, XCircle, RotateCcw } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import { useUserRole } from "@/hooks/useUserRole";
+import { fetchJournalEntryWithLines, postJournalEntry, reverseJournalEntry } from "@/lib/accounting";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,73 +19,38 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-
-interface JournalEntry {
-  id: string;
-  entry_number: string;
-  entry_date: string;
-  description: string;
-  reference_type: string;
-  total_debit: number;
-  total_credit: number;
-  status: string;
-  created_at: string;
-  posted_at: string;
-}
-
-interface JournalLine {
-  id: string;
-  line_no: number;
-  account_id: string;
-  description: string;
-  debit_amount: number;
-  credit_amount: number;
-  gl_accounts: {
-    account_code: string;
-    account_name: string;
-  };
-}
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 const JournalEntryDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [entry, setEntry] = useState<JournalEntry | null>(null);
-  const [lines, setLines] = useState<JournalLine[]>([]);
+  const { roles, loading: rolesLoading } = useUserRole();
+  const [entry, setEntry] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
+  const [reversing, setReversing] = useState(false);
+  
+  // Reversal form
+  const [reversalDate, setReversalDate] = useState(new Date().toISOString().split("T")[0]);
+  const [reversalDescription, setReversalDescription] = useState("");
+
+  const canManage = roles.includes("admin") || roles.includes("inventory_manager");
 
   useEffect(() => {
     if (id) {
-      fetchJournalEntry();
+      loadJournalEntry();
     }
   }, [id]);
 
-  const fetchJournalEntry = async () => {
+  const loadJournalEntry = async () => {
     setLoading(true);
     try {
-      // Fetch journal entry
-      const { data: entryData, error: entryError } = await supabase
-        .from("journal_entries")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-      if (entryError) throw entryError;
-      setEntry(entryData);
-
-      // Fetch journal lines
-      const { data: linesData, error: linesError } = await supabase
-        .from("journal_entry_lines")
-        .select(`
-          *,
-          gl_accounts(account_code, account_name)
-        `)
-        .eq("entry_id", id)
-        .order("line_no");
-
-      if (linesError) throw linesError;
-      setLines(linesData || []);
+      const data = await fetchJournalEntryWithLines(id!);
+      setEntry(data);
+      setReversalDescription(`عكس القيد ${data.entry_no}`);
     } catch (error: any) {
       toast({ title: "خطأ", description: error.message, variant: "destructive" });
     } finally {
@@ -93,23 +59,13 @@ const JournalEntryDetail = () => {
   };
 
   const handlePostEntry = async () => {
-    if (!entry || entry.status === "posted") return;
+    if (!entry || entry.is_posted) return;
 
     setPosting(true);
     try {
-      const { error } = await supabase
-        .from("journal_entries")
-        .update({
-          status: "posted",
-          posted_at: new Date().toISOString(),
-          posting_date: new Date().toISOString().split("T")[0],
-        })
-        .eq("id", entry.id);
-
-      if (error) throw error;
-
+      await postJournalEntry(entry.id);
       toast({ title: "تم بنجاح", description: "تم ترحيل القيد بنجاح" });
-      fetchJournalEntry();
+      loadJournalEntry();
     } catch (error: any) {
       toast({ title: "خطأ", description: error.message, variant: "destructive" });
     } finally {
@@ -117,7 +73,26 @@ const JournalEntryDetail = () => {
     }
   };
 
-  if (loading) {
+  const handleReverseEntry = async () => {
+    if (!entry || !entry.is_posted || entry.is_reversed) return;
+
+    setReversing(true);
+    try {
+      const reversalId = await reverseJournalEntry(entry.id, reversalDate, reversalDescription);
+      toast({ 
+        title: "تم بنجاح", 
+        description: "تم عكس القيد بنجاح",
+      });
+      // Navigate to the reversal entry
+      navigate(`/accounting/journal/${reversalId}`);
+    } catch (error: any) {
+      toast({ title: "خطأ", description: error.message, variant: "destructive" });
+    } finally {
+      setReversing(false);
+    }
+  };
+
+  if (rolesLoading || loading) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
@@ -132,7 +107,7 @@ const JournalEntryDetail = () => {
         <Navbar />
         <div className="p-8">
           <p>القيد غير موجود</p>
-          <Button onClick={() => navigate("/accounting")} className="mt-4">
+          <Button onClick={() => navigate("/accounting/journal-entries")} className="mt-4">
             <ArrowLeft className="ml-2 h-4 w-4" />
             العودة
           </Button>
@@ -141,7 +116,9 @@ const JournalEntryDetail = () => {
     );
   }
 
-  const isBalanced = Math.abs(entry.total_debit - entry.total_credit) < 0.01;
+  const totalDebit = entry.lines?.reduce((sum: number, line: any) => sum + (line.debit || 0), 0) || 0;
+  const totalCredit = entry.lines?.reduce((sum: number, line: any) => sum + (line.credit || 0), 0) || 0;
+  const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01;
 
   return (
     <div className="min-h-screen bg-background">
@@ -149,37 +126,81 @@ const JournalEntryDetail = () => {
       <div className="p-8 space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="outline" onClick={() => navigate("/accounting")}>
+            <Button variant="outline" onClick={() => navigate("/accounting/journal-entries")}>
               <ArrowLeft className="ml-2 h-4 w-4" />
               العودة
             </Button>
             <h1 className="text-3xl font-bold flex items-center gap-2">
               <FileText className="h-8 w-8" />
-              تفاصيل القيد {entry.entry_number}
+              تفاصيل القيد {entry.entry_no}
             </h1>
           </div>
-          {entry.status === "draft" && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button disabled={!isBalanced || posting}>
-                  <CheckCircle className="ml-2 h-4 w-4" />
-                  {posting ? "جاري الترحيل..." : "ترحيل القيد"}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>تأكيد ترحيل القيد</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    هل أنت متأكد من ترحيل هذا القيد؟ لن تتمكن من تعديله بعد الترحيل.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                  <AlertDialogAction onClick={handlePostEntry}>تأكيد الترحيل</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
+          <div className="flex gap-2">
+            {entry.is_posted && !entry.is_reversed && canManage && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" disabled={reversing}>
+                    <RotateCcw className="ml-2 h-4 w-4" />
+                    عكس القيد
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="max-w-md">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>عكس القيد</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      سيتم إنشاء قيد جديد بمبالغ معكوسة (المدين يصبح دائن والعكس)
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div>
+                      <Label>تاريخ العكس</Label>
+                      <Input
+                        type="date"
+                        value={reversalDate}
+                        onChange={(e) => setReversalDate(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label>الوصف</Label>
+                      <Textarea
+                        value={reversalDescription}
+                        onChange={(e) => setReversalDescription(e.target.value)}
+                        rows={3}
+                      />
+                    </div>
+                  </div>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleReverseEntry}>
+                      {reversing ? "جاري العكس..." : "تأكيد العكس"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+            {!entry.is_posted && isBalanced && canManage && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button disabled={posting}>
+                    <CheckCircle className="ml-2 h-4 w-4" />
+                    {posting ? "جاري الترحيل..." : "ترحيل القيد"}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>تأكيد ترحيل القيد</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      هل أنت متأكد من ترحيل هذا القيد؟ لن تتمكن من تعديله بعد الترحيل.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                    <AlertDialogAction onClick={handlePostEntry}>تأكيد الترحيل</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
         </div>
 
         <Card>
@@ -190,7 +211,7 @@ const JournalEntryDetail = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">رقم القيد</p>
-                <p className="font-mono font-bold">{entry.entry_number}</p>
+                <p className="font-mono font-bold">{entry.entry_no}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">التاريخ</p>
@@ -199,7 +220,12 @@ const JournalEntryDetail = () => {
               <div>
                 <p className="text-sm text-muted-foreground">الحالة</p>
                 <div className="flex items-center gap-2">
-                  {entry.status === "posted" ? (
+                  {entry.is_reversed ? (
+                    <>
+                      <XCircle className="h-4 w-4 text-gray-500" />
+                      <span className="font-semibold text-gray-600">معكوس</span>
+                    </>
+                  ) : entry.is_posted ? (
                     <>
                       <CheckCircle className="h-4 w-4 text-green-500" />
                       <span className="font-semibold text-green-600">مرحّل</span>
@@ -213,8 +239,18 @@ const JournalEntryDetail = () => {
                 </div>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">النوع</p>
-                <p className="font-semibold">{entry.reference_type || "يدوي"}</p>
+                <p className="text-sm text-muted-foreground">المصدر</p>
+                <p className="font-semibold">
+                  {entry.source_module === "manual_journal"
+                    ? "يدوي"
+                    : entry.source_module === "sales"
+                    ? "مبيعات"
+                    : entry.source_module === "purchases"
+                    ? "مشتريات"
+                    : entry.source_module === "reversal"
+                    ? "عكس قيد"
+                    : entry.source_module || "يدوي"}
+                </p>
               </div>
               {entry.description && (
                 <div className="col-span-2 md:col-span-4">
@@ -243,33 +279,33 @@ const JournalEntryDetail = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {lines.map((line) => (
+                {entry.lines?.map((line: any) => (
                   <TableRow key={line.id}>
                     <TableCell>{line.line_no}</TableCell>
-                    <TableCell className="font-mono">{line.gl_accounts.account_code}</TableCell>
-                    <TableCell>{line.gl_accounts.account_name}</TableCell>
-                    <TableCell>{line.description}</TableCell>
+                    <TableCell className="font-mono">{line.gl_accounts?.account_code}</TableCell>
+                    <TableCell>{line.gl_accounts?.account_name}</TableCell>
+                    <TableCell>{line.description || "-"}</TableCell>
                     <TableCell className="text-right font-mono">
-                      {line.debit_amount > 0 ? line.debit_amount.toFixed(2) : "-"}
+                      {line.debit > 0 ? line.debit.toFixed(2) : "-"}
                     </TableCell>
                     <TableCell className="text-right font-mono">
-                      {line.credit_amount > 0 ? line.credit_amount.toFixed(2) : "-"}
+                      {line.credit > 0 ? line.credit.toFixed(2) : "-"}
                     </TableCell>
                   </TableRow>
                 ))}
                 <TableRow className="font-bold bg-muted">
                   <TableCell colSpan={4}>الإجمالي</TableCell>
                   <TableCell className="text-right font-mono text-lg">
-                    {entry.total_debit.toFixed(2)}
+                    {totalDebit.toFixed(2)}
                   </TableCell>
                   <TableCell className="text-right font-mono text-lg">
-                    {entry.total_credit.toFixed(2)}
+                    {totalCredit.toFixed(2)}
                   </TableCell>
                 </TableRow>
                 {!isBalanced && (
-                  <TableRow className="bg-red-50">
-                    <TableCell colSpan={6} className="text-center text-red-600 font-bold">
-                      ⚠️ القيد غير متوازن - الفرق: {Math.abs(entry.total_debit - entry.total_credit).toFixed(2)} ر.س
+                  <TableRow className="bg-destructive/10">
+                    <TableCell colSpan={6} className="text-center text-destructive font-bold">
+                      ⚠️ القيد غير متوازن - الفرق: {Math.abs(totalDebit - totalCredit).toFixed(2)} ر.ي
                     </TableCell>
                   </TableRow>
                 )}
@@ -278,11 +314,11 @@ const JournalEntryDetail = () => {
           </CardContent>
         </Card>
 
-        {entry.posted_at && (
+        {entry.posting_date && (
           <Card>
             <CardContent className="pt-6">
               <p className="text-sm text-muted-foreground">
-                تم الترحيل في: {new Date(entry.posted_at).toLocaleString("ar-SA")}
+                تم الترحيل في: {new Date(entry.posting_date).toLocaleDateString("ar-SA")}
               </p>
             </CardContent>
           </Card>

@@ -684,6 +684,138 @@ export interface BalanceSheetData {
 }
 
 /**
+ * Income statement section row
+ * Individual account data for revenue, COGS, or expenses
+ */
+export interface IncomeStatementSectionRow {
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  amount: number;
+}
+
+/**
+ * Complete income statement data structure
+ * Includes all sections and computed totals
+ */
+export interface IncomeStatementData {
+  periodStart: string;
+  periodEnd: string;
+  revenue: IncomeStatementSectionRow[];
+  cogs: IncomeStatementSectionRow[];
+  expenses: IncomeStatementSectionRow[];
+  totalRevenue: number;
+  totalCogs: number;
+  grossProfit: number;
+  totalExpenses: number;
+  netProfit: number;
+}
+
+/**
+ * Get income statement data for a period
+ * Uses trial balance period movements to compute revenue, COGS, expenses
+ * 
+ * @param fromDate - Period start date
+ * @param toDate - Period end date
+ * @param branchId - Optional branch filter
+ * @returns Income statement data with all sections and totals
+ */
+export async function getIncomeStatement(params: {
+  fromDate: string;
+  toDate: string;
+  branchId?: string;
+}): Promise<IncomeStatementData> {
+  const { fromDate, toDate, branchId } = params;
+
+  // Get trial balance for the period
+  const trialBalance = await getTrialBalance({ fromDate, toDate, branchId });
+
+  // Initialize result
+  const result: IncomeStatementData = {
+    periodStart: fromDate,
+    periodEnd: toDate,
+    revenue: [],
+    cogs: [],
+    expenses: [],
+    totalRevenue: 0,
+    totalCogs: 0,
+    grossProfit: 0,
+    totalExpenses: 0,
+    netProfit: 0,
+  };
+
+  // Fetch account details to determine type
+  const accountIds = trialBalance.map((row) => row.accountId);
+  
+  if (accountIds.length === 0) {
+    return result;
+  }
+
+  const { data: accounts, error } = await supabase
+    .from("gl_accounts")
+    .select("id, account_code, account_name, account_type")
+    .in("id", accountIds);
+
+  if (error) {
+    console.error("Error fetching accounts:", error);
+    throw error;
+  }
+
+  // Create account type map
+  const accountTypeMap = new Map<string, string>();
+  accounts?.forEach((acc) => {
+    accountTypeMap.set(acc.id, acc.account_type);
+  });
+
+  // Process each trial balance row
+  trialBalance.forEach((row) => {
+    // Calculate period net movement
+    // For revenue: credit increases revenue (positive)
+    // For expenses/COGS: debit increases expense (positive)
+    const accountType = accountTypeMap.get(row.accountId);
+    let periodNet = 0;
+
+    if (accountType === "revenue") {
+      // Revenue: credits positive, debits negative
+      periodNet = row.periodCredit - row.periodDebit;
+    } else if (accountType === "expense" || accountType === "cogs") {
+      // Expenses/COGS: debits positive, credits negative
+      periodNet = row.periodDebit - row.periodCredit;
+    }
+
+    // Skip zero movements
+    if (Math.abs(periodNet) < 0.01) {
+      return;
+    }
+
+    const sectionRow: IncomeStatementSectionRow = {
+      accountId: row.accountId,
+      accountCode: row.accountCode,
+      accountName: row.accountName,
+      amount: Math.abs(periodNet), // Always positive for display
+    };
+
+    // Group into sections
+    if (accountType === "revenue") {
+      result.revenue.push(sectionRow);
+      result.totalRevenue += Math.abs(periodNet);
+    } else if (accountType === "cogs") {
+      result.cogs.push(sectionRow);
+      result.totalCogs += Math.abs(periodNet);
+    } else if (accountType === "expense") {
+      result.expenses.push(sectionRow);
+      result.totalExpenses += Math.abs(periodNet);
+    }
+  });
+
+  // Compute totals
+  result.grossProfit = result.totalRevenue - result.totalCogs;
+  result.netProfit = result.grossProfit - result.totalExpenses;
+
+  return result;
+}
+
+/**
  * Get Balance Sheet report as of a specific date
  * Uses Trial Balance data to compute balance sheet positions
  */

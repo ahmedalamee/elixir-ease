@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,121 +7,31 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { TrendingUp, FileText } from "lucide-react";
 import Navbar from "@/components/Navbar";
-
-interface AccountBalance {
-  account_code: string;
-  account_name: string;
-  balance: number;
-}
-
-interface IncomeStatementData {
-  revenues: AccountBalance[];
-  expenses: AccountBalance[];
-  cogs: AccountBalance[];
-  totalRevenue: number;
-  totalExpenses: number;
-  totalCOGS: number;
-  grossProfit: number;
-  netProfit: number;
-}
+import { getIncomeStatement, type IncomeStatementData } from "@/lib/accounting";
 
 const IncomeStatement = () => {
   const { toast } = useToast();
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const [data, setData] = useState<IncomeStatementData | null>(null);
   const [loading, setLoading] = useState(false);
 
   const generateReport = async () => {
-    if (!startDate || !endDate) {
+    if (!fromDate || !toDate) {
       toast({ title: "تنبيه", description: "يرجى تحديد الفترة الزمنية", variant: "destructive" });
+      return;
+    }
+
+    if (fromDate > toDate) {
+      toast({ title: "خطأ", description: "تاريخ البداية يجب أن يكون قبل تاريخ النهاية", variant: "destructive" });
       return;
     }
 
     setLoading(true);
 
     try {
-      // Get all active accounts
-      const { data: accountsData, error: accountsError } = await supabase
-        .from("gl_accounts")
-        .select("id, account_code, account_name, account_type, is_header")
-        .eq("is_active", true)
-        .eq("is_header", false)
-        .in("account_type", ["revenue", "expense", "cogs"])
-        .order("account_code");
-
-      if (accountsError) throw accountsError;
-
-      // Get journal entry lines for the period
-      const { data: linesData, error: linesError } = await supabase
-        .from("journal_entry_lines")
-        .select(`
-          account_id,
-          debit_amount,
-          credit_amount,
-          journal_entries!inner(entry_date, status)
-        `)
-        .eq("journal_entries.status", "posted")
-        .gte("journal_entries.entry_date", startDate)
-        .lte("journal_entries.entry_date", endDate);
-
-      if (linesError) throw linesError;
-
-      // Calculate balances for each account
-      const accountBalances: Map<string, number> = new Map();
-
-      linesData?.forEach((line: any) => {
-        const accountId = line.account_id;
-        const current = accountBalances.get(accountId) || 0;
-        // Revenue accounts: credit increases, debit decreases
-        // Expense/COGS accounts: debit increases, credit decreases
-        accountBalances.set(accountId, current + (line.credit_amount - line.debit_amount));
-      });
-
-      // Categorize accounts
-      const revenues: AccountBalance[] = [];
-      const expenses: AccountBalance[] = [];
-      const cogs: AccountBalance[] = [];
-      let totalRevenue = 0;
-      let totalExpenses = 0;
-      let totalCOGS = 0;
-
-      accountsData?.forEach((account) => {
-        const balance = accountBalances.get(account.id) || 0;
-        if (balance !== 0) {
-          const accountBalance = {
-            account_code: account.account_code,
-            account_name: account.account_name,
-            balance: balance,
-          };
-
-          if (account.account_type === "revenue") {
-            revenues.push(accountBalance);
-            totalRevenue += balance;
-          } else if (account.account_type === "expense") {
-            expenses.push(accountBalance);
-            totalExpenses += Math.abs(balance);
-          } else if (account.account_type === "cogs") {
-            cogs.push(accountBalance);
-            totalCOGS += Math.abs(balance);
-          }
-        }
-      });
-
-      const grossProfit = totalRevenue - totalCOGS;
-      const netProfit = grossProfit - totalExpenses;
-
-      setData({
-        revenues,
-        expenses,
-        cogs,
-        totalRevenue,
-        totalExpenses,
-        totalCOGS,
-        grossProfit,
-        netProfit,
-      });
-
+      const result = await getIncomeStatement({ fromDate, toDate, branchId: undefined });
+      setData(result);
       toast({ title: "تم بنجاح", description: "تم إنشاء قائمة الدخل" });
     } catch (error: any) {
       toast({ title: "خطأ", description: error.message, variant: "destructive" });
@@ -134,27 +43,27 @@ const IncomeStatement = () => {
   const exportToCSV = () => {
     if (!data) return;
 
-    let csvContent = `قائمة الدخل من ${startDate} إلى ${endDate}\n\n`;
+    let csvContent = `قائمة الدخل من ${fromDate} إلى ${toDate}\n\n`;
     csvContent += "الإيرادات\n";
     csvContent += "رمز الحساب,اسم الحساب,المبلغ\n";
-    data.revenues.forEach((rev) => {
-      csvContent += `${rev.account_code},${rev.account_name},${rev.balance.toFixed(2)}\n`;
+    data.revenue.forEach((rev) => {
+      csvContent += `${rev.accountCode},${rev.accountName},${rev.amount.toFixed(2)}\n`;
     });
     csvContent += `,,${data.totalRevenue.toFixed(2)}\n\n`;
 
     csvContent += "تكلفة البضاعة المباعة\n";
     csvContent += "رمز الحساب,اسم الحساب,المبلغ\n";
     data.cogs.forEach((cog) => {
-      csvContent += `${cog.account_code},${cog.account_name},${Math.abs(cog.balance).toFixed(2)}\n`;
+      csvContent += `${cog.accountCode},${cog.accountName},${cog.amount.toFixed(2)}\n`;
     });
-    csvContent += `,,${data.totalCOGS.toFixed(2)}\n\n`;
+    csvContent += `,,${data.totalCogs.toFixed(2)}\n\n`;
 
     csvContent += `مجمل الربح,,${data.grossProfit.toFixed(2)}\n\n`;
 
     csvContent += "المصروفات\n";
     csvContent += "رمز الحساب,اسم الحساب,المبلغ\n";
     data.expenses.forEach((exp) => {
-      csvContent += `${exp.account_code},${exp.account_name},${Math.abs(exp.balance).toFixed(2)}\n`;
+      csvContent += `${exp.accountCode},${exp.accountName},${exp.amount.toFixed(2)}\n`;
     });
     csvContent += `,,${data.totalExpenses.toFixed(2)}\n\n`;
 
@@ -164,7 +73,7 @@ const IncomeStatement = () => {
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `قائمة_الدخل_${startDate}_${endDate}.csv`);
+    link.setAttribute("download", `قائمة_الدخل_${fromDate}_${toDate}.csv`);
     link.click();
   };
 
@@ -187,11 +96,11 @@ const IncomeStatement = () => {
             <div className="flex gap-4">
               <div className="flex-1">
                 <Label>من تاريخ</Label>
-                <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
               </div>
               <div className="flex-1">
                 <Label>إلى تاريخ</Label>
-                <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
               </div>
               <div className="flex items-end gap-2">
                 <Button onClick={generateReport} disabled={loading}>
@@ -212,8 +121,8 @@ const IncomeStatement = () => {
           <Card>
             <CardHeader>
               <CardTitle>
-                قائمة الدخل للفترة من {new Date(startDate).toLocaleDateString("ar-SA")} إلى{" "}
-                {new Date(endDate).toLocaleDateString("ar-SA")}
+                قائمة الدخل للفترة من {new Date(fromDate).toLocaleDateString("ar-SA")} إلى{" "}
+                {new Date(toDate).toLocaleDateString("ar-SA")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -229,11 +138,11 @@ const IncomeStatement = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {data.revenues.map((rev, index) => (
+                    {data.revenue.map((rev, index) => (
                       <TableRow key={index}>
-                        <TableCell className="font-mono">{rev.account_code}</TableCell>
-                        <TableCell>{rev.account_name}</TableCell>
-                        <TableCell className="text-right font-mono">{rev.balance.toFixed(2)}</TableCell>
+                        <TableCell className="font-mono">{rev.accountCode}</TableCell>
+                        <TableCell>{rev.accountName}</TableCell>
+                        <TableCell className="text-right font-mono">{rev.amount.toFixed(2)}</TableCell>
                       </TableRow>
                     ))}
                     <TableRow className="font-bold bg-muted">
@@ -261,17 +170,17 @@ const IncomeStatement = () => {
                     <TableBody>
                       {data.cogs.map((cog, index) => (
                         <TableRow key={index}>
-                          <TableCell className="font-mono">{cog.account_code}</TableCell>
-                          <TableCell>{cog.account_name}</TableCell>
+                          <TableCell className="font-mono">{cog.accountCode}</TableCell>
+                          <TableCell>{cog.accountName}</TableCell>
                           <TableCell className="text-right font-mono">
-                            {Math.abs(cog.balance).toFixed(2)}
+                            {cog.amount.toFixed(2)}
                           </TableCell>
                         </TableRow>
                       ))}
                       <TableRow className="font-bold bg-muted">
                         <TableCell colSpan={2}>إجمالي تكلفة البضاعة المباعة</TableCell>
                         <TableCell className="text-right font-mono text-lg">
-                          {data.totalCOGS.toFixed(2)} ر.س
+                          {data.totalCogs.toFixed(2)} ر.س
                         </TableCell>
                       </TableRow>
                     </TableBody>
@@ -299,10 +208,10 @@ const IncomeStatement = () => {
                   <TableBody>
                     {data.expenses.map((exp, index) => (
                       <TableRow key={index}>
-                        <TableCell className="font-mono">{exp.account_code}</TableCell>
-                        <TableCell>{exp.account_name}</TableCell>
+                        <TableCell className="font-mono">{exp.accountCode}</TableCell>
+                        <TableCell>{exp.accountName}</TableCell>
                         <TableCell className="text-right font-mono">
-                          {Math.abs(exp.balance).toFixed(2)}
+                          {exp.amount.toFixed(2)}
                         </TableCell>
                       </TableRow>
                     ))}

@@ -470,6 +470,325 @@ export async function reverseJournalEntry(
 }
 
 // ============================================================================
+// OPENING BALANCES (Phase 7)
+// ============================================================================
+
+/**
+ * Create opening balance journal entry
+ * This is a special entry with source_module = 'system' used to initialize account balances
+ */
+export async function createOpeningBalanceEntry(
+  openingDate: string,
+  lines: Array<{
+    accountId: string;
+    debit?: number;
+    credit?: number;
+    description?: string;
+    branchId?: string | null;
+  }>
+): Promise<{ journalId: string; entryNo: string }> {
+  // Validate that debits = credits
+  const totalDebits = lines.reduce((sum, l) => sum + (l.debit || 0), 0);
+  const totalCredits = lines.reduce((sum, l) => sum + (l.credit || 0), 0);
+
+  if (Math.abs(totalDebits - totalCredits) > 0.01) {
+    throw new Error(
+      `أرصدة افتتاحية غير متوازنة: المدين = ${totalDebits.toFixed(
+        3
+      )}, الدائن = ${totalCredits.toFixed(3)}`
+    );
+  }
+
+  // Create the entry
+  const linesWithLineNo = lines.map((line, index) => ({
+    ...line,
+    lineNo: index + 1,
+  }));
+
+  return await createJournalEntry(
+    {
+      entryDate: openingDate,
+      postingDate: openingDate,
+      description: "الأرصدة الافتتاحية - Opening Balances",
+      sourceModule: "system",
+      sourceDocumentId: "opening_balance",
+      isPosted: true,
+    },
+    linesWithLineNo
+  );
+}
+
+// ============================================================================
+// TRIAL BALANCE (Phase 7)
+// ============================================================================
+
+/**
+ * Trial Balance row interface
+ */
+export interface TrialBalanceRow {
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  accountType: string;
+  openingDebit: number;
+  openingCredit: number;
+  periodDebit: number;
+  periodCredit: number;
+  closingDebit: number;
+  closingCredit: number;
+}
+
+/**
+ * Get Trial Balance report
+ * Shows opening, period, and closing balances for all accounts
+ */
+export async function getTrialBalance(params: {
+  fromDate: string;
+  toDate: string;
+  branchId?: string | null;
+}): Promise<TrialBalanceRow[]> {
+  const { fromDate, toDate, branchId } = params;
+
+  // Build query to get all journal lines with account details
+  let query = supabase
+    .from("gl_journal_lines")
+    .select(
+      `
+      account_id,
+      debit,
+      credit,
+      gl_journal_entries!inner (
+        entry_date,
+        is_posted,
+        branch_id
+      ),
+      gl_accounts!inner (
+        account_code,
+        account_name,
+        account_type
+      )
+    `
+    )
+    .eq("gl_journal_entries.is_posted", true);
+
+  if (branchId) {
+    query = query.eq("gl_journal_entries.branch_id", branchId);
+  }
+
+  const { data: journalLines, error } = await query;
+
+  if (error) {
+    console.error("Error fetching trial balance data:", error);
+    throw error;
+  }
+
+  // Group by account and calculate balances
+  const accountBalances = new Map<string, TrialBalanceRow>();
+
+  journalLines?.forEach((line: any) => {
+    const accountId = line.account_id;
+    const entryDate = line.gl_journal_entries.entry_date;
+    const debit = line.debit || 0;
+    const credit = line.credit || 0;
+    const account = line.gl_accounts;
+
+    if (!accountBalances.has(accountId)) {
+      accountBalances.set(accountId, {
+        accountId,
+        accountCode: account.account_code,
+        accountName: account.account_name,
+        accountType: account.account_type,
+        openingDebit: 0,
+        openingCredit: 0,
+        periodDebit: 0,
+        periodCredit: 0,
+        closingDebit: 0,
+        closingCredit: 0,
+      });
+    }
+
+    const row = accountBalances.get(accountId)!;
+
+    // Determine if transaction is opening (before fromDate) or in period
+    if (entryDate < fromDate) {
+      row.openingDebit += debit;
+      row.openingCredit += credit;
+    } else if (entryDate >= fromDate && entryDate <= toDate) {
+      row.periodDebit += debit;
+      row.periodCredit += credit;
+    }
+  });
+
+  // Calculate closing balances
+  const result: TrialBalanceRow[] = [];
+  accountBalances.forEach((row) => {
+    const openingBalance = row.openingDebit - row.openingCredit;
+    const periodChange = row.periodDebit - row.periodCredit;
+    const closingBalance = openingBalance + periodChange;
+
+    if (closingBalance > 0) {
+      row.closingDebit = closingBalance;
+      row.closingCredit = 0;
+    } else if (closingBalance < 0) {
+      row.closingDebit = 0;
+      row.closingCredit = Math.abs(closingBalance);
+    } else {
+      row.closingDebit = 0;
+      row.closingCredit = 0;
+    }
+
+    result.push(row);
+  });
+
+  // Sort by account code
+  result.sort((a, b) => a.accountCode.localeCompare(b.accountCode));
+
+  return result;
+}
+
+// ============================================================================
+// GENERAL LEDGER (ACCOUNT STATEMENT) (Phase 7)
+// ============================================================================
+
+/**
+ * General Ledger transaction row
+ */
+export interface GeneralLedgerTransaction {
+  date: string;
+  entryNo: string;
+  description: string;
+  debit: number;
+  credit: number;
+  balance: number;
+  journalId: string;
+  sourceModule?: string;
+  sourceDocumentId?: string;
+}
+
+/**
+ * General Ledger (Account Statement) result
+ */
+export interface GeneralLedgerResult {
+  account: {
+    id: string;
+    code: string;
+    name: string;
+    type: string;
+  };
+  openingBalance: number;
+  transactions: GeneralLedgerTransaction[];
+  closingBalance: number;
+  totalDebits: number;
+  totalCredits: number;
+}
+
+/**
+ * Get General Ledger (Account Statement) for a specific account
+ */
+export async function getGeneralLedger(params: {
+  accountId: string;
+  fromDate: string;
+  toDate: string;
+  branchId?: string | null;
+}): Promise<GeneralLedgerResult> {
+  const { accountId, fromDate, toDate, branchId } = params;
+
+  // Fetch account details
+  const account = await fetchGlAccountById(accountId);
+  if (!account) {
+    throw new Error("الحساب غير موجود");
+  }
+
+  // Build query for all transactions
+  let query = supabase
+    .from("gl_journal_lines")
+    .select(
+      `
+      debit,
+      credit,
+      description,
+      gl_journal_entries!inner (
+        id,
+        entry_no,
+        entry_date,
+        description,
+        source_module,
+        source_document_id,
+        is_posted,
+        branch_id
+      )
+    `
+    )
+    .eq("account_id", accountId)
+    .eq("gl_journal_entries.is_posted", true)
+    .order("gl_journal_entries.entry_date", { ascending: true })
+    .order("gl_journal_entries.entry_no", { ascending: true });
+
+  if (branchId) {
+    query = query.eq("gl_journal_entries.branch_id", branchId);
+  }
+
+  const { data: lines, error } = await query;
+
+  if (error) {
+    console.error("Error fetching general ledger:", error);
+    throw error;
+  }
+
+  // Calculate opening balance (all transactions before fromDate)
+  let openingBalance = 0;
+  const transactions: GeneralLedgerTransaction[] = [];
+  let runningBalance = 0;
+  let totalDebits = 0;
+  let totalCredits = 0;
+
+  lines?.forEach((line: any) => {
+    const entry = line.gl_journal_entries;
+    const debit = line.debit || 0;
+    const credit = line.credit || 0;
+
+    if (entry.entry_date < fromDate) {
+      // Part of opening balance
+      openingBalance += debit - credit;
+    } else if (entry.entry_date >= fromDate && entry.entry_date <= toDate) {
+      // Part of period transactions
+      runningBalance = openingBalance + (totalDebits - totalCredits) + (debit - credit);
+
+      transactions.push({
+        date: entry.entry_date,
+        entryNo: entry.entry_no,
+        description: line.description || entry.description || "",
+        debit,
+        credit,
+        balance: runningBalance,
+        journalId: entry.id,
+        sourceModule: entry.source_module,
+        sourceDocumentId: entry.source_document_id,
+      });
+
+      totalDebits += debit;
+      totalCredits += credit;
+    }
+  });
+
+  const closingBalance = openingBalance + totalDebits - totalCredits;
+
+  return {
+    account: {
+      id: account.id,
+      code: account.accountCode,
+      name: account.accountName,
+      type: account.accountType,
+    },
+    openingBalance,
+    transactions,
+    closingBalance,
+    totalDebits,
+    totalCredits,
+  };
+}
+
+// ============================================================================
 // ACCOUNT MAPPING FUNCTIONS (Phase 5)
 // ============================================================================
 

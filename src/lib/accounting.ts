@@ -468,3 +468,196 @@ export async function reverseJournalEntry(
   // 4. Return new journal entry ID
   throw new Error("Journal entry reversal not yet implemented");
 }
+
+// ============================================================================
+// ACCOUNT MAPPING FUNCTIONS (Phase 5)
+// ============================================================================
+
+import type {
+  ErpAccountMapping,
+  ErpAccountMappingInsert,
+  ErpAccountMappingUpdate,
+  AccountMappingResult,
+} from "@/types/accounting";
+
+/**
+ * Fetch account mapping for a specific module and operation
+ * Supports branch-specific mapping with fallback to general mapping
+ */
+export async function fetchAccountMapping(
+  module: string,
+  operation: string,
+  branchId?: string | null
+): Promise<AccountMappingResult | null> {
+  const { data, error } = await supabase.rpc("get_account_mapping", {
+    p_module: module,
+    p_operation: operation,
+    p_branch_id: branchId || null,
+  });
+
+  if (error) {
+    console.error("Error fetching account mapping:", error);
+    throw error;
+  }
+
+  if (!data || data.length === 0) {
+    return null;
+  }
+
+  return {
+    debitAccountId: data[0].debit_account_id,
+    creditAccountId: data[0].credit_account_id,
+    notes: data[0].notes,
+  };
+}
+
+/**
+ * Fetch all account mappings (for configuration UI)
+ */
+export async function fetchAllAccountMappings(): Promise<ErpAccountMapping[]> {
+  const { data, error } = await supabase
+    .from("erp_account_mappings")
+    .select("*")
+    .order("module", { ascending: true })
+    .order("operation", { ascending: true });
+
+  if (error) {
+    console.error("Error fetching account mappings:", error);
+    throw error;
+  }
+
+  return (data || []).map(mapDbAccountMappingToErpAccountMapping);
+}
+
+/**
+ * Fetch account mappings by module
+ */
+export async function fetchAccountMappingsByModule(
+  module: string
+): Promise<ErpAccountMapping[]> {
+  const { data, error } = await supabase
+    .from("erp_account_mappings")
+    .select("*")
+    .eq("module", module)
+    .order("operation", { ascending: true });
+
+  if (error) {
+    console.error("Error fetching account mappings by module:", error);
+    throw error;
+  }
+
+  return (data || []).map(mapDbAccountMappingToErpAccountMapping);
+}
+
+/**
+ * Create new account mapping
+ */
+export async function createAccountMapping(
+  mapping: ErpAccountMappingInsert
+): Promise<ErpAccountMapping> {
+  const { data, error } = await supabase
+    .from("erp_account_mappings")
+    .insert({
+      module: mapping.module,
+      operation: mapping.operation,
+      branch_id: mapping.branchId,
+      debit_account_id: mapping.debitAccountId,
+      credit_account_id: mapping.creditAccountId,
+      notes: mapping.notes,
+      is_active: mapping.isActive ?? true,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error creating account mapping:", error);
+    throw error;
+  }
+
+  return mapDbAccountMappingToErpAccountMapping(data);
+}
+
+/**
+ * Update existing account mapping
+ */
+export async function updateAccountMapping(
+  id: string,
+  updates: ErpAccountMappingUpdate
+): Promise<ErpAccountMapping> {
+  const dbUpdates: Record<string, any> = {};
+
+  if (updates.module !== undefined) dbUpdates.module = updates.module;
+  if (updates.operation !== undefined) dbUpdates.operation = updates.operation;
+  if (updates.branchId !== undefined) dbUpdates.branch_id = updates.branchId;
+  if (updates.debitAccountId !== undefined)
+    dbUpdates.debit_account_id = updates.debitAccountId;
+  if (updates.creditAccountId !== undefined)
+    dbUpdates.credit_account_id = updates.creditAccountId;
+  if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
+  if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
+
+  const { data, error } = await supabase
+    .from("erp_account_mappings")
+    .update(dbUpdates)
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error updating account mapping:", error);
+    throw error;
+  }
+
+  return mapDbAccountMappingToErpAccountMapping(data);
+}
+
+/**
+ * Deactivate account mapping (soft delete)
+ */
+export async function deactivateAccountMapping(id: string): Promise<void> {
+  const { error } = await supabase
+    .from("erp_account_mappings")
+    .update({ is_active: false })
+    .eq("id", id);
+
+  if (error) {
+    console.error("Error deactivating account mapping:", error);
+    throw error;
+  }
+}
+
+/**
+ * Delete account mapping (hard delete)
+ */
+export async function deleteAccountMapping(id: string): Promise<void> {
+  const { error } = await supabase
+    .from("erp_account_mappings")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    console.error("Error deleting account mapping:", error);
+    throw error;
+  }
+}
+
+/**
+ * Helper: Map database record to TypeScript interface
+ */
+function mapDbAccountMappingToErpAccountMapping(
+  dbMapping: any
+): ErpAccountMapping {
+  return {
+    id: dbMapping.id,
+    module: dbMapping.module,
+    operation: dbMapping.operation,
+    branchId: dbMapping.branch_id,
+    debitAccountId: dbMapping.debit_account_id,
+    creditAccountId: dbMapping.credit_account_id,
+    notes: dbMapping.notes,
+    isActive: dbMapping.is_active,
+    createdBy: dbMapping.created_by,
+    createdAt: dbMapping.created_at,
+    updatedAt: dbMapping.updated_at,
+  };
+}

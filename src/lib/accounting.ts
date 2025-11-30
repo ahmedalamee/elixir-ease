@@ -647,6 +647,153 @@ export async function getTrialBalance(params: {
 }
 
 // ============================================================================
+// BALANCE SHEET (Phase 7)
+// ============================================================================
+
+/**
+ * Balance Sheet section row interface
+ */
+export interface BalanceSheetSectionRow {
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  netBalance: number; // positive number, sign normalized based on section
+}
+
+/**
+ * Balance Sheet data structure
+ */
+export interface BalanceSheetData {
+  asOfDate: string;
+  assets: {
+    currentAssets: BalanceSheetSectionRow[];
+    fixedAssets: BalanceSheetSectionRow[];
+    totalAssets: number;
+  };
+  liabilities: {
+    currentLiabilities: BalanceSheetSectionRow[];
+    longTermLiabilities: BalanceSheetSectionRow[];
+    totalLiabilities: number;
+  };
+  equity: {
+    capital: BalanceSheetSectionRow[];
+    retainedEarnings: number;
+    totalEquity: number;
+  };
+  totalLiabilitiesAndEquity: number;
+}
+
+/**
+ * Get Balance Sheet report as of a specific date
+ * Uses Trial Balance data to compute balance sheet positions
+ */
+export async function getBalanceSheet(params: {
+  asOfDate: string;
+  branchId?: string | null;
+}): Promise<BalanceSheetData> {
+  const { asOfDate, branchId } = params;
+
+  // Get trial balance from beginning of time to asOfDate to get closing balances
+  const trialBalance = await getTrialBalance({
+    fromDate: "1900-01-01",
+    toDate: asOfDate,
+    branchId,
+  });
+
+  // Initialize result structure
+  const result: BalanceSheetData = {
+    asOfDate,
+    assets: {
+      currentAssets: [],
+      fixedAssets: [],
+      totalAssets: 0,
+    },
+    liabilities: {
+      currentLiabilities: [],
+      longTermLiabilities: [],
+      totalLiabilities: 0,
+    },
+    equity: {
+      capital: [],
+      retainedEarnings: 0,
+      totalEquity: 0,
+    },
+    totalLiabilitiesAndEquity: 0,
+  };
+
+  // Group accounts by type and compute net balances
+  trialBalance.forEach((row) => {
+    const netBalance = row.closingDebit - row.closingCredit;
+
+    // Skip zero balances
+    if (netBalance === 0) return;
+
+    const sectionRow: BalanceSheetSectionRow = {
+      accountId: row.accountId,
+      accountCode: row.accountCode,
+      accountName: row.accountName,
+      netBalance: 0, // Will be set below
+    };
+
+    switch (row.accountType) {
+      case "asset":
+        // Assets have debit balances (positive)
+        sectionRow.netBalance = netBalance;
+        
+        // Classify as current (1-1-xxx) or fixed (1-2-xxx) based on account code
+        if (row.accountCode.startsWith("1-1")) {
+          result.assets.currentAssets.push(sectionRow);
+        } else {
+          result.assets.fixedAssets.push(sectionRow);
+        }
+        result.assets.totalAssets += netBalance;
+        break;
+
+      case "liability":
+        // Liabilities have credit balances (negative in trial balance, so negate)
+        sectionRow.netBalance = Math.abs(netBalance);
+        
+        // Classify as current (2-1-xxx) or long-term (2-2-xxx)
+        if (row.accountCode.startsWith("2-1")) {
+          result.liabilities.currentLiabilities.push(sectionRow);
+        } else {
+          result.liabilities.longTermLiabilities.push(sectionRow);
+        }
+        result.liabilities.totalLiabilities += Math.abs(netBalance);
+        break;
+
+      case "equity":
+        // Equity has credit balances (negative in trial balance, so negate)
+        sectionRow.netBalance = Math.abs(netBalance);
+        result.equity.capital.push(sectionRow);
+        result.equity.totalEquity += Math.abs(netBalance);
+        break;
+
+      case "revenue":
+      case "expense":
+      case "cogs":
+        // Revenue/Expense/COGS contribute to retained earnings (net income)
+        // Revenue (credit) - Expenses (debit) - COGS (debit) = Net Income
+        if (row.accountType === "revenue") {
+          result.equity.retainedEarnings += Math.abs(netBalance);
+        } else {
+          result.equity.retainedEarnings -= netBalance;
+        }
+        break;
+    }
+  });
+
+  // Add retained earnings to total equity
+  result.equity.totalEquity += result.equity.retainedEarnings;
+
+  // Calculate total liabilities and equity
+  result.totalLiabilitiesAndEquity =
+    result.liabilities.totalLiabilities + result.equity.totalEquity;
+
+  return result;
+}
+
+// ============================================================================
 // GENERAL LEDGER (ACCOUNT STATEMENT) (Phase 7)
 // ============================================================================
 

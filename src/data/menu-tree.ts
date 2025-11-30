@@ -275,12 +275,12 @@ export const menuTree: TreeMenuItem[] = [
       {
         id: "accounting-journal-entries",
         label: "قيود اليومية",
-        route: "/accounting/journal-entries",
+        route: "/accounting",
       },
       {
         id: "accounting-general-ledger",
         label: "الأستاذ العام",
-        route: "/account-ledger",
+        route: "/general-ledger",
       },
       {
         id: "accounting-trial-balance",

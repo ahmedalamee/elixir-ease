@@ -1,33 +1,13 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
-import { FileText, Download, TrendingUp, TrendingDown } from "lucide-react";
+import { FileText, Download } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-
-interface BalanceSheetData {
-  as_of_date: string;
-  assets: {
-    current_assets: number;
-    fixed_assets: number;
-    total_assets: number;
-  };
-  liabilities: {
-    current_liabilities: number;
-    long_term_liabilities: number;
-    total_liabilities: number;
-  };
-  equity: {
-    capital: number;
-    retained_earnings: number;
-    total_equity: number;
-  };
-  total_liabilities_and_equity: number;
-}
+import { getBalanceSheet, BalanceSheetData } from "@/lib/accounting";
 
 const BalanceSheet = () => {
   const { toast } = useToast();
@@ -38,12 +18,11 @@ const BalanceSheet = () => {
   const generateReport = async () => {
     try {
       setLoading(true);
-      const { data: result, error } = await supabase.rpc('get_balance_sheet', {
-        p_as_of_date: asOfDate
+      const result = await getBalanceSheet({
+        asOfDate,
+        branchId: null,
       });
-
-      if (error) throw error;
-      setData(result as unknown as BalanceSheetData);
+      setData(result);
       toast({ title: "تم إنشاء التقرير بنجاح" });
     } catch (error: any) {
       toast({ title: "خطأ", description: error.message, variant: "destructive" });
@@ -97,18 +76,51 @@ const BalanceSheet = () => {
               </CardHeader>
               <CardContent>
                 <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-right">رمز الحساب</TableHead>
+                      <TableHead className="text-right">اسم الحساب</TableHead>
+                      <TableHead className="text-left">المبلغ</TableHead>
+                    </TableRow>
+                  </TableHeader>
                   <TableBody>
-                    <TableRow>
-                      <TableCell className="font-medium">الأصول المتداولة</TableCell>
-                      <TableCell className="text-left">{new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR' }).format(data.assets.current_assets)}</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell className="font-medium">الأصول الثابتة</TableCell>
-                      <TableCell className="text-left">{new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR' }).format(data.assets.fixed_assets)}</TableCell>
-                    </TableRow>
+                    {data.assets.currentAssets.length > 0 && (
+                      <>
+                        <TableRow className="bg-muted/50">
+                          <TableCell colSpan={3} className="font-semibold">الأصول المتداولة</TableCell>
+                        </TableRow>
+                        {data.assets.currentAssets.map((account) => (
+                          <TableRow key={account.accountId}>
+                            <TableCell>{account.accountCode}</TableCell>
+                            <TableCell>{account.accountName}</TableCell>
+                            <TableCell className="text-left">
+                              {new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR' }).format(account.netBalance)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </>
+                    )}
+                    {data.assets.fixedAssets.length > 0 && (
+                      <>
+                        <TableRow className="bg-muted/50">
+                          <TableCell colSpan={3} className="font-semibold">الأصول الثابتة</TableCell>
+                        </TableRow>
+                        {data.assets.fixedAssets.map((account) => (
+                          <TableRow key={account.accountId}>
+                            <TableCell>{account.accountCode}</TableCell>
+                            <TableCell>{account.accountName}</TableCell>
+                            <TableCell className="text-left">
+                              {new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR' }).format(account.netBalance)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </>
+                    )}
                     <TableRow className="bg-muted font-bold">
-                      <TableCell>إجمالي الأصول</TableCell>
-                      <TableCell className="text-left">{new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR' }).format(data.assets.total_assets)}</TableCell>
+                      <TableCell colSpan={2}>إجمالي الأصول</TableCell>
+                      <TableCell className="text-left">
+                        {new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR' }).format(data.assets.totalAssets)}
+                      </TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
@@ -121,26 +133,92 @@ const BalanceSheet = () => {
               </CardHeader>
               <CardContent>
                 <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-right">رمز الحساب</TableHead>
+                      <TableHead className="text-right">اسم الحساب</TableHead>
+                      <TableHead className="text-left">المبلغ</TableHead>
+                    </TableRow>
+                  </TableHeader>
                   <TableBody>
-                    <TableRow>
-                      <TableCell className="font-medium">الخصوم المتداولة</TableCell>
-                      <TableCell className="text-left">{new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR' }).format(data.liabilities.current_liabilities)}</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell className="font-medium">الخصوم طويلة الأجل</TableCell>
-                      <TableCell className="text-left">{new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR' }).format(data.liabilities.long_term_liabilities)}</TableCell>
-                    </TableRow>
+                    {data.liabilities.currentLiabilities.length > 0 && (
+                      <>
+                        <TableRow className="bg-muted/50">
+                          <TableCell colSpan={3} className="font-semibold">الخصوم المتداولة</TableCell>
+                        </TableRow>
+                        {data.liabilities.currentLiabilities.map((account) => (
+                          <TableRow key={account.accountId}>
+                            <TableCell>{account.accountCode}</TableCell>
+                            <TableCell>{account.accountName}</TableCell>
+                            <TableCell className="text-left">
+                              {new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR' }).format(account.netBalance)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </>
+                    )}
+                    {data.liabilities.longTermLiabilities.length > 0 && (
+                      <>
+                        <TableRow className="bg-muted/50">
+                          <TableCell colSpan={3} className="font-semibold">الخصوم طويلة الأجل</TableCell>
+                        </TableRow>
+                        {data.liabilities.longTermLiabilities.map((account) => (
+                          <TableRow key={account.accountId}>
+                            <TableCell>{account.accountCode}</TableCell>
+                            <TableCell>{account.accountName}</TableCell>
+                            <TableCell className="text-left">
+                              {new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR' }).format(account.netBalance)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </>
+                    )}
                     <TableRow className="bg-muted">
-                      <TableCell className="font-medium">إجمالي الخصوم</TableCell>
-                      <TableCell className="text-left">{new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR' }).format(data.liabilities.total_liabilities)}</TableCell>
+                      <TableCell colSpan={2} className="font-medium">إجمالي الخصوم</TableCell>
+                      <TableCell className="text-left">
+                        {new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR' }).format(data.liabilities.totalLiabilities)}
+                      </TableCell>
                     </TableRow>
-                    <TableRow>
-                      <TableCell className="font-medium">حقوق الملكية</TableCell>
-                      <TableCell className="text-left">{new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR' }).format(data.equity.total_equity)}</TableCell>
+                    
+                    {data.equity.capital.length > 0 && (
+                      <>
+                        <TableRow className="bg-muted/50">
+                          <TableCell colSpan={3} className="font-semibold">حقوق الملكية</TableCell>
+                        </TableRow>
+                        {data.equity.capital.map((account) => (
+                          <TableRow key={account.accountId}>
+                            <TableCell>{account.accountCode}</TableCell>
+                            <TableCell>{account.accountName}</TableCell>
+                            <TableCell className="text-left">
+                              {new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR' }).format(account.netBalance)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </>
+                    )}
+                    
+                    {data.equity.retainedEarnings !== 0 && (
+                      <TableRow>
+                        <TableCell>3-2-000</TableCell>
+                        <TableCell>الأرباح المحتجزة</TableCell>
+                        <TableCell className="text-left">
+                          {new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR' }).format(data.equity.retainedEarnings)}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    
+                    <TableRow className="bg-muted">
+                      <TableCell colSpan={2} className="font-medium">إجمالي حقوق الملكية</TableCell>
+                      <TableCell className="text-left">
+                        {new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR' }).format(data.equity.totalEquity)}
+                      </TableCell>
                     </TableRow>
+                    
                     <TableRow className="bg-primary/10 font-bold">
-                      <TableCell>إجمالي الخصوم وحقوق الملكية</TableCell>
-                      <TableCell className="text-left text-primary">{new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR' }).format(data.total_liabilities_and_equity)}</TableCell>
+                      <TableCell colSpan={2}>إجمالي الخصوم وحقوق الملكية</TableCell>
+                      <TableCell className="text-left text-primary">
+                        {new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR' }).format(data.totalLiabilitiesAndEquity)}
+                      </TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>

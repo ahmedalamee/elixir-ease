@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,95 +7,47 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Scale, FileText } from "lucide-react";
 import Navbar from "@/components/Navbar";
-
-interface AccountBalance {
-  account_id: string;
-  account_code: string;
-  account_name: string;
-  account_type: string;
-  debit_balance: number;
-  credit_balance: number;
-}
+import { getTrialBalance, type TrialBalanceRow } from "@/lib/accounting";
 
 const TrialBalance = () => {
   const { toast } = useToast();
-  const [asOfDate, setAsOfDate] = useState(new Date().toISOString().split("T")[0]);
-  const [balances, setBalances] = useState<AccountBalance[]>([]);
+  const [fromDate, setFromDate] = useState(
+    new Date(new Date().getFullYear(), 0, 1).toISOString().split("T")[0]
+  );
+  const [toDate, setToDate] = useState(new Date().toISOString().split("T")[0]);
+  const [balances, setBalances] = useState<TrialBalanceRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [totalDebit, setTotalDebit] = useState(0);
   const [totalCredit, setTotalCredit] = useState(0);
 
   const generateTrialBalance = async () => {
-    if (!asOfDate) {
-      toast({ title: "تنبيه", description: "يرجى تحديد التاريخ", variant: "destructive" });
+    if (!fromDate || !toDate) {
+      toast({ title: "تنبيه", description: "يرجى تحديد الفترة الزمنية", variant: "destructive" });
+      return;
+    }
+
+    if (fromDate > toDate) {
+      toast({ title: "تنبيه", description: "تاريخ البداية يجب أن يكون قبل تاريخ النهاية", variant: "destructive" });
       return;
     }
 
     setLoading(true);
 
     try {
-      // Get all active accounts
-      const { data: accountsData, error: accountsError } = await supabase
-        .from("gl_accounts")
-        .select("id, account_code, account_name, account_type, is_header")
-        .eq("is_active", true)
-        .eq("is_header", false)
-        .order("account_code");
-
-      if (accountsError) throw accountsError;
-
-      // Get all posted journal entry lines up to the date
-      const { data: linesData, error: linesError } = await supabase
-        .from("journal_entry_lines")
-        .select(`
-          account_id,
-          debit_amount,
-          credit_amount,
-          journal_entries!inner(entry_date, status)
-        `)
-        .eq("journal_entries.status", "posted")
-        .lte("journal_entries.entry_date", asOfDate);
-
-      if (linesError) throw linesError;
-
-      // Calculate balances for each account
-      const accountBalances: Map<string, { debit: number; credit: number }> = new Map();
-
-      linesData?.forEach((line: any) => {
-        const accountId = line.account_id;
-        const current = accountBalances.get(accountId) || { debit: 0, credit: 0 };
-        current.debit += line.debit_amount || 0;
-        current.credit += line.credit_amount || 0;
-        accountBalances.set(accountId, current);
+      // استخدام دالة getTrialBalance من النظام المحاسبي الجديد
+      const trialBalanceData = await getTrialBalance({
+        fromDate,
+        toDate,
+        branchId: null, // يمكن إضافة فلتر للفرع لاحقاً
       });
 
-      // Prepare trial balance data
-      const trialBalanceData: AccountBalance[] = [];
+      // حساب الإجماليات من closing balances
       let totalDebitSum = 0;
       let totalCreditSum = 0;
 
-      accountsData?.forEach((account) => {
-        const balance = accountBalances.get(account.id);
-        if (balance) {
-          const netBalance = balance.debit - balance.credit;
-          const debitBalance = netBalance > 0 ? netBalance : 0;
-          const creditBalance = netBalance < 0 ? Math.abs(netBalance) : 0;
-
-          // Only include accounts with non-zero balances
-          if (debitBalance !== 0 || creditBalance !== 0) {
-            trialBalanceData.push({
-              account_id: account.id,
-              account_code: account.account_code,
-              account_name: account.account_name,
-              account_type: account.account_type,
-              debit_balance: debitBalance,
-              credit_balance: creditBalance,
-            });
-
-            totalDebitSum += debitBalance;
-            totalCreditSum += creditBalance;
-          }
-        }
+      trialBalanceData.forEach((row) => {
+        totalDebitSum += row.closingDebit;
+        totalCreditSum += row.closingCredit;
       });
 
       setBalances(trialBalanceData);
@@ -128,17 +79,17 @@ const TrialBalance = () => {
   };
 
   const exportToCSV = () => {
-    let csvContent = "رمز الحساب,اسم الحساب,النوع,مدين,دائن\n";
+    let csvContent = "رمز الحساب,اسم الحساب,النوع,رصيد افتتاحي مدين,رصيد افتتاحي دائن,حركة مدين,حركة دائن,رصيد ختامي مدين,رصيد ختامي دائن\n";
     balances.forEach((account) => {
-      csvContent += `${account.account_code},${account.account_name},${getAccountTypeLabel(account.account_type)},${account.debit_balance.toFixed(2)},${account.credit_balance.toFixed(2)}\n`;
+      csvContent += `${account.accountCode},${account.accountName},${getAccountTypeLabel(account.accountType)},${account.openingDebit.toFixed(2)},${account.openingCredit.toFixed(2)},${account.periodDebit.toFixed(2)},${account.periodCredit.toFixed(2)},${account.closingDebit.toFixed(2)},${account.closingCredit.toFixed(2)}\n`;
     });
-    csvContent += `,,الإجمالي,${totalDebit.toFixed(2)},${totalCredit.toFixed(2)}\n`;
+    csvContent += `,,الإجمالي,,,,,${totalDebit.toFixed(2)},${totalCredit.toFixed(2)}\n`;
 
     const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `ميزان_المراجعة_${asOfDate}.csv`);
+    link.setAttribute("download", `ميزان_المراجعة_${fromDate}_إلى_${toDate}.csv`);
     link.click();
   };
 
@@ -162,8 +113,12 @@ const TrialBalance = () => {
           <CardContent>
             <div className="flex gap-4">
               <div className="flex-1">
-                <Label>التاريخ</Label>
-                <Input type="date" value={asOfDate} onChange={(e) => setAsOfDate(e.target.value)} />
+                <Label>من تاريخ</Label>
+                <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+              </div>
+              <div className="flex-1">
+                <Label>إلى تاريخ</Label>
+                <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
               </div>
               <div className="flex items-end gap-2">
                 <Button onClick={generateTrialBalance} disabled={loading}>
@@ -182,7 +137,10 @@ const TrialBalance = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>ميزان المراجعة كما في {new Date(asOfDate).toLocaleDateString("ar-SA")}</CardTitle>
+            <CardTitle>
+              ميزان المراجعة للفترة من {new Date(fromDate).toLocaleDateString("ar-SA")} إلى{" "}
+              {new Date(toDate).toLocaleDateString("ar-SA")}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
@@ -191,34 +149,50 @@ const TrialBalance = () => {
                   <TableHead>رمز الحساب</TableHead>
                   <TableHead>اسم الحساب</TableHead>
                   <TableHead>النوع</TableHead>
-                  <TableHead className="text-right">مدين</TableHead>
-                  <TableHead className="text-right">دائن</TableHead>
+                  <TableHead className="text-right">رصيد افتتاحي مدين</TableHead>
+                  <TableHead className="text-right">رصيد افتتاحي دائن</TableHead>
+                  <TableHead className="text-right">حركة مدين</TableHead>
+                  <TableHead className="text-right">حركة دائن</TableHead>
+                  <TableHead className="text-right">رصيد ختامي مدين</TableHead>
+                  <TableHead className="text-right">رصيد ختامي دائن</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {balances.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center text-muted-foreground">
                       لا توجد حسابات بأرصدة
                     </TableCell>
                   </TableRow>
                 ) : (
                   <>
                     {balances.map((account) => (
-                      <TableRow key={account.account_id}>
-                        <TableCell className="font-mono">{account.account_code}</TableCell>
-                        <TableCell>{account.account_name}</TableCell>
-                        <TableCell>{getAccountTypeLabel(account.account_type)}</TableCell>
-                        <TableCell className="text-right font-mono">
-                          {account.debit_balance > 0 ? account.debit_balance.toFixed(2) : "-"}
+                      <TableRow key={account.accountId}>
+                        <TableCell className="font-mono">{account.accountCode}</TableCell>
+                        <TableCell>{account.accountName}</TableCell>
+                        <TableCell>{getAccountTypeLabel(account.accountType)}</TableCell>
+                        <TableCell className="text-right font-mono text-sm">
+                          {account.openingDebit > 0 ? account.openingDebit.toFixed(2) : "-"}
                         </TableCell>
-                        <TableCell className="text-right font-mono">
-                          {account.credit_balance > 0 ? account.credit_balance.toFixed(2) : "-"}
+                        <TableCell className="text-right font-mono text-sm">
+                          {account.openingCredit > 0 ? account.openingCredit.toFixed(2) : "-"}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-sm">
+                          {account.periodDebit > 0 ? account.periodDebit.toFixed(2) : "-"}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-sm">
+                          {account.periodCredit > 0 ? account.periodCredit.toFixed(2) : "-"}
+                        </TableCell>
+                        <TableCell className="text-right font-mono font-semibold">
+                          {account.closingDebit > 0 ? account.closingDebit.toFixed(2) : "-"}
+                        </TableCell>
+                        <TableCell className="text-right font-mono font-semibold">
+                          {account.closingCredit > 0 ? account.closingCredit.toFixed(2) : "-"}
                         </TableCell>
                       </TableRow>
                     ))}
                     <TableRow className="font-bold bg-muted">
-                      <TableCell colSpan={3}>الإجمالي</TableCell>
+                      <TableCell colSpan={7}>الإجمالي</TableCell>
                       <TableCell className="text-right font-mono text-lg">
                         {totalDebit.toFixed(2)}
                       </TableCell>
@@ -227,7 +201,7 @@ const TrialBalance = () => {
                       </TableCell>
                     </TableRow>
                     <TableRow className={isBalanced ? "bg-green-50" : "bg-red-50"}>
-                      <TableCell colSpan={3} className="font-bold">
+                      <TableCell colSpan={7} className="font-bold">
                         {isBalanced ? "✓ الميزان متوازن" : "✗ الميزان غير متوازن"}
                       </TableCell>
                       <TableCell colSpan={2} className="text-right font-bold">

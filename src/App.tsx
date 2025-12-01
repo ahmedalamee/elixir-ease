@@ -106,6 +106,7 @@ import InventoryDashboard from "./pages/InventoryDashboard";
 import ReportsDashboard from "./pages/ReportsDashboard";
 import SupplierReports from "./pages/SupplierReports";
 import ActivityLog from "./pages/ActivityLog";
+import AccountMappingsConfig from "./pages/AccountMappingsConfig";
 
 const queryClient = new QueryClient();
 
@@ -182,6 +183,7 @@ const AppContent = () => {
           <Route path="/accounting/manual-journal" element={<ManualJournalEntry />} />
           <Route path="/accounting/journal-entries" element={<JournalEntriesList />} />
           <Route path="/accounting/journal/:id" element={<JournalEntryDetail />} />
+          <Route path="/accounting/account-mappings" element={<AccountMappingsConfig />} />
           <Route path="/chart-of-accounts" element={<ChartOfAccountsPage />} />
           <Route path="/account-ledger" element={<AccountLedger />} />
           <Route path="/trial-balance" element={<TrialBalance />} />

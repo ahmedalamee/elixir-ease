@@ -273,6 +273,11 @@ export const menuTree: TreeMenuItem[] = [
         route: "/chart-of-accounts",
       },
       {
+        id: "accounting-account-mappings",
+        label: "ربط الحسابات",
+        route: "/accounting/account-mappings",
+      },
+      {
         id: "accounting-journal-entries",
         label: "قيود اليومية",
         route: "/accounting/journal-entries",

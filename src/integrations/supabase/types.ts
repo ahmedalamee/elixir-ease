@@ -7852,6 +7852,36 @@ export type Database = {
           result: string
         }[]
       }
+      rebuild_customer_balance: {
+        Args: { p_customer_id: string }
+        Returns: number
+      }
+      rebuild_supplier_balance: {
+        Args: { p_supplier_id: string }
+        Returns: number
+      }
+      reconcile_ap_with_gl: {
+        Args: { p_as_of_date?: string }
+        Returns: {
+          difference: number
+          gl_balance: number
+          status: string
+          subledger_balance: number
+          supplier_id: string
+          supplier_name: string
+        }[]
+      }
+      reconcile_ar_with_gl: {
+        Args: { p_as_of_date?: string }
+        Returns: {
+          customer_id: string
+          customer_name: string
+          difference: number
+          gl_balance: number
+          status: string
+          subledger_balance: number
+        }[]
+      }
       refresh_inventory_summary: { Args: never; Returns: undefined }
       refresh_sales_summary: { Args: never; Returns: undefined }
       reopen_accounting_period: { Args: { p_period_id: string }; Returns: Json }

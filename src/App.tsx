@@ -114,6 +114,7 @@ import SupplierAgingReport from "./pages/SupplierAgingReport";
 import CustomerStatement from "./pages/CustomerStatement";
 import SupplierStatement from "./pages/SupplierStatement";
 import CashFlowStatement from "./pages/CashFlowStatement";
+import ArApGlReconciliation from "./pages/ArApGlReconciliation";
 
 const queryClient = new QueryClient();
 
@@ -198,6 +199,7 @@ const AppContent = () => {
           <Route path="/accounting/customer-statement" element={<CustomerStatement />} />
           <Route path="/accounting/supplier-statement" element={<SupplierStatement />} />
           <Route path="/accounting/cash-flow" element={<CashFlowStatement />} />
+          <Route path="/accounting/ar-ap-reconciliation" element={<ArApGlReconciliation />} />
           <Route path="/accounting/vat-returns" element={<VATReturns />} />
           <Route path="/chart-of-accounts" element={<ChartOfAccountsPage />} />
           <Route path="/account-ledger" element={<AccountLedger />} />

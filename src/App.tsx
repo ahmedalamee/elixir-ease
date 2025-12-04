@@ -109,6 +109,10 @@ import ActivityLog from "./pages/ActivityLog";
 import AccountMappingsConfig from "./pages/AccountMappingsConfig";
 import OpeningBalances from "./pages/OpeningBalances";
 import AccountingPeriods from "./pages/AccountingPeriods";
+import CustomerAgingReport from "./pages/CustomerAgingReport";
+import SupplierAgingReport from "./pages/SupplierAgingReport";
+import CustomerStatement from "./pages/CustomerStatement";
+import SupplierStatement from "./pages/SupplierStatement";
 
 const queryClient = new QueryClient();
 
@@ -188,6 +192,10 @@ const AppContent = () => {
           <Route path="/accounting/account-mappings" element={<AccountMappingsConfig />} />
           <Route path="/accounting/opening-balances" element={<OpeningBalances />} />
           <Route path="/accounting/periods" element={<AccountingPeriods />} />
+          <Route path="/accounting/ar-aging" element={<CustomerAgingReport />} />
+          <Route path="/accounting/ap-aging" element={<SupplierAgingReport />} />
+          <Route path="/accounting/customer-statement" element={<CustomerStatement />} />
+          <Route path="/accounting/supplier-statement" element={<SupplierStatement />} />
           <Route path="/chart-of-accounts" element={<ChartOfAccountsPage />} />
           <Route path="/account-ledger" element={<AccountLedger />} />
           <Route path="/trial-balance" element={<TrialBalance />} />

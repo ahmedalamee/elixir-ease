@@ -41,34 +41,52 @@ import type { ErpAccountMapping, GlAccount } from "@/types/accounting";
 
 // قائمة الوحدات الثابتة
 const MODULES = [
-  { value: "sales", label: "مبيعات" },
-  { value: "purchases", label: "مشتريات" },
+  { value: "sales", label: "المبيعات" },
+  { value: "purchases", label: "المشتريات" },
   { value: "pos", label: "نقطة البيع" },
-  { value: "returns", label: "مرتجعات" },
-  { value: "inventory", label: "مخزون" },
+  { value: "sales_returns", label: "مرتجعات المبيعات" },
+  { value: "purchase_returns", label: "مرتجعات المشتريات" },
+  { value: "inventory", label: "المخزون" },
+  { value: "payments", label: "المدفوعات" },
 ];
 
 // قائمة العمليات حسب الوحدة
 const OPERATIONS_BY_MODULE: Record<string, { value: string; label: string }[]> = {
   sales: [
-    { value: "invoice_cash", label: "فاتورة نقدية" },
-    { value: "invoice_credit", label: "فاتورة آجلة" },
-    { value: "sales_return", label: "مرتجع مبيعات" },
+    { value: "cash_sale", label: "مبيعات نقدية" },
+    { value: "credit_sale", label: "مبيعات آجلة" },
+    { value: "sales_tax", label: "ضريبة المبيعات" },
+    { value: "cost_of_goods_sold", label: "تكلفة البضاعة المباعة" },
+    { value: "sales_discount", label: "خصم المبيعات" },
   ],
   purchases: [
-    { value: "purchase_invoice", label: "فاتورة شراء" },
-    { value: "purchase_return", label: "مرتجع مشتريات" },
+    { value: "cash_purchase", label: "مشتريات نقدية" },
+    { value: "credit_purchase", label: "مشتريات آجلة" },
+    { value: "purchase_tax", label: "ضريبة المشتريات" },
   ],
   pos: [
-    { value: "pos_sale", label: "بيع POS" },
+    { value: "cash_sale", label: "بيع نقدي" },
+    { value: "card_sale", label: "بيع بالبطاقة" },
+    { value: "cost_of_goods_sold", label: "تكلفة البضاعة المباعة" },
+    { value: "sales_tax", label: "ضريبة المبيعات" },
   ],
-  returns: [
+  sales_returns: [
     { value: "sales_return", label: "مرتجع مبيعات" },
+    { value: "return_inventory", label: "استعادة المخزون" },
+    { value: "return_tax", label: "عكس الضريبة" },
+  ],
+  purchase_returns: [
     { value: "purchase_return", label: "مرتجع مشتريات" },
+    { value: "return_tax", label: "عكس الضريبة" },
   ],
   inventory: [
-    { value: "stock_adjustment", label: "تعديل مخزون" },
-    { value: "warehouse_transfer", label: "تحويل بين مستودعات" },
+    { value: "stock_adjustment_in", label: "تسوية مخزون - زيادة" },
+    { value: "stock_adjustment_out", label: "تسوية مخزون - نقص" },
+    { value: "stock_transfer", label: "تحويل بين مستودعات" },
+  ],
+  payments: [
+    { value: "customer_receipt", label: "تحصيل من عميل" },
+    { value: "supplier_payment", label: "دفع لمورد" },
   ],
 };
 
@@ -179,6 +197,24 @@ export default function AccountMappingsConfig() {
         variant: "destructive",
       });
       return;
+    }
+
+    // التحقق من التكرار (عند الإضافة فقط)
+    if (!editingMapping) {
+      const existingMapping = mappings.find(
+        (m) =>
+          m.module === formData.module &&
+          m.operation === formData.operation &&
+          (m.branchId || null) === (formData.branchId || null)
+      );
+      if (existingMapping) {
+        toast({
+          title: "ربط موجود مسبقاً",
+          description: `يوجد ربط حساب مسبق لهذه الوحدة والعملية${formData.branchId ? " والفرع" : ""}`,
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     try {

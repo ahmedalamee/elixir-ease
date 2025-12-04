@@ -198,6 +198,7 @@ const AppContent = () => {
           <Route path="/accounting/customer-statement" element={<CustomerStatement />} />
           <Route path="/accounting/supplier-statement" element={<SupplierStatement />} />
           <Route path="/accounting/cash-flow" element={<CashFlowStatement />} />
+          <Route path="/accounting/vat-returns" element={<VATReturns />} />
           <Route path="/chart-of-accounts" element={<ChartOfAccountsPage />} />
           <Route path="/account-ledger" element={<AccountLedger />} />
           <Route path="/trial-balance" element={<TrialBalance />} />

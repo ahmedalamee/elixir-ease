@@ -2974,6 +2974,86 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory_cost_layers: {
+        Row: {
+          batch_number: string | null
+          created_at: string | null
+          created_by: string | null
+          expiry_date: string | null
+          id: string
+          product_id: string
+          quantity_original: number
+          quantity_remaining: number
+          received_date: string
+          source_document_id: string | null
+          source_document_number: string | null
+          source_document_type: string
+          unit_cost: number
+          warehouse_id: string
+        }
+        Insert: {
+          batch_number?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          expiry_date?: string | null
+          id?: string
+          product_id: string
+          quantity_original?: number
+          quantity_remaining?: number
+          received_date?: string
+          source_document_id?: string | null
+          source_document_number?: string | null
+          source_document_type: string
+          unit_cost?: number
+          warehouse_id: string
+        }
+        Update: {
+          batch_number?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          expiry_date?: string | null
+          id?: string
+          product_id?: string
+          quantity_original?: number
+          quantity_remaining?: number
+          received_date?: string
+          source_document_id?: string | null
+          source_document_number?: string | null
+          source_document_type?: string
+          unit_cost?: number
+          warehouse_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_cost_layers_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_cost_layers_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "inventory_cost_layers_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "inventory_cost_layers_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_tax_details: {
         Row: {
           created_at: string | null
@@ -7338,6 +7418,34 @@ export type Database = {
       }
     }
     Functions: {
+      add_cost_layer: {
+        Args: {
+          p_batch_number?: string
+          p_expiry_date?: string
+          p_product_id: string
+          p_quantity: number
+          p_source_id?: string
+          p_source_number?: string
+          p_source_type?: string
+          p_unit_cost: number
+          p_warehouse_id: string
+        }
+        Returns: string
+      }
+      allocate_fifo_cost: {
+        Args: {
+          p_product_id: string
+          p_quantity: number
+          p_warehouse_id: string
+        }
+        Returns: {
+          batch_number: string
+          layer_id: string
+          quantity_allocated: number
+          total_cost: number
+          unit_cost: number
+        }[]
+      }
       analyze_inventory_turnover: {
         Args: { p_end_date?: string; p_start_date?: string }
         Returns: {
@@ -7429,6 +7537,16 @@ export type Database = {
       close_pos_session_with_gl: {
         Args: { p_closing_cash: number; p_session_id: string }
         Returns: Json
+      }
+      consume_fifo_layers: {
+        Args: {
+          p_product_id: string
+          p_quantity: number
+          p_reference_id: string
+          p_reference_type: string
+          p_warehouse_id: string
+        }
+        Returns: number
       }
       convert_currency: {
         Args: {
@@ -7533,6 +7651,19 @@ export type Database = {
       get_integration_statistics: {
         Args: { p_end_date?: string; p_start_date?: string }
         Returns: Json
+      }
+      get_inventory_valuation: {
+        Args: { p_warehouse_id?: string }
+        Returns: {
+          average_cost: number
+          layer_count: number
+          product_id: string
+          product_name: string
+          total_quantity: number
+          total_value: number
+          warehouse_id: string
+          warehouse_name: string
+        }[]
       }
       get_open_accounting_period: {
         Args: { p_date: string }

@@ -2459,3 +2459,345 @@ export async function submitVatReturn(vatReturnId: string): Promise<void> {
 
   if (error) throw error;
 }
+
+// ============================================================================
+// CASH FLOW STATEMENTS (Phase 6)
+// ============================================================================
+
+export interface CashFlowSection {
+  name: string;
+  items: {
+    description: string;
+    amount: number;
+  }[];
+  total: number;
+}
+
+export interface CashFlowData {
+  periodStart: string;
+  periodEnd: string;
+  operatingActivities: CashFlowSection;
+  investingActivities: CashFlowSection;
+  financingActivities: CashFlowSection;
+  openingCashBalance: number;
+  netCashChange: number;
+  closingCashBalance: number;
+}
+
+/**
+ * Get Cash Flow Statement - Direct Method
+ * Shows actual cash receipts and payments
+ */
+export async function getCashFlowDirect(params: {
+  fromDate: string;
+  toDate: string;
+}): Promise<CashFlowData> {
+  const { fromDate, toDate } = params;
+
+  // Fetch cash/bank accounts
+  const { data: cashAccounts, error: cashError } = await supabase
+    .from("gl_accounts")
+    .select("id")
+    .or("account_code.ilike.1%,account_type.eq.asset")
+    .ilike("account_name", "%نقد%,cash%,بنك%,bank%,صندوق%");
+
+  if (cashError) throw cashError;
+  const cashAccountIds = cashAccounts?.map(a => a.id) || [];
+
+  // Get journal entries for the period involving cash accounts
+  const { data: journalLines, error: journalError } = await supabase
+    .from("gl_journal_lines")
+    .select(`
+      debit,
+      credit,
+      description,
+      gl_journal_entries!inner (
+        entry_date,
+        description,
+        source_module,
+        is_posted
+      ),
+      gl_accounts!inner (
+        id,
+        account_code,
+        account_name,
+        account_type
+      )
+    `)
+    .gte("gl_journal_entries.entry_date", fromDate)
+    .lte("gl_journal_entries.entry_date", toDate)
+    .eq("gl_journal_entries.is_posted", true);
+
+  if (journalError) throw journalError;
+
+  // Calculate opening cash balance
+  const { data: openingLines, error: openingError } = await supabase
+    .from("gl_journal_lines")
+    .select(`
+      debit,
+      credit,
+      gl_journal_entries!inner (
+        entry_date,
+        is_posted
+      ),
+      gl_accounts!inner (id)
+    `)
+    .lt("gl_journal_entries.entry_date", fromDate)
+    .eq("gl_journal_entries.is_posted", true)
+    .in("account_id", cashAccountIds.length > 0 ? cashAccountIds : ['00000000-0000-0000-0000-000000000000']);
+
+  if (openingError) throw openingError;
+
+  let openingCashBalance = 0;
+  openingLines?.forEach((line: any) => {
+    openingCashBalance += (line.debit || 0) - (line.credit || 0);
+  });
+
+  // Categorize cash movements
+  const operatingItems: { description: string; amount: number }[] = [];
+  const investingItems: { description: string; amount: number }[] = [];
+  const financingItems: { description: string; amount: number }[] = [];
+
+  // Process journal lines
+  const sourceCategories: Record<string, string> = {
+    sales_invoice: "operating",
+    purchase_invoice: "operating",
+    sales_return: "operating",
+    purchase_return: "operating",
+    pos_session: "operating",
+    customer_receipt: "operating",
+    supplier_payment: "operating",
+    expense: "operating",
+    stock_adjustment: "operating",
+    asset_purchase: "investing",
+    asset_sale: "investing",
+    loan: "financing",
+    capital: "financing",
+    dividend: "financing",
+  };
+
+  // Track cash movements by source
+  const movementsBySource: Record<string, number> = {};
+
+  journalLines?.forEach((line: any) => {
+    const isCashAccount = cashAccountIds.includes(line.gl_accounts?.id);
+    if (!isCashAccount) return;
+
+    const cashMovement = (line.debit || 0) - (line.credit || 0);
+    const sourceModule = line.gl_journal_entries?.source_module || "other";
+    const key = sourceModule;
+
+    if (!movementsBySource[key]) {
+      movementsBySource[key] = 0;
+    }
+    movementsBySource[key] += cashMovement;
+  });
+
+  // Convert to items
+  const sourceLabels: Record<string, string> = {
+    sales_invoice: "التحصيلات من المبيعات",
+    purchase_invoice: "المدفوعات للموردين",
+    sales_return: "المدفوعات لمرتجعات المبيعات",
+    purchase_return: "التحصيلات من مرتجعات المشتريات",
+    pos_session: "مبيعات نقطة البيع",
+    customer_receipt: "تحصيلات العملاء",
+    supplier_payment: "مدفوعات الموردين",
+    expense: "المصروفات التشغيلية",
+    stock_adjustment: "تعديلات المخزون",
+    asset_purchase: "شراء أصول ثابتة",
+    asset_sale: "بيع أصول ثابتة",
+    loan: "القروض",
+    capital: "رأس المال",
+    dividend: "توزيعات الأرباح",
+    other: "أخرى",
+    manual: "قيود يدوية",
+    opening_balance: "أرصدة افتتاحية",
+  };
+
+  Object.entries(movementsBySource).forEach(([source, amount]) => {
+    if (Math.abs(amount) < 0.01) return;
+    
+    const item = {
+      description: sourceLabels[source] || source,
+      amount,
+    };
+
+    const category = sourceCategories[source] || "operating";
+    if (category === "operating") {
+      operatingItems.push(item);
+    } else if (category === "investing") {
+      investingItems.push(item);
+    } else {
+      financingItems.push(item);
+    }
+  });
+
+  const operatingTotal = operatingItems.reduce((sum, i) => sum + i.amount, 0);
+  const investingTotal = investingItems.reduce((sum, i) => sum + i.amount, 0);
+  const financingTotal = financingItems.reduce((sum, i) => sum + i.amount, 0);
+  const netCashChange = operatingTotal + investingTotal + financingTotal;
+
+  return {
+    periodStart: fromDate,
+    periodEnd: toDate,
+    operatingActivities: {
+      name: "الأنشطة التشغيلية",
+      items: operatingItems,
+      total: operatingTotal,
+    },
+    investingActivities: {
+      name: "الأنشطة الاستثمارية",
+      items: investingItems,
+      total: investingTotal,
+    },
+    financingActivities: {
+      name: "الأنشطة التمويلية",
+      items: financingItems,
+      total: financingTotal,
+    },
+    openingCashBalance,
+    netCashChange,
+    closingCashBalance: openingCashBalance + netCashChange,
+  };
+}
+
+/**
+ * Get Cash Flow Statement - Indirect Method
+ * Starts with net income and adjusts for non-cash items
+ */
+export async function getCashFlowIndirect(params: {
+  fromDate: string;
+  toDate: string;
+}): Promise<CashFlowData> {
+  const { fromDate, toDate } = params;
+
+  // Get income statement for net profit
+  const incomeStatement = await getIncomeStatement({ fromDate, toDate });
+  const netProfit = incomeStatement.netProfit;
+
+  // Fetch depreciation expenses (non-cash)
+  const { data: depreciationLines, error: depError } = await supabase
+    .from("gl_journal_lines")
+    .select(`
+      debit,
+      credit,
+      gl_journal_entries!inner (
+        entry_date,
+        is_posted
+      ),
+      gl_accounts!inner (
+        account_name
+      )
+    `)
+    .gte("gl_journal_entries.entry_date", fromDate)
+    .lte("gl_journal_entries.entry_date", toDate)
+    .eq("gl_journal_entries.is_posted", true)
+    .or("gl_accounts.account_name.ilike.%إهلاك%,gl_accounts.account_name.ilike.%depreciation%");
+
+  if (depError) throw depError;
+
+  let depreciation = 0;
+  depreciationLines?.forEach((line: any) => {
+    depreciation += (line.debit || 0) - (line.credit || 0);
+  });
+
+  // Helper function to calculate account balance change for a period
+  const calculateAccountChange = async (accountNamePattern: string): Promise<number> => {
+    // Get accounts matching pattern
+    const { data: accounts } = await supabase
+      .from("gl_accounts")
+      .select("id")
+      .or(accountNamePattern);
+    
+    const accountIds = accounts?.map(a => a.id) || [];
+    if (accountIds.length === 0) return 0;
+
+    // Get opening balance (before period)
+    const { data: openingData } = await supabase
+      .from("gl_journal_lines")
+      .select(`debit, credit, gl_journal_entries!inner(entry_date, is_posted)`)
+      .lt("gl_journal_entries.entry_date", fromDate)
+      .eq("gl_journal_entries.is_posted", true)
+      .in("account_id", accountIds);
+
+    let openingBalance = 0;
+    openingData?.forEach((line: any) => {
+      openingBalance += (line.debit || 0) - (line.credit || 0);
+    });
+
+    // Get closing balance (end of period)
+    const { data: closingData } = await supabase
+      .from("gl_journal_lines")
+      .select(`debit, credit, gl_journal_entries!inner(entry_date, is_posted)`)
+      .lte("gl_journal_entries.entry_date", toDate)
+      .eq("gl_journal_entries.is_posted", true)
+      .in("account_id", accountIds);
+
+    let closingBalance = 0;
+    closingData?.forEach((line: any) => {
+      closingBalance += (line.debit || 0) - (line.credit || 0);
+    });
+
+    return closingBalance - openingBalance;
+  };
+
+  // Calculate working capital changes
+  const arChange = await calculateAccountChange("account_name.ilike.%ذمم مدينة%,account_name.ilike.%receivable%,account_name.ilike.%عملاء%");
+  const apChange = await calculateAccountChange("account_name.ilike.%ذمم دائنة%,account_name.ilike.%payable%,account_name.ilike.%موردين%");
+  const invChange = await calculateAccountChange("account_name.ilike.%مخزون%,account_name.ilike.%inventory%");
+
+  // Build operating activities
+  const operatingItems: { description: string; amount: number }[] = [
+    { description: "صافي الربح", amount: netProfit },
+    { description: "إضافة: مصروف الإهلاك", amount: Math.abs(depreciation) },
+    { description: "التغير في الذمم المدينة", amount: -arChange },
+    { description: "التغير في المخزون", amount: -invChange },
+    { description: "التغير في الذمم الدائنة", amount: apChange },
+  ];
+
+  const operatingTotal = operatingItems.reduce((sum, i) => sum + i.amount, 0);
+
+  // Get cash account balances
+  const { data: cashAccounts } = await supabase
+    .from("gl_accounts")
+    .select("id")
+    .or("account_name.ilike.%نقد%,account_name.ilike.%cash%,account_name.ilike.%بنك%,account_name.ilike.%bank%,account_name.ilike.%صندوق%");
+
+  const cashAccountIds = cashAccounts?.map(a => a.id) || [];
+
+  // Opening cash
+  const { data: openingCash } = await supabase
+    .from("gl_journal_lines")
+    .select("debit, credit")
+    .lt("gl_journal_entries.entry_date", fromDate)
+    .eq("gl_journal_entries.is_posted", true)
+    .in("account_id", cashAccountIds.length > 0 ? cashAccountIds : ['00000000-0000-0000-0000-000000000000']);
+
+  let openingCashBalance = 0;
+  openingCash?.forEach((line: any) => {
+    openingCashBalance += (line.debit || 0) - (line.credit || 0);
+  });
+
+  return {
+    periodStart: fromDate,
+    periodEnd: toDate,
+    operatingActivities: {
+      name: "الأنشطة التشغيلية (طريقة غير مباشرة)",
+      items: operatingItems,
+      total: operatingTotal,
+    },
+    investingActivities: {
+      name: "الأنشطة الاستثمارية",
+      items: [],
+      total: 0,
+    },
+    financingActivities: {
+      name: "الأنشطة التمويلية",
+      items: [],
+      total: 0,
+    },
+    openingCashBalance,
+    netCashChange: operatingTotal,
+    closingCashBalance: openingCashBalance + operatingTotal,
+  };
+}

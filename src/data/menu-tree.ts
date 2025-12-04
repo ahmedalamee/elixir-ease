@@ -333,6 +333,11 @@ export const menuTree: TreeMenuItem[] = [
         route: "/accounting/supplier-statement",
       },
       {
+        id: "accounting-cash-flow",
+        label: "التدفقات النقدية",
+        route: "/accounting/cash-flow",
+      },
+      {
         id: "accounting-cost-centers",
         label: "مراكز التكلفة",
         route: "/cost-centers",

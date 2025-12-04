@@ -113,6 +113,7 @@ import CustomerAgingReport from "./pages/CustomerAgingReport";
 import SupplierAgingReport from "./pages/SupplierAgingReport";
 import CustomerStatement from "./pages/CustomerStatement";
 import SupplierStatement from "./pages/SupplierStatement";
+import CashFlowStatement from "./pages/CashFlowStatement";
 
 const queryClient = new QueryClient();
 
@@ -196,6 +197,7 @@ const AppContent = () => {
           <Route path="/accounting/ap-aging" element={<SupplierAgingReport />} />
           <Route path="/accounting/customer-statement" element={<CustomerStatement />} />
           <Route path="/accounting/supplier-statement" element={<SupplierStatement />} />
+          <Route path="/accounting/cash-flow" element={<CashFlowStatement />} />
           <Route path="/chart-of-accounts" element={<ChartOfAccountsPage />} />
           <Route path="/account-ledger" element={<AccountLedger />} />
           <Route path="/trial-balance" element={<TrialBalance />} />

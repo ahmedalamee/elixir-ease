@@ -67,6 +67,48 @@ export type Database = {
           },
         ]
       }
+      accounting_periods: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string | null
+          created_by: string | null
+          end_date: string
+          fiscal_year: number
+          id: string
+          is_closed: boolean
+          notes: string | null
+          period_name: string
+          start_date: string
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          end_date: string
+          fiscal_year: number
+          id?: string
+          is_closed?: boolean
+          notes?: string | null
+          period_name: string
+          start_date: string
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          end_date?: string
+          fiscal_year?: number
+          id?: string
+          is_closed?: boolean
+          notes?: string | null
+          period_name?: string
+          start_date?: string
+        }
+        Relationships: []
+      }
       audit_log: {
         Row: {
           changed_at: string
@@ -2656,6 +2698,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gl_journal_entries"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gl_journal_lines_journal_id_fkey"
+            columns: ["journal_id"]
+            isOneToOne: false
+            referencedRelation: "vw_document_gl_links"
+            referencedColumns: ["journal_entry_id"]
           },
         ]
       }
@@ -7264,6 +7313,29 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_document_gl_links: {
+        Row: {
+          document_amount: number | null
+          document_id: string | null
+          document_number: string | null
+          document_type: string | null
+          entry_date: string | null
+          error_message: string | null
+          id: string | null
+          is_posted: boolean | null
+          is_reversed: boolean | null
+          journal_description: string | null
+          journal_entry_id: string | null
+          journal_entry_number: string | null
+          link_status: string | null
+          linked_at: string | null
+          posting_date: string | null
+          source_module: string | null
+          total_credit: number | null
+          total_debit: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       analyze_inventory_turnover: {
@@ -7353,6 +7425,10 @@ export type Database = {
           warehouse_id: string
           warehouse_name: string
         }[]
+      }
+      close_pos_session_with_gl: {
+        Args: { p_closing_cash: number; p_session_id: string }
+        Returns: Json
       }
       convert_currency: {
         Args: {
@@ -7458,6 +7534,28 @@ export type Database = {
         Args: { p_end_date?: string; p_start_date?: string }
         Returns: Json
       }
+      get_open_accounting_period: {
+        Args: { p_date: string }
+        Returns: {
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string | null
+          created_by: string | null
+          end_date: string
+          fiscal_year: number
+          id: string
+          is_closed: boolean
+          notes: string | null
+          period_name: string
+          start_date: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "accounting_periods"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_operational_performance: {
         Args: { p_end_date?: string; p_start_date?: string }
         Returns: Json
@@ -7560,11 +7658,17 @@ export type Database = {
       post_cash_payment: { Args: { p_payment_id: string }; Returns: Json }
       post_cash_receipt: { Args: { p_receipt_id: string }; Returns: Json }
       post_customer_payment: { Args: { p_payment_id: string }; Returns: Json }
+      post_customer_receipt: { Args: { p_payment_id: string }; Returns: Json }
       post_goods_receipt: { Args: { p_grn_id: string }; Returns: Json }
       post_purchase_invoice: { Args: { p_invoice_id: string }; Returns: Json }
       post_purchase_return: { Args: { p_return_id: string }; Returns: Json }
       post_sales_invoice: { Args: { p_invoice_id: string }; Returns: Json }
       post_sales_return: { Args: { p_return_id: string }; Returns: Json }
+      post_stock_adjustment: {
+        Args: { p_adjustment_id: string }
+        Returns: Json
+      }
+      post_supplier_payment: { Args: { p_payment_id: string }; Returns: Json }
       process_system_events: {
         Args: never
         Returns: {
@@ -7581,6 +7685,7 @@ export type Database = {
         Returns: boolean
       }
       validate_admin_action: { Args: never; Returns: boolean }
+      validate_posting_period: { Args: { p_date: string }; Returns: boolean }
       validate_role_action: {
         Args: { required_roles: Database["public"]["Enums"]["app_role"][] }
         Returns: boolean

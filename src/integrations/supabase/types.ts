@@ -4177,6 +4177,8 @@ export type Database = {
           end_time: string | null
           expected_cash: number | null
           id: string
+          is_posted: boolean | null
+          journal_entry_id: string | null
           notes: string | null
           opening_cash: number
           session_date: string
@@ -4200,6 +4202,8 @@ export type Database = {
           end_time?: string | null
           expected_cash?: number | null
           id?: string
+          is_posted?: boolean | null
+          journal_entry_id?: string | null
           notes?: string | null
           opening_cash?: number
           session_date?: string
@@ -4223,6 +4227,8 @@ export type Database = {
           end_time?: string | null
           expected_cash?: number | null
           id?: string
+          is_posted?: boolean | null
+          journal_entry_id?: string | null
           notes?: string | null
           opening_cash?: number
           session_date?: string
@@ -4250,6 +4256,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_sessions_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "gl_journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_sessions_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "vw_document_gl_links"
+            referencedColumns: ["journal_entry_id"]
           },
           {
             foreignKeyName: "pos_sessions_shift_id_fkey"
@@ -5731,6 +5751,7 @@ export type Database = {
           payment_method_id: string | null
           payment_status: string
           payment_terms: string | null
+          pos_session_id: string | null
           posted_at: string | null
           posted_by: string | null
           status: string
@@ -5757,6 +5778,7 @@ export type Database = {
           payment_method_id?: string | null
           payment_status?: string
           payment_terms?: string | null
+          pos_session_id?: string | null
           posted_at?: string | null
           posted_by?: string | null
           status?: string
@@ -5783,6 +5805,7 @@ export type Database = {
           payment_method_id?: string | null
           payment_status?: string
           payment_terms?: string | null
+          pos_session_id?: string | null
           posted_at?: string | null
           posted_by?: string | null
           status?: string
@@ -5812,6 +5835,13 @@ export type Database = {
             columns: ["payment_method_id"]
             isOneToOne: false
             referencedRelation: "payment_methods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_invoices_pos_session_id_fkey"
+            columns: ["pos_session_id"]
+            isOneToOne: false
+            referencedRelation: "pos_sessions"
             referencedColumns: ["id"]
           },
           {
@@ -7534,10 +7564,6 @@ export type Database = {
           warehouse_name: string
         }[]
       }
-      close_pos_session_with_gl: {
-        Args: { p_closing_cash: number; p_session_id: string }
-        Returns: Json
-      }
       consume_fifo_layers: {
         Args: {
           p_product_id: string
@@ -7791,6 +7817,10 @@ export type Database = {
       post_customer_payment: { Args: { p_payment_id: string }; Returns: Json }
       post_customer_receipt: { Args: { p_payment_id: string }; Returns: Json }
       post_goods_receipt: { Args: { p_grn_id: string }; Returns: Json }
+      post_pos_session: {
+        Args: { p_closing_cash?: number; p_session_id: string }
+        Returns: Json
+      }
       post_purchase_invoice: { Args: { p_invoice_id: string }; Returns: Json }
       post_purchase_return: { Args: { p_return_id: string }; Returns: Json }
       post_sales_invoice: { Args: { p_invoice_id: string }; Returns: Json }

@@ -12,7 +12,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { DoorOpen, DoorClosed } from "lucide-react";
+import { postPosSession } from "@/lib/pos";
+import { DoorOpen, DoorClosed, Loader2, CheckCircle, AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface POSSessionDialogProps {
   open: boolean;
@@ -32,6 +34,14 @@ export const POSSessionDialog = ({
   const [closingCash, setClosingCash] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
+  const [postingResult, setPostingResult] = useState<{
+    success: boolean;
+    journalEntryNumber?: string;
+    totalCashSales?: number;
+    totalCardSales?: number;
+    totalCogs?: number;
+    message?: string;
+  } | null>(null);
 
   const handleOpenSession = async () => {
     if (!openingCash) {
@@ -50,10 +60,12 @@ export const POSSessionDialog = ({
 
       const { error } = await supabase.from("pos_sessions").insert({
         session_number: sessionNumber,
-        cashier_id: user?.id,
+        user_id: user?.id,
         opening_cash: parseFloat(openingCash),
         status: "open",
         notes,
+        session_date: new Date().toISOString().split("T")[0],
+        start_time: new Date().toISOString(),
       });
 
       if (error) throw error;
@@ -89,32 +101,51 @@ export const POSSessionDialog = ({
     }
 
     setLoading(true);
+    setPostingResult(null);
+    
     try {
-      const difference = parseFloat(closingCash) - (currentSession?.expected_cash || 0);
+      // Call the post_pos_session function which handles:
+      // 1. Aggregating all session sales
+      // 2. Calculating COGS using FIFO
+      // 3. Creating GL journal entries
+      // 4. Closing the session
+      const result = await postPosSession(
+        currentSession.id,
+        parseFloat(closingCash)
+      );
 
-      const { error } = await supabase
-        .from("pos_sessions")
-        .update({
-          closing_cash: parseFloat(closingCash),
-          difference,
-          status: "closed",
-          closed_at: new Date().toISOString(),
-        })
-        .eq("id", currentSession.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "تم إغلاق الجلسة",
-        description: `الفرق: ${difference.toFixed(2)} ر.س`,
+      setPostingResult({
+        success: result.success,
+        journalEntryNumber: result.journalEntryNumber,
+        totalCashSales: result.totalCashSales,
+        totalCardSales: result.totalCardSales,
+        totalCogs: result.totalCogs,
+        message: result.message,
       });
 
-      onSessionUpdate();
-      onOpenChange(false);
-      setClosingCash("");
-    } catch (error: any) {
       toast({
-        title: "خطأ",
+        title: "✅ تم إغلاق وترحيل الجلسة",
+        description: result.journalEntryNumber 
+          ? `قيد يومية رقم: ${result.journalEntryNumber}`
+          : result.message,
+      });
+
+      // Wait a moment to show the result before closing
+      setTimeout(() => {
+        onSessionUpdate();
+        onOpenChange(false);
+        setClosingCash("");
+        setPostingResult(null);
+      }, 2000);
+
+    } catch (error: any) {
+      setPostingResult({
+        success: false,
+        message: error.message,
+      });
+      
+      toast({
+        title: "خطأ في ترحيل الجلسة",
         description: error.message,
         variant: "destructive",
       });
@@ -131,7 +162,7 @@ export const POSSessionDialog = ({
             {currentSession ? (
               <>
                 <DoorClosed className="w-5 h-5" />
-                إغلاق الجلسة
+                إغلاق وترحيل الجلسة
               </>
             ) : (
               <>
@@ -168,8 +199,45 @@ export const POSSessionDialog = ({
                   onChange={(e) => setClosingCash(e.target.value)}
                   placeholder="0.00"
                   className="text-right"
+                  disabled={loading}
                 />
               </div>
+
+              {/* Posting Result Display */}
+              {postingResult && (
+                <Alert variant={postingResult.success ? "default" : "destructive"}>
+                  <div className="flex items-center gap-2">
+                    {postingResult.success ? (
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <AlertTriangle className="h-4 w-4" />
+                    )}
+                    <AlertDescription>
+                      {postingResult.success ? (
+                        <div className="space-y-1 text-sm">
+                          <p className="font-medium text-green-600">
+                            تم الترحيل بنجاح
+                          </p>
+                          {postingResult.journalEntryNumber && (
+                            <p>قيد يومية: {postingResult.journalEntryNumber}</p>
+                          )}
+                          {(postingResult.totalCashSales || 0) > 0 && (
+                            <p>مبيعات نقدية: {postingResult.totalCashSales?.toFixed(2)} ر.س</p>
+                          )}
+                          {(postingResult.totalCardSales || 0) > 0 && (
+                            <p>مبيعات بطاقة: {postingResult.totalCardSales?.toFixed(2)} ر.س</p>
+                          )}
+                          {(postingResult.totalCogs || 0) > 0 && (
+                            <p>تكلفة البضاعة: {postingResult.totalCogs?.toFixed(2)} ر.س</p>
+                          )}
+                        </div>
+                      ) : (
+                        <p>{postingResult.message}</p>
+                      )}
+                    </AlertDescription>
+                  </div>
+                </Alert>
+              )}
             </>
           ) : (
             <>
@@ -183,6 +251,7 @@ export const POSSessionDialog = ({
                   onChange={(e) => setOpeningCash(e.target.value)}
                   placeholder="0.00"
                   className="text-right"
+                  disabled={loading}
                 />
               </div>
               <div className="space-y-2">
@@ -193,6 +262,7 @@ export const POSSessionDialog = ({
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="ملاحظات اختيارية..."
                   className="text-right"
+                  disabled={loading}
                 />
               </div>
             </>
@@ -200,14 +270,27 @@ export const POSSessionDialog = ({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button 
+            variant="outline" 
+            onClick={() => onOpenChange(false)}
+            disabled={loading}
+          >
             إلغاء
           </Button>
           <Button
             onClick={currentSession ? handleCloseSession : handleOpenSession}
-            disabled={loading}
+            disabled={loading || (postingResult?.success === true)}
           >
-            {loading ? "جارٍ الحفظ..." : currentSession ? "إغلاق الجلسة" : "فتح الجلسة"}
+            {loading ? (
+              <>
+                <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                جارٍ المعالجة...
+              </>
+            ) : currentSession ? (
+              "إغلاق وترحيل الجلسة"
+            ) : (
+              "فتح الجلسة"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

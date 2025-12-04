@@ -2305,10 +2305,57 @@ export async function getSupplierStatement(
 }
 
 // ============================================================================
-// VAT RETURNS FUNCTIONS (Phase 5)
+// VAT RETURNS TYPES & FUNCTIONS (Phase 5)
 // ============================================================================
 
-export interface VatReturnSummary {
+/**
+ * Tax Period interface - matches tax_periods table
+ */
+export interface TaxPeriod {
+  id: string;
+  period_number: string;
+  start_date: string;
+  end_date: string;
+  period_type: string;
+  status: string;
+}
+
+/**
+ * VAT Return Record interface - matches vat_returns table with joined tax_periods
+ */
+export interface VatReturnRecord {
+  id: string;
+  return_number: string;
+  filing_date: string | null;
+  tax_period_id: string | null;
+  total_sales: number | null;
+  total_purchases: number | null;
+  standard_rated_sales: number | null;
+  standard_rated_purchases: number | null;
+  zero_rated_sales: number | null;
+  zero_rated_purchases: number | null;
+  exempt_sales: number | null;
+  exempt_purchases: number | null;
+  output_vat: number | null;
+  input_vat: number | null;
+  corrections: number | null;
+  net_vat: number | null;
+  amount_due: number | null;
+  status: 'draft' | 'submitted' | 'approved' | 'rejected';
+  notes?: string | null;
+  created_at?: string;
+  submitted_at?: string | null;
+  submitted_by?: string | null;
+  approved_at?: string | null;
+  submission_reference?: string | null;
+  // Joined relation from tax_periods
+  tax_periods?: TaxPeriod | null;
+}
+
+/**
+ * Generated VAT Return Result - returned from generateVatReturn function
+ */
+export interface GeneratedVatReturnResult {
   id: string;
   periodStart: string;
   periodEnd: string;
@@ -2318,6 +2365,9 @@ export interface VatReturnSummary {
   status: string;
   returnNumber: string;
 }
+
+// Alias for backward compatibility
+export type VatReturnSummary = GeneratedVatReturnResult;
 
 /**
  * Generate VAT Return for a period

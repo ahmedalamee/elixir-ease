@@ -278,6 +278,11 @@ export const menuTree: TreeMenuItem[] = [
         route: "/accounting/account-mappings",
       },
       {
+        id: "accounting-opening-balances",
+        label: "الأرصدة الافتتاحية",
+        route: "/accounting/opening-balances",
+      },
+      {
         id: "accounting-journal-entries",
         label: "قيود اليومية",
         route: "/accounting/journal-entries",

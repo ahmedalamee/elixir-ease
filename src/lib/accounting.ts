@@ -1714,29 +1714,33 @@ export async function performYearEndClosing(
 // ============================================================================
 
 /**
- * Customer Aging row interface
+ * Customer Aging row interface (6 buckets)
  */
 export interface CustomerAgingRow {
   customerId: string;
   customerName: string;
-  totalBalance: number;
-  current: number;      // 0-30 days
-  d31_60: number;       // 31-60 days
-  d61_90: number;       // 61-90 days
-  over90: number;       // 90+ days
+  currentAmount: number;    // Not yet due (days <= 0)
+  bucket1_30: number;       // 1-30 days overdue
+  bucket31_60: number;      // 31-60 days overdue
+  bucket61_90: number;      // 61-90 days overdue
+  bucket91_120: number;     // 91-120 days overdue
+  bucketOver120: number;    // Over 120 days
+  totalOutstanding: number; // Total outstanding balance
 }
 
 /**
- * Supplier Aging row interface
+ * Supplier Aging row interface (6 buckets)
  */
 export interface SupplierAgingRow {
   supplierId: string;
   supplierName: string;
-  totalBalance: number;
-  current: number;      // 0-30 days
-  d31_60: number;       // 31-60 days
-  d61_90: number;       // 61-90 days
-  over90: number;       // 90+ days
+  currentAmount: number;    // Not yet due (days <= 0)
+  bucket1_30: number;       // 1-30 days overdue
+  bucket31_60: number;      // 31-60 days overdue
+  bucket61_90: number;      // 61-90 days overdue
+  bucket91_120: number;     // 91-120 days overdue
+  bucketOver120: number;    // Over 120 days
+  totalOutstanding: number; // Total outstanding balance
 }
 
 /**
@@ -1769,309 +1773,56 @@ export interface StatementResult {
 
 /**
  * Get Customer Aging Report
- * Calculates aged receivables for all customers with outstanding balances
+ * Uses SQL RPC function for optimized calculation with 6 aging buckets
  */
 export async function getCustomerAging(asOfDate: string): Promise<CustomerAgingRow[]> {
-  // Fetch all sales invoices that are posted but not fully paid
-  const { data: invoices, error: invError } = await supabase
-    .from("sales_invoices")
-    .select(`
-      id,
-      invoice_number,
-      invoice_date,
-      grand_total,
-      paid_amount,
-      customer_id,
-      customers(id, name)
-    `)
-    .eq("status", "posted")
-    .lte("invoice_date", asOfDate);
+  const { data, error } = await supabase.rpc("get_customer_aging", {
+    p_as_of_date: asOfDate || new Date().toISOString().split("T")[0],
+  });
 
-  if (invError) {
-    console.error("Error fetching sales invoices:", invError);
-    throw invError;
+  if (error) {
+    console.error("خطأ في جلب تقرير أعمار ديون العملاء:", error);
+    throw error;
   }
 
-  // Fetch customer payments
-  const { data: payments, error: payError } = await supabase
-    .from("customer_payments")
-    .select(`
-      id,
-      customer_id,
-      amount,
-      payment_date
-    `)
-    .eq("status", "posted")
-    .lte("payment_date", asOfDate);
-
-  if (payError) {
-    console.error("Error fetching customer payments:", payError);
-    throw payError;
-  }
-
-  // Fetch sales returns
-  const { data: returns, error: retError } = await supabase
-    .from("sales_returns")
-    .select(`
-      id,
-      customer_id,
-      refund_amount,
-      return_date
-    `)
-    .eq("status", "posted")
-    .lte("return_date", asOfDate);
-
-  if (retError) {
-    console.error("Error fetching sales returns:", retError);
-    throw retError;
-  }
-
-  // Group by customer and calculate aging buckets
-  const customerBalances = new Map<string, {
-    customerId: string;
-    customerName: string;
-    invoices: Array<{ amount: number; date: string }>;
-    totalPayments: number;
-    totalReturns: number;
-  }>();
-
-  // Process invoices
-  (invoices || []).forEach((inv: any) => {
-    const customerId = inv.customer_id;
-    if (!customerId) return;
-
-    const existing = customerBalances.get(customerId) || {
-      customerId,
-      customerName: inv.customers?.name || "غير محدد",
-      invoices: [],
-      totalPayments: 0,
-      totalReturns: 0,
-    };
-
-    const outstanding = (inv.grand_total || 0) - (inv.paid_amount || 0);
-    if (outstanding > 0) {
-      existing.invoices.push({ amount: outstanding, date: inv.invoice_date });
-    }
-
-    customerBalances.set(customerId, existing);
-  });
-
-  // Process payments
-  (payments || []).forEach((pay: any) => {
-    const existing = customerBalances.get(pay.customer_id);
-    if (existing) {
-      existing.totalPayments += pay.amount || 0;
-    }
-  });
-
-  // Process returns
-  (returns || []).forEach((ret: any) => {
-    const existing = customerBalances.get(ret.customer_id);
-    if (existing) {
-      existing.totalReturns += ret.refund_amount || 0;
-    }
-  });
-
-  // Calculate aging buckets
-  const result: CustomerAgingRow[] = [];
-  const asOfDateObj = new Date(asOfDate);
-
-  customerBalances.forEach((customer) => {
-    let current = 0;
-    let d31_60 = 0;
-    let d61_90 = 0;
-    let over90 = 0;
-
-    customer.invoices.forEach((inv) => {
-      const invDate = new Date(inv.date);
-      const daysDiff = Math.floor((asOfDateObj.getTime() - invDate.getTime()) / (1000 * 60 * 60 * 24));
-
-      if (daysDiff <= 30) {
-        current += inv.amount;
-      } else if (daysDiff <= 60) {
-        d31_60 += inv.amount;
-      } else if (daysDiff <= 90) {
-        d61_90 += inv.amount;
-      } else {
-        over90 += inv.amount;
-      }
-    });
-
-    const totalBalance = current + d31_60 + d61_90 + over90;
-
-    // Only include customers with positive balance
-    if (totalBalance > 0.01) {
-      result.push({
-        customerId: customer.customerId,
-        customerName: customer.customerName,
-        totalBalance,
-        current,
-        d31_60,
-        d61_90,
-        over90,
-      });
-    }
-  });
-
-  // Sort by total balance descending
-  result.sort((a, b) => b.totalBalance - a.totalBalance);
-
-  return result;
+  return (data || []).map((row: any) => ({
+    customerId: row.customer_id,
+    customerName: row.customer_name || "غير محدد",
+    currentAmount: Number(row.current_amount) || 0,
+    bucket1_30: Number(row.bucket_1_30) || 0,
+    bucket31_60: Number(row.bucket_31_60) || 0,
+    bucket61_90: Number(row.bucket_61_90) || 0,
+    bucket91_120: Number(row.bucket_91_120) || 0,
+    bucketOver120: Number(row.bucket_over_120) || 0,
+    totalOutstanding: Number(row.total_outstanding) || 0,
+  }));
 }
 
 /**
  * Get Supplier Aging Report
- * Calculates aged payables for all suppliers with outstanding balances
+ * Uses SQL RPC function for optimized calculation with 6 aging buckets
  */
 export async function getSupplierAging(asOfDate: string): Promise<SupplierAgingRow[]> {
-  // Fetch all purchase invoices that are posted but not fully paid
-  const { data: invoices, error: invError } = await supabase
-    .from("purchase_invoices")
-    .select(`
-      id,
-      invoice_number,
-      invoice_date,
-      total_amount,
-      paid_amount,
-      supplier_id,
-      suppliers(id, name)
-    `)
-    .eq("status", "posted")
-    .lte("invoice_date", asOfDate);
+  const { data, error } = await supabase.rpc("get_supplier_aging", {
+    p_as_of_date: asOfDate || new Date().toISOString().split("T")[0],
+  });
 
-  if (invError) {
-    console.error("Error fetching purchase invoices:", invError);
-    throw invError;
+  if (error) {
+    console.error("خطأ في جلب تقرير أعمار ديون الموردين:", error);
+    throw error;
   }
 
-  // Fetch supplier payments (cash_payments)
-  const { data: payments, error: payError } = await supabase
-    .from("cash_payments")
-    .select(`
-      id,
-      supplier_id,
-      amount,
-      payment_date
-    `)
-    .eq("status", "posted")
-    .not("supplier_id", "is", null)
-    .lte("payment_date", asOfDate);
-
-  if (payError) {
-    console.error("Error fetching supplier payments:", payError);
-    throw payError;
-  }
-
-  // Fetch purchase returns
-  const { data: returns, error: retError } = await supabase
-    .from("purchase_returns")
-    .select(`
-      id,
-      supplier_id,
-      refund_amount,
-      return_date
-    `)
-    .eq("status", "posted")
-    .lte("return_date", asOfDate);
-
-  if (retError) {
-    console.error("Error fetching purchase returns:", retError);
-    throw retError;
-  }
-
-  // Group by supplier and calculate aging buckets
-  const supplierBalances = new Map<string, {
-    supplierId: string;
-    supplierName: string;
-    invoices: Array<{ amount: number; date: string }>;
-    totalPayments: number;
-    totalReturns: number;
-  }>();
-
-  // Process invoices
-  (invoices || []).forEach((inv: any) => {
-    const supplierId = inv.supplier_id;
-    if (!supplierId) return;
-
-    const existing = supplierBalances.get(supplierId) || {
-      supplierId,
-      supplierName: inv.suppliers?.name || "غير محدد",
-      invoices: [],
-      totalPayments: 0,
-      totalReturns: 0,
-    };
-
-    const outstanding = (inv.total_amount || 0) - (inv.paid_amount || 0);
-    if (outstanding > 0) {
-      existing.invoices.push({ amount: outstanding, date: inv.invoice_date });
-    }
-
-    supplierBalances.set(supplierId, existing);
-  });
-
-  // Process payments
-  (payments || []).forEach((pay: any) => {
-    if (!pay.supplier_id) return;
-    const existing = supplierBalances.get(pay.supplier_id);
-    if (existing) {
-      existing.totalPayments += pay.amount || 0;
-    }
-  });
-
-  // Process returns
-  (returns || []).forEach((ret: any) => {
-    if (!ret.supplier_id) return;
-    const existing = supplierBalances.get(ret.supplier_id);
-    if (existing) {
-      existing.totalReturns += ret.refund_amount || 0;
-    }
-  });
-
-  // Calculate aging buckets
-  const result: SupplierAgingRow[] = [];
-  const asOfDateObj = new Date(asOfDate);
-
-  supplierBalances.forEach((supplier) => {
-    let current = 0;
-    let d31_60 = 0;
-    let d61_90 = 0;
-    let over90 = 0;
-
-    supplier.invoices.forEach((inv) => {
-      const invDate = new Date(inv.date);
-      const daysDiff = Math.floor((asOfDateObj.getTime() - invDate.getTime()) / (1000 * 60 * 60 * 24));
-
-      if (daysDiff <= 30) {
-        current += inv.amount;
-      } else if (daysDiff <= 60) {
-        d31_60 += inv.amount;
-      } else if (daysDiff <= 90) {
-        d61_90 += inv.amount;
-      } else {
-        over90 += inv.amount;
-      }
-    });
-
-    const totalBalance = current + d31_60 + d61_90 + over90;
-
-    // Only include suppliers with positive balance
-    if (totalBalance > 0.01) {
-      result.push({
-        supplierId: supplier.supplierId,
-        supplierName: supplier.supplierName,
-        totalBalance,
-        current,
-        d31_60,
-        d61_90,
-        over90,
-      });
-    }
-  });
-
-  // Sort by total balance descending
-  result.sort((a, b) => b.totalBalance - a.totalBalance);
-
-  return result;
+  return (data || []).map((row: any) => ({
+    supplierId: row.supplier_id,
+    supplierName: row.supplier_name || "غير محدد",
+    currentAmount: Number(row.current_amount) || 0,
+    bucket1_30: Number(row.bucket_1_30) || 0,
+    bucket31_60: Number(row.bucket_31_60) || 0,
+    bucket61_90: Number(row.bucket_61_90) || 0,
+    bucket91_120: Number(row.bucket_91_120) || 0,
+    bucketOver120: Number(row.bucket_over_120) || 0,
+    totalOutstanding: Number(row.total_outstanding) || 0,
+  }));
 }
 
 /**

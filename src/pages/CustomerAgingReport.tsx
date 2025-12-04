@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -17,12 +18,13 @@ import {
   TableFooter,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Download, Users, Search, RefreshCw } from "lucide-react";
+import { Download, Users, Search, RefreshCw, AlertTriangle } from "lucide-react";
 
 const CustomerAgingReport = () => {
   const { hasAnyRole } = useUserRole();
   const [asOfDate, setAsOfDate] = useState(new Date().toISOString().split("T")[0]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showOnlyWithBalance, setShowOnlyWithBalance] = useState(true);
 
   const canView = hasAnyRole(["admin", "pharmacist", "inventory_manager"]);
 
@@ -36,19 +38,25 @@ const CustomerAgingReport = () => {
     enabled: canView,
   });
 
-  const filteredData = (agingData || []).filter((row) =>
-    row.customerName.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter data based on search and toggle
+  const filteredData = (agingData || []).filter((row) => {
+    const matchesSearch = row.customerName.toLowerCase().includes(searchTerm.toLowerCase());
+    const hasBalance = showOnlyWithBalance ? row.totalOutstanding > 0.01 : true;
+    return matchesSearch && hasBalance;
+  });
 
+  // Calculate totals
   const totals = filteredData.reduce(
     (acc, row) => ({
-      totalBalance: acc.totalBalance + row.totalBalance,
-      current: acc.current + row.current,
-      d31_60: acc.d31_60 + row.d31_60,
-      d61_90: acc.d61_90 + row.d61_90,
-      over90: acc.over90 + row.over90,
+      currentAmount: acc.currentAmount + row.currentAmount,
+      bucket1_30: acc.bucket1_30 + row.bucket1_30,
+      bucket31_60: acc.bucket31_60 + row.bucket31_60,
+      bucket61_90: acc.bucket61_90 + row.bucket61_90,
+      bucket91_120: acc.bucket91_120 + row.bucket91_120,
+      bucketOver120: acc.bucketOver120 + row.bucketOver120,
+      totalOutstanding: acc.totalOutstanding + row.totalOutstanding,
     }),
-    { totalBalance: 0, current: 0, d31_60: 0, d61_90: 0, over90: 0 }
+    { currentAmount: 0, bucket1_30: 0, bucket31_60: 0, bucket61_90: 0, bucket91_120: 0, bucketOver120: 0, totalOutstanding: 0 }
   );
 
   const exportToCSV = () => {
@@ -57,24 +65,28 @@ const CustomerAgingReport = () => {
       return;
     }
 
-    const headers = ["العميل", "الإجمالي", "0-30 يوم", "31-60 يوم", "61-90 يوم", "أكثر من 90 يوم"];
+    const headers = ["العميل", "الإجمالي", "غير مستحق", "1-30 يوم", "31-60 يوم", "61-90 يوم", "91-120 يوم", "أكثر من 120 يوم"];
     const rows = filteredData.map((row) => [
       row.customerName,
-      row.totalBalance.toFixed(2),
-      row.current.toFixed(2),
-      row.d31_60.toFixed(2),
-      row.d61_90.toFixed(2),
-      row.over90.toFixed(2),
+      row.totalOutstanding.toFixed(2),
+      row.currentAmount.toFixed(2),
+      row.bucket1_30.toFixed(2),
+      row.bucket31_60.toFixed(2),
+      row.bucket61_90.toFixed(2),
+      row.bucket91_120.toFixed(2),
+      row.bucketOver120.toFixed(2),
     ]);
 
     // Add totals row
     rows.push([
       "الإجمالي",
-      totals.totalBalance.toFixed(2),
-      totals.current.toFixed(2),
-      totals.d31_60.toFixed(2),
-      totals.d61_90.toFixed(2),
-      totals.over90.toFixed(2),
+      totals.totalOutstanding.toFixed(2),
+      totals.currentAmount.toFixed(2),
+      totals.bucket1_30.toFixed(2),
+      totals.bucket31_60.toFixed(2),
+      totals.bucket61_90.toFixed(2),
+      totals.bucket91_120.toFixed(2),
+      totals.bucketOver120.toFixed(2),
     ]);
 
     const csvContent =
@@ -108,6 +120,7 @@ const CustomerAgingReport = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="p-8 space-y-6">
+        {/* Header */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
@@ -143,11 +156,59 @@ const CustomerAgingReport = () => {
                   />
                 </div>
               </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="show-balance"
+                  checked={showOnlyWithBalance}
+                  onCheckedChange={setShowOnlyWithBalance}
+                />
+                <Label htmlFor="show-balance" className="text-sm">أرصدة مستحقة فقط</Label>
+              </div>
               <Button onClick={() => refetch()} variant="outline">
                 <RefreshCw className="h-4 w-4 ml-2" />
                 تحديث
               </Button>
             </div>
+
+            {/* Summary Cards */}
+            {filteredData.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card className="bg-muted/30">
+                  <CardContent className="p-4">
+                    <div className="text-sm text-muted-foreground">عدد العملاء</div>
+                    <div className="text-2xl font-bold">{filteredData.length}</div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-muted/30">
+                  <CardContent className="p-4">
+                    <div className="text-sm text-muted-foreground">إجمالي المستحقات</div>
+                    <div className="text-2xl font-bold">{formatNumber(totals.totalOutstanding)}</div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-orange-500/10 border-orange-500/20">
+                  <CardContent className="p-4">
+                    <div className="text-sm text-orange-600 flex items-center gap-1">
+                      <AlertTriangle className="h-4 w-4" />
+                      متأخرات (31+ يوم)
+                    </div>
+                    <div className="text-2xl font-bold text-orange-600">
+                      {formatNumber(totals.bucket31_60 + totals.bucket61_90 + totals.bucket91_120 + totals.bucketOver120)}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-red-500/10 border-red-500/20">
+                  <CardContent className="p-4">
+                    <div className="text-sm text-red-600 flex items-center gap-1">
+                      <AlertTriangle className="h-4 w-4" />
+                      حرجة (120+ يوم)
+                    </div>
+                    <div className="text-2xl font-bold text-red-600">
+                      {formatNumber(totals.bucketOver120)}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
             {/* Data Table */}
             {isLoading ? (
@@ -157,32 +218,38 @@ const CustomerAgingReport = () => {
                 لا توجد ديون مستحقة حتى هذا التاريخ
               </div>
             ) : (
-              <div className="rounded-md border">
+              <div className="rounded-md border overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead className="text-right">العميل</TableHead>
                       <TableHead className="text-left">الإجمالي</TableHead>
-                      <TableHead className="text-left">0-30 يوم</TableHead>
+                      <TableHead className="text-left">غير مستحق</TableHead>
+                      <TableHead className="text-left">1-30 يوم</TableHead>
                       <TableHead className="text-left">31-60 يوم</TableHead>
                       <TableHead className="text-left">61-90 يوم</TableHead>
-                      <TableHead className="text-left">90+ يوم</TableHead>
+                      <TableHead className="text-left">91-120 يوم</TableHead>
+                      <TableHead className="text-left">120+ يوم</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredData.map((row) => (
                       <TableRow key={row.customerId}>
                         <TableCell className="font-medium">{row.customerName}</TableCell>
-                        <TableCell className="font-semibold">{formatNumber(row.totalBalance)}</TableCell>
-                        <TableCell>{formatNumber(row.current)}</TableCell>
-                        <TableCell className={row.d31_60 > 0 ? "text-yellow-600" : ""}>
-                          {formatNumber(row.d31_60)}
+                        <TableCell className="font-semibold">{formatNumber(row.totalOutstanding)}</TableCell>
+                        <TableCell className="text-green-600">{formatNumber(row.currentAmount)}</TableCell>
+                        <TableCell>{formatNumber(row.bucket1_30)}</TableCell>
+                        <TableCell className={row.bucket31_60 > 0 ? "text-yellow-600" : ""}>
+                          {formatNumber(row.bucket31_60)}
                         </TableCell>
-                        <TableCell className={row.d61_90 > 0 ? "text-orange-600" : ""}>
-                          {formatNumber(row.d61_90)}
+                        <TableCell className={row.bucket61_90 > 0 ? "text-orange-600" : ""}>
+                          {formatNumber(row.bucket61_90)}
                         </TableCell>
-                        <TableCell className={row.over90 > 0 ? "text-red-600 font-semibold" : ""}>
-                          {formatNumber(row.over90)}
+                        <TableCell className={row.bucket91_120 > 0 ? "text-orange-700 font-medium" : ""}>
+                          {formatNumber(row.bucket91_120)}
+                        </TableCell>
+                        <TableCell className={row.bucketOver120 > 0 ? "text-red-600 font-semibold" : ""}>
+                          {formatNumber(row.bucketOver120)}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -190,11 +257,13 @@ const CustomerAgingReport = () => {
                   <TableFooter>
                     <TableRow className="bg-muted/50 font-bold">
                       <TableCell>الإجمالي</TableCell>
-                      <TableCell>{formatNumber(totals.totalBalance)}</TableCell>
-                      <TableCell>{formatNumber(totals.current)}</TableCell>
-                      <TableCell>{formatNumber(totals.d31_60)}</TableCell>
-                      <TableCell>{formatNumber(totals.d61_90)}</TableCell>
-                      <TableCell>{formatNumber(totals.over90)}</TableCell>
+                      <TableCell>{formatNumber(totals.totalOutstanding)}</TableCell>
+                      <TableCell>{formatNumber(totals.currentAmount)}</TableCell>
+                      <TableCell>{formatNumber(totals.bucket1_30)}</TableCell>
+                      <TableCell>{formatNumber(totals.bucket31_60)}</TableCell>
+                      <TableCell>{formatNumber(totals.bucket61_90)}</TableCell>
+                      <TableCell>{formatNumber(totals.bucket91_120)}</TableCell>
+                      <TableCell>{formatNumber(totals.bucketOver120)}</TableCell>
                     </TableRow>
                   </TableFooter>
                 </Table>

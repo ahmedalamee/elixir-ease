@@ -313,6 +313,26 @@ export const menuTree: TreeMenuItem[] = [
         route: "/balance-sheet",
       },
       {
+        id: "accounting-ar-aging",
+        label: "أعمار ديون العملاء",
+        route: "/accounting/ar-aging",
+      },
+      {
+        id: "accounting-ap-aging",
+        label: "أعمار ديون الموردين",
+        route: "/accounting/ap-aging",
+      },
+      {
+        id: "accounting-customer-statement",
+        label: "كشف حساب عميل",
+        route: "/accounting/customer-statement",
+      },
+      {
+        id: "accounting-supplier-statement",
+        label: "كشف حساب مورد",
+        route: "/accounting/supplier-statement",
+      },
+      {
         id: "accounting-cost-centers",
         label: "مراكز التكلفة",
         route: "/cost-centers",

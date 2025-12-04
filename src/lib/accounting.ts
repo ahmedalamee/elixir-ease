@@ -1606,3 +1606,856 @@ export async function performYearEndClosing(
     netIncome,
   };
 }
+
+// ============================================================================
+// AR/AP SUBLEDGER REPORTS (Phase 4)
+// ============================================================================
+
+/**
+ * Customer Aging row interface
+ */
+export interface CustomerAgingRow {
+  customerId: string;
+  customerName: string;
+  totalBalance: number;
+  current: number;      // 0-30 days
+  d31_60: number;       // 31-60 days
+  d61_90: number;       // 61-90 days
+  over90: number;       // 90+ days
+}
+
+/**
+ * Supplier Aging row interface
+ */
+export interface SupplierAgingRow {
+  supplierId: string;
+  supplierName: string;
+  totalBalance: number;
+  current: number;      // 0-30 days
+  d31_60: number;       // 31-60 days
+  d61_90: number;       // 61-90 days
+  over90: number;       // 90+ days
+}
+
+/**
+ * Statement transaction row
+ */
+export interface StatementTransaction {
+  date: string;
+  documentType: string;
+  documentNumber: string;
+  description: string;
+  debit: number;
+  credit: number;
+  balanceAfter: number;
+}
+
+/**
+ * Customer/Supplier statement result
+ */
+export interface StatementResult {
+  entityId: string;
+  entityName: string;
+  fromDate: string;
+  toDate: string;
+  openingBalance: number;
+  transactions: StatementTransaction[];
+  closingBalance: number;
+  totalDebit: number;
+  totalCredit: number;
+}
+
+/**
+ * Get Customer Aging Report
+ * Calculates aged receivables for all customers with outstanding balances
+ */
+export async function getCustomerAging(asOfDate: string): Promise<CustomerAgingRow[]> {
+  // Fetch all sales invoices that are posted but not fully paid
+  const { data: invoices, error: invError } = await supabase
+    .from("sales_invoices")
+    .select(`
+      id,
+      invoice_number,
+      invoice_date,
+      grand_total,
+      paid_amount,
+      customer_id,
+      customers(id, name)
+    `)
+    .eq("status", "posted")
+    .lte("invoice_date", asOfDate);
+
+  if (invError) {
+    console.error("Error fetching sales invoices:", invError);
+    throw invError;
+  }
+
+  // Fetch customer payments
+  const { data: payments, error: payError } = await supabase
+    .from("customer_payments")
+    .select(`
+      id,
+      customer_id,
+      amount,
+      payment_date
+    `)
+    .eq("status", "posted")
+    .lte("payment_date", asOfDate);
+
+  if (payError) {
+    console.error("Error fetching customer payments:", payError);
+    throw payError;
+  }
+
+  // Fetch sales returns
+  const { data: returns, error: retError } = await supabase
+    .from("sales_returns")
+    .select(`
+      id,
+      customer_id,
+      refund_amount,
+      return_date
+    `)
+    .eq("status", "posted")
+    .lte("return_date", asOfDate);
+
+  if (retError) {
+    console.error("Error fetching sales returns:", retError);
+    throw retError;
+  }
+
+  // Group by customer and calculate aging buckets
+  const customerBalances = new Map<string, {
+    customerId: string;
+    customerName: string;
+    invoices: Array<{ amount: number; date: string }>;
+    totalPayments: number;
+    totalReturns: number;
+  }>();
+
+  // Process invoices
+  (invoices || []).forEach((inv: any) => {
+    const customerId = inv.customer_id;
+    if (!customerId) return;
+
+    const existing = customerBalances.get(customerId) || {
+      customerId,
+      customerName: inv.customers?.name || "غير محدد",
+      invoices: [],
+      totalPayments: 0,
+      totalReturns: 0,
+    };
+
+    const outstanding = (inv.grand_total || 0) - (inv.paid_amount || 0);
+    if (outstanding > 0) {
+      existing.invoices.push({ amount: outstanding, date: inv.invoice_date });
+    }
+
+    customerBalances.set(customerId, existing);
+  });
+
+  // Process payments
+  (payments || []).forEach((pay: any) => {
+    const existing = customerBalances.get(pay.customer_id);
+    if (existing) {
+      existing.totalPayments += pay.amount || 0;
+    }
+  });
+
+  // Process returns
+  (returns || []).forEach((ret: any) => {
+    const existing = customerBalances.get(ret.customer_id);
+    if (existing) {
+      existing.totalReturns += ret.refund_amount || 0;
+    }
+  });
+
+  // Calculate aging buckets
+  const result: CustomerAgingRow[] = [];
+  const asOfDateObj = new Date(asOfDate);
+
+  customerBalances.forEach((customer) => {
+    let current = 0;
+    let d31_60 = 0;
+    let d61_90 = 0;
+    let over90 = 0;
+
+    customer.invoices.forEach((inv) => {
+      const invDate = new Date(inv.date);
+      const daysDiff = Math.floor((asOfDateObj.getTime() - invDate.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (daysDiff <= 30) {
+        current += inv.amount;
+      } else if (daysDiff <= 60) {
+        d31_60 += inv.amount;
+      } else if (daysDiff <= 90) {
+        d61_90 += inv.amount;
+      } else {
+        over90 += inv.amount;
+      }
+    });
+
+    const totalBalance = current + d31_60 + d61_90 + over90;
+
+    // Only include customers with positive balance
+    if (totalBalance > 0.01) {
+      result.push({
+        customerId: customer.customerId,
+        customerName: customer.customerName,
+        totalBalance,
+        current,
+        d31_60,
+        d61_90,
+        over90,
+      });
+    }
+  });
+
+  // Sort by total balance descending
+  result.sort((a, b) => b.totalBalance - a.totalBalance);
+
+  return result;
+}
+
+/**
+ * Get Supplier Aging Report
+ * Calculates aged payables for all suppliers with outstanding balances
+ */
+export async function getSupplierAging(asOfDate: string): Promise<SupplierAgingRow[]> {
+  // Fetch all purchase invoices that are posted but not fully paid
+  const { data: invoices, error: invError } = await supabase
+    .from("purchase_invoices")
+    .select(`
+      id,
+      invoice_number,
+      invoice_date,
+      total_amount,
+      paid_amount,
+      supplier_id,
+      suppliers(id, name)
+    `)
+    .eq("status", "posted")
+    .lte("invoice_date", asOfDate);
+
+  if (invError) {
+    console.error("Error fetching purchase invoices:", invError);
+    throw invError;
+  }
+
+  // Fetch supplier payments (cash_payments)
+  const { data: payments, error: payError } = await supabase
+    .from("cash_payments")
+    .select(`
+      id,
+      supplier_id,
+      amount,
+      payment_date
+    `)
+    .eq("status", "posted")
+    .not("supplier_id", "is", null)
+    .lte("payment_date", asOfDate);
+
+  if (payError) {
+    console.error("Error fetching supplier payments:", payError);
+    throw payError;
+  }
+
+  // Fetch purchase returns
+  const { data: returns, error: retError } = await supabase
+    .from("purchase_returns")
+    .select(`
+      id,
+      supplier_id,
+      refund_amount,
+      return_date
+    `)
+    .eq("status", "posted")
+    .lte("return_date", asOfDate);
+
+  if (retError) {
+    console.error("Error fetching purchase returns:", retError);
+    throw retError;
+  }
+
+  // Group by supplier and calculate aging buckets
+  const supplierBalances = new Map<string, {
+    supplierId: string;
+    supplierName: string;
+    invoices: Array<{ amount: number; date: string }>;
+    totalPayments: number;
+    totalReturns: number;
+  }>();
+
+  // Process invoices
+  (invoices || []).forEach((inv: any) => {
+    const supplierId = inv.supplier_id;
+    if (!supplierId) return;
+
+    const existing = supplierBalances.get(supplierId) || {
+      supplierId,
+      supplierName: inv.suppliers?.name || "غير محدد",
+      invoices: [],
+      totalPayments: 0,
+      totalReturns: 0,
+    };
+
+    const outstanding = (inv.total_amount || 0) - (inv.paid_amount || 0);
+    if (outstanding > 0) {
+      existing.invoices.push({ amount: outstanding, date: inv.invoice_date });
+    }
+
+    supplierBalances.set(supplierId, existing);
+  });
+
+  // Process payments
+  (payments || []).forEach((pay: any) => {
+    if (!pay.supplier_id) return;
+    const existing = supplierBalances.get(pay.supplier_id);
+    if (existing) {
+      existing.totalPayments += pay.amount || 0;
+    }
+  });
+
+  // Process returns
+  (returns || []).forEach((ret: any) => {
+    if (!ret.supplier_id) return;
+    const existing = supplierBalances.get(ret.supplier_id);
+    if (existing) {
+      existing.totalReturns += ret.refund_amount || 0;
+    }
+  });
+
+  // Calculate aging buckets
+  const result: SupplierAgingRow[] = [];
+  const asOfDateObj = new Date(asOfDate);
+
+  supplierBalances.forEach((supplier) => {
+    let current = 0;
+    let d31_60 = 0;
+    let d61_90 = 0;
+    let over90 = 0;
+
+    supplier.invoices.forEach((inv) => {
+      const invDate = new Date(inv.date);
+      const daysDiff = Math.floor((asOfDateObj.getTime() - invDate.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (daysDiff <= 30) {
+        current += inv.amount;
+      } else if (daysDiff <= 60) {
+        d31_60 += inv.amount;
+      } else if (daysDiff <= 90) {
+        d61_90 += inv.amount;
+      } else {
+        over90 += inv.amount;
+      }
+    });
+
+    const totalBalance = current + d31_60 + d61_90 + over90;
+
+    // Only include suppliers with positive balance
+    if (totalBalance > 0.01) {
+      result.push({
+        supplierId: supplier.supplierId,
+        supplierName: supplier.supplierName,
+        totalBalance,
+        current,
+        d31_60,
+        d61_90,
+        over90,
+      });
+    }
+  });
+
+  // Sort by total balance descending
+  result.sort((a, b) => b.totalBalance - a.totalBalance);
+
+  return result;
+}
+
+/**
+ * Get Customer Statement
+ * Returns chronological movements for a specific customer
+ */
+export async function getCustomerStatement(
+  customerId: string,
+  fromDate: string,
+  toDate: string
+): Promise<StatementResult> {
+  // Fetch customer details
+  const { data: customer, error: custError } = await supabase
+    .from("customers")
+    .select("id, name, balance")
+    .eq("id", customerId)
+    .single();
+
+  if (custError) {
+    console.error("Error fetching customer:", custError);
+    throw custError;
+  }
+
+  // Fetch sales invoices
+  const { data: invoices, error: invError } = await supabase
+    .from("sales_invoices")
+    .select("id, invoice_number, invoice_date, grand_total, notes")
+    .eq("customer_id", customerId)
+    .eq("status", "posted")
+    .gte("invoice_date", fromDate)
+    .lte("invoice_date", toDate)
+    .order("invoice_date", { ascending: true });
+
+  if (invError) throw invError;
+
+  // Fetch customer payments
+  const { data: payments, error: payError } = await supabase
+    .from("customer_payments")
+    .select("id, payment_number, payment_date, amount, notes")
+    .eq("customer_id", customerId)
+    .eq("status", "posted")
+    .gte("payment_date", fromDate)
+    .lte("payment_date", toDate)
+    .order("payment_date", { ascending: true });
+
+  if (payError) throw payError;
+
+  // Fetch sales returns
+  const { data: returns, error: retError } = await supabase
+    .from("sales_returns")
+    .select("id, return_number, return_date, refund_amount, reason")
+    .eq("customer_id", customerId)
+    .eq("status", "posted")
+    .gte("return_date", fromDate)
+    .lte("return_date", toDate)
+    .order("return_date", { ascending: true });
+
+  if (retError) throw retError;
+
+  // Calculate opening balance (all transactions before fromDate)
+  const { data: priorInvoices } = await supabase
+    .from("sales_invoices")
+    .select("grand_total")
+    .eq("customer_id", customerId)
+    .eq("status", "posted")
+    .lt("invoice_date", fromDate);
+
+  const { data: priorPayments } = await supabase
+    .from("customer_payments")
+    .select("amount")
+    .eq("customer_id", customerId)
+    .eq("status", "posted")
+    .lt("payment_date", fromDate);
+
+  const { data: priorReturns } = await supabase
+    .from("sales_returns")
+    .select("refund_amount")
+    .eq("customer_id", customerId)
+    .eq("status", "posted")
+    .lt("return_date", fromDate);
+
+  const openingBalance =
+    (priorInvoices || []).reduce((sum, inv: any) => sum + (inv.grand_total || 0), 0) -
+    (priorPayments || []).reduce((sum, pay: any) => sum + (pay.amount || 0), 0) -
+    (priorReturns || []).reduce((sum, ret: any) => sum + (ret.refund_amount || 0), 0);
+
+  // Build transactions array
+  const transactions: StatementTransaction[] = [];
+  let runningBalance = openingBalance;
+  let totalDebit = 0;
+  let totalCredit = 0;
+
+  // Combine all transactions and sort by date
+  const allTransactions: Array<{
+    date: string;
+    type: string;
+    number: string;
+    description: string;
+    debit: number;
+    credit: number;
+  }> = [];
+
+  (invoices || []).forEach((inv: any) => {
+    allTransactions.push({
+      date: inv.invoice_date,
+      type: "فاتورة بيع",
+      number: inv.invoice_number,
+      description: inv.notes || "فاتورة بيع",
+      debit: inv.grand_total || 0,
+      credit: 0,
+    });
+  });
+
+  (payments || []).forEach((pay: any) => {
+    allTransactions.push({
+      date: pay.payment_date,
+      type: "سند قبض",
+      number: pay.payment_number,
+      description: pay.notes || "سند قبض",
+      debit: 0,
+      credit: pay.amount || 0,
+    });
+  });
+
+  (returns || []).forEach((ret: any) => {
+    allTransactions.push({
+      date: ret.return_date,
+      type: "مرتجع بيع",
+      number: ret.return_number,
+      description: ret.reason || "مرتجع بيع",
+      debit: 0,
+      credit: ret.refund_amount || 0,
+    });
+  });
+
+  // Sort by date
+  allTransactions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  // Build statement with running balance
+  allTransactions.forEach((tx) => {
+    runningBalance += tx.debit - tx.credit;
+    totalDebit += tx.debit;
+    totalCredit += tx.credit;
+
+    transactions.push({
+      date: tx.date,
+      documentType: tx.type,
+      documentNumber: tx.number,
+      description: tx.description,
+      debit: tx.debit,
+      credit: tx.credit,
+      balanceAfter: runningBalance,
+    });
+  });
+
+  return {
+    entityId: customer.id,
+    entityName: customer.name,
+    fromDate,
+    toDate,
+    openingBalance,
+    transactions,
+    closingBalance: runningBalance,
+    totalDebit,
+    totalCredit,
+  };
+}
+
+/**
+ * Get Supplier Statement
+ * Returns chronological movements for a specific supplier
+ */
+export async function getSupplierStatement(
+  supplierId: string,
+  fromDate: string,
+  toDate: string
+): Promise<StatementResult> {
+  // Fetch supplier details
+  const { data: supplier, error: suppError } = await supabase
+    .from("suppliers")
+    .select("id, name, balance")
+    .eq("id", supplierId)
+    .single();
+
+  if (suppError) {
+    console.error("Error fetching supplier:", suppError);
+    throw suppError;
+  }
+
+  // Fetch purchase invoices
+  const { data: invoices, error: invError } = await supabase
+    .from("purchase_invoices")
+    .select("id, invoice_number, invoice_date, total_amount, notes")
+    .eq("supplier_id", supplierId)
+    .eq("status", "posted")
+    .gte("invoice_date", fromDate)
+    .lte("invoice_date", toDate)
+    .order("invoice_date", { ascending: true });
+
+  if (invError) throw invError;
+
+  // Fetch supplier payments
+  const { data: payments, error: payError } = await supabase
+    .from("cash_payments")
+    .select("id, payment_number, payment_date, amount, description")
+    .eq("supplier_id", supplierId)
+    .eq("status", "posted")
+    .gte("payment_date", fromDate)
+    .lte("payment_date", toDate)
+    .order("payment_date", { ascending: true });
+
+  if (payError) throw payError;
+
+  // Fetch purchase returns
+  const { data: returns, error: retError } = await supabase
+    .from("purchase_returns")
+    .select("id, return_number, return_date, refund_amount, reason")
+    .eq("supplier_id", supplierId)
+    .eq("status", "posted")
+    .gte("return_date", fromDate)
+    .lte("return_date", toDate)
+    .order("return_date", { ascending: true });
+
+  if (retError) throw retError;
+
+  // Calculate opening balance (all transactions before fromDate)
+  const { data: priorInvoices } = await supabase
+    .from("purchase_invoices")
+    .select("total_amount")
+    .eq("supplier_id", supplierId)
+    .eq("status", "posted")
+    .lt("invoice_date", fromDate);
+
+  const { data: priorPayments } = await supabase
+    .from("cash_payments")
+    .select("amount")
+    .eq("supplier_id", supplierId)
+    .eq("status", "posted")
+    .lt("payment_date", fromDate);
+
+  const { data: priorReturns } = await supabase
+    .from("purchase_returns")
+    .select("refund_amount")
+    .eq("supplier_id", supplierId)
+    .eq("status", "posted")
+    .lt("return_date", fromDate);
+
+  const openingBalance =
+    (priorInvoices || []).reduce((sum, inv: any) => sum + (inv.total_amount || 0), 0) -
+    (priorPayments || []).reduce((sum, pay: any) => sum + (pay.amount || 0), 0) -
+    (priorReturns || []).reduce((sum, ret: any) => sum + (ret.refund_amount || 0), 0);
+
+  // Build transactions array
+  const transactions: StatementTransaction[] = [];
+  let runningBalance = openingBalance;
+  let totalDebit = 0;
+  let totalCredit = 0;
+
+  // Combine all transactions and sort by date
+  const allTransactions: Array<{
+    date: string;
+    type: string;
+    number: string;
+    description: string;
+    debit: number;
+    credit: number;
+  }> = [];
+
+  (invoices || []).forEach((inv: any) => {
+    allTransactions.push({
+      date: inv.invoice_date,
+      type: "فاتورة شراء",
+      number: inv.invoice_number,
+      description: inv.notes || "فاتورة شراء",
+      debit: 0,
+      credit: inv.total_amount || 0,
+    });
+  });
+
+  (payments || []).forEach((pay: any) => {
+    allTransactions.push({
+      date: pay.payment_date,
+      type: "سند صرف",
+      number: pay.payment_number,
+      description: pay.description || "سند صرف",
+      debit: pay.amount || 0,
+      credit: 0,
+    });
+  });
+
+  (returns || []).forEach((ret: any) => {
+    allTransactions.push({
+      date: ret.return_date,
+      type: "مرتجع شراء",
+      number: ret.return_number,
+      description: ret.reason || "مرتجع شراء",
+      debit: ret.refund_amount || 0,
+      credit: 0,
+    });
+  });
+
+  // Sort by date
+  allTransactions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  // Build statement with running balance (AP: credit increases balance, debit decreases)
+  allTransactions.forEach((tx) => {
+    runningBalance += tx.credit - tx.debit;
+    totalDebit += tx.debit;
+    totalCredit += tx.credit;
+
+    transactions.push({
+      date: tx.date,
+      documentType: tx.type,
+      documentNumber: tx.number,
+      description: tx.description,
+      debit: tx.debit,
+      credit: tx.credit,
+      balanceAfter: runningBalance,
+    });
+  });
+
+  return {
+    entityId: supplier.id,
+    entityName: supplier.name,
+    fromDate,
+    toDate,
+    openingBalance,
+    transactions,
+    closingBalance: runningBalance,
+    totalDebit,
+    totalCredit,
+  };
+}
+
+// ============================================================================
+// VAT RETURNS FUNCTIONS (Phase 5)
+// ============================================================================
+
+export interface VatReturnSummary {
+  id: string;
+  periodStart: string;
+  periodEnd: string;
+  outputVat: number;
+  inputVat: number;
+  netVat: number;
+  status: string;
+  returnNumber: string;
+}
+
+/**
+ * Generate VAT Return for a period
+ * Computes VAT from posted sales and purchases
+ */
+export async function generateVatReturn(
+  periodStart: string,
+  periodEnd: string
+): Promise<VatReturnSummary> {
+  // First, check if a tax period exists for this range or create one
+  let taxPeriodId: string;
+  
+  const { data: existingPeriod } = await supabase
+    .from("tax_periods")
+    .select("id")
+    .lte("start_date", periodEnd)
+    .gte("end_date", periodStart)
+    .limit(1)
+    .single();
+  
+  if (existingPeriod) {
+    taxPeriodId = existingPeriod.id;
+  } else {
+    // Create a new tax period
+    const periodNum = `TP-${new Date(periodStart).getFullYear()}-${String(new Date(periodStart).getMonth() + 1).padStart(2, "0")}`;
+    
+    const { data: newPeriod, error: periodError } = await supabase
+      .from("tax_periods")
+      .insert({
+        period_number: periodNum,
+        period_type: "monthly",
+        start_date: periodStart,
+        end_date: periodEnd,
+        status: "open",
+      })
+      .select()
+      .single();
+    
+    if (periodError) throw periodError;
+    taxPeriodId = newPeriod.id;
+  }
+
+  // Calculate output VAT from sales invoices
+  const { data: salesInvoices, error: salesError } = await supabase
+    .from("sales_invoices")
+    .select("tax_amount, grand_total")
+    .eq("status", "posted")
+    .gte("invoice_date", periodStart)
+    .lte("invoice_date", periodEnd);
+
+  if (salesError) throw salesError;
+
+  const totalSales = (salesInvoices || []).reduce(
+    (sum, inv: any) => sum + (inv.grand_total || 0),
+    0
+  );
+  const outputVat = (salesInvoices || []).reduce(
+    (sum, inv: any) => sum + (inv.tax_amount || 0),
+    0
+  );
+
+  // Calculate input VAT from purchase invoices
+  const { data: purchaseInvoices, error: purchaseError } = await supabase
+    .from("purchase_invoices")
+    .select("tax_amount, total_amount")
+    .eq("status", "posted")
+    .gte("invoice_date", periodStart)
+    .lte("invoice_date", periodEnd);
+
+  if (purchaseError) throw purchaseError;
+
+  const totalPurchases = (purchaseInvoices || []).reduce(
+    (sum, inv: any) => sum + (inv.total_amount || 0),
+    0
+  );
+  const inputVat = (purchaseInvoices || []).reduce(
+    (sum, inv: any) => sum + (inv.tax_amount || 0),
+    0
+  );
+
+  const netVat = outputVat - inputVat;
+
+  // Generate unique return number
+  const { data: lastReturn } = await supabase
+    .from("vat_returns")
+    .select("return_number")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single();
+
+  const lastNum = lastReturn?.return_number?.match(/\d+$/)?.[0] || "0";
+  const returnNumber = `VAT-${new Date().getFullYear()}-${String(parseInt(lastNum) + 1).padStart(4, "0")}`;
+
+  // Insert into vat_returns table using correct schema
+  const { data: vatReturn, error: insertError } = await supabase
+    .from("vat_returns")
+    .insert({
+      return_number: returnNumber,
+      filing_date: new Date().toISOString().split("T")[0],
+      tax_period_id: taxPeriodId,
+      total_sales: totalSales,
+      total_purchases: totalPurchases,
+      standard_rated_sales: totalSales,
+      standard_rated_purchases: totalPurchases,
+      output_vat: outputVat,
+      input_vat: inputVat,
+      net_vat: netVat,
+      amount_due: netVat > 0 ? netVat : 0,
+      status: "draft",
+    })
+    .select()
+    .single();
+
+  if (insertError) throw insertError;
+
+  return {
+    id: vatReturn.id,
+    periodStart,
+    periodEnd,
+    outputVat,
+    inputVat,
+    netVat,
+    status: "draft",
+    returnNumber,
+  };
+}
+
+/**
+ * Submit VAT Return
+ */
+export async function submitVatReturn(vatReturnId: string): Promise<void> {
+  const { error } = await supabase
+    .from("vat_returns")
+    .update({
+      status: "submitted",
+      submitted_at: new Date().toISOString(),
+    })
+    .eq("id", vatReturnId);
+
+  if (error) throw error;
+}

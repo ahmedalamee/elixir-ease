@@ -3059,3 +3059,113 @@ export async function getCashFlowIndirect(params: {
     closingCashBalance: openingCashBalance + operatingTotal,
   };
 }
+
+// ============================================================================
+// AR/AP GL RECONCILIATION (Phase 9)
+// ============================================================================
+
+/**
+ * AR Reconciliation row interface
+ */
+export interface ArReconciliationRow {
+  customerId: string;
+  customerName: string;
+  subledgerBalance: number;
+  glBalance: number;
+  difference: number;
+  status: "matched" | "mismatch" | "only_in_subledger" | "only_in_gl";
+}
+
+/**
+ * AP Reconciliation row interface
+ */
+export interface ApReconciliationRow {
+  supplierId: string;
+  supplierName: string;
+  subledgerBalance: number;
+  glBalance: number;
+  difference: number;
+  status: "matched" | "mismatch" | "only_in_subledger" | "only_in_gl";
+}
+
+/**
+ * Reconcile AR (Accounts Receivable) with GL
+ * Compares customer subledger balances with GL AR control account
+ */
+export async function reconcileArWithGl(asOfDate?: string): Promise<ArReconciliationRow[]> {
+  const { data, error } = await supabase.rpc("reconcile_ar_with_gl", {
+    p_as_of_date: asOfDate || new Date().toISOString().split("T")[0],
+  });
+
+  if (error) {
+    console.error("Error reconciling AR with GL:", error);
+    throw error;
+  }
+
+  return (data || []).map((row: any) => ({
+    customerId: row.customer_id,
+    customerName: row.customer_name || "غير محدد",
+    subledgerBalance: Number(row.subledger_balance) || 0,
+    glBalance: Number(row.gl_balance) || 0,
+    difference: Number(row.difference) || 0,
+    status: row.status || "unknown",
+  }));
+}
+
+/**
+ * Reconcile AP (Accounts Payable) with GL
+ * Compares supplier subledger balances with GL AP control account
+ */
+export async function reconcileApWithGl(asOfDate?: string): Promise<ApReconciliationRow[]> {
+  const { data, error } = await supabase.rpc("reconcile_ap_with_gl", {
+    p_as_of_date: asOfDate || new Date().toISOString().split("T")[0],
+  });
+
+  if (error) {
+    console.error("Error reconciling AP with GL:", error);
+    throw error;
+  }
+
+  return (data || []).map((row: any) => ({
+    supplierId: row.supplier_id,
+    supplierName: row.supplier_name || "غير محدد",
+    subledgerBalance: Number(row.subledger_balance) || 0,
+    glBalance: Number(row.gl_balance) || 0,
+    difference: Number(row.difference) || 0,
+    status: row.status || "unknown",
+  }));
+}
+
+/**
+ * Rebuild customer balance from transaction history
+ * Recalculates the true balance and updates the customers table
+ */
+export async function rebuildCustomerBalance(customerId: string): Promise<number> {
+  const { data, error } = await supabase.rpc("rebuild_customer_balance", {
+    p_customer_id: customerId,
+  });
+
+  if (error) {
+    console.error("Error rebuilding customer balance:", error);
+    throw error;
+  }
+
+  return Number(data) || 0;
+}
+
+/**
+ * Rebuild supplier balance from transaction history
+ * Recalculates the true balance and updates the suppliers table
+ */
+export async function rebuildSupplierBalance(supplierId: string): Promise<number> {
+  const { data, error } = await supabase.rpc("rebuild_supplier_balance", {
+    p_supplier_id: supplierId,
+  });
+
+  if (error) {
+    console.error("Error rebuilding supplier balance:", error);
+    throw error;
+  }
+
+  return Number(data) || 0;
+}

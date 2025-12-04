@@ -1316,3 +1316,293 @@ function mapDbAccountMappingToErpAccountMapping(
     updatedAt: dbMapping.updated_at,
   };
 }
+
+// ============================================
+// ACCOUNTING PERIODS (Phase 3)
+// ============================================
+
+export interface AccountingPeriod {
+  id: string;
+  periodName: string;
+  fiscalYear: number;
+  startDate: string;
+  endDate: string;
+  isClosed: boolean;
+  closedAt: string | null;
+  closedBy: string | null;
+  notes: string | null;
+  createdAt: string;
+  createdBy: string | null;
+}
+
+export interface AccountingPeriodInsert {
+  periodName: string;
+  fiscalYear: number;
+  startDate: string;
+  endDate: string;
+  notes?: string;
+}
+
+/**
+ * Fetch all accounting periods
+ */
+export async function fetchAccountingPeriods(): Promise<AccountingPeriod[]> {
+  const { data, error } = await supabase
+    .from("accounting_periods")
+    .select("*")
+    .order("fiscal_year", { ascending: false })
+    .order("start_date", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching accounting periods:", error);
+    throw error;
+  }
+
+  return (data || []).map((p: any) => ({
+    id: p.id,
+    periodName: p.period_name,
+    fiscalYear: p.fiscal_year,
+    startDate: p.start_date,
+    endDate: p.end_date,
+    isClosed: p.is_closed,
+    closedAt: p.closed_at,
+    closedBy: p.closed_by,
+    notes: p.notes,
+    createdAt: p.created_at,
+    createdBy: p.created_by,
+  }));
+}
+
+/**
+ * Create new accounting period
+ */
+export async function createAccountingPeriod(
+  period: AccountingPeriodInsert
+): Promise<AccountingPeriod> {
+  const { data: user } = await supabase.auth.getUser();
+
+  const { data, error } = await supabase
+    .from("accounting_periods")
+    .insert({
+      period_name: period.periodName,
+      fiscal_year: period.fiscalYear,
+      start_date: period.startDate,
+      end_date: period.endDate,
+      notes: period.notes,
+      created_by: user?.user?.id,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error creating accounting period:", error);
+    throw error;
+  }
+
+  return {
+    id: data.id,
+    periodName: data.period_name,
+    fiscalYear: data.fiscal_year,
+    startDate: data.start_date,
+    endDate: data.end_date,
+    isClosed: data.is_closed,
+    closedAt: data.closed_at,
+    closedBy: data.closed_by,
+    notes: data.notes,
+    createdAt: data.created_at,
+    createdBy: data.created_by,
+  };
+}
+
+/**
+ * Close accounting period
+ */
+export async function closeAccountingPeriod(periodId: string): Promise<void> {
+  const { data: user } = await supabase.auth.getUser();
+
+  const { error } = await supabase
+    .from("accounting_periods")
+    .update({
+      is_closed: true,
+      closed_at: new Date().toISOString(),
+      closed_by: user?.user?.id,
+    })
+    .eq("id", periodId);
+
+  if (error) {
+    console.error("Error closing accounting period:", error);
+    throw error;
+  }
+}
+
+/**
+ * Reopen accounting period
+ */
+export async function reopenAccountingPeriod(
+  periodId: string,
+  reason: string
+): Promise<void> {
+  const { data: period } = await supabase
+    .from("accounting_periods")
+    .select("notes")
+    .eq("id", periodId)
+    .single();
+
+  const newNotes = `${period?.notes || ""}\n[إعادة فتح: ${new Date().toLocaleDateString("ar-SA")}] ${reason}`.trim();
+
+  const { error } = await supabase
+    .from("accounting_periods")
+    .update({
+      is_closed: false,
+      closed_at: null,
+      closed_by: null,
+      notes: newNotes,
+    })
+    .eq("id", periodId);
+
+  if (error) {
+    console.error("Error reopening accounting period:", error);
+    throw error;
+  }
+}
+
+/**
+ * Perform year-end closing
+ * Creates closing entries for revenue/expense accounts and transfers net income to retained earnings
+ */
+export async function performYearEndClosing(
+  fiscalYear: number,
+  closingDate: string
+): Promise<{ journalEntryId: string; journalEntryNumber: string; netIncome: number }> {
+  // Get all revenue and expense accounts with their balances
+  const startDate = `${fiscalYear}-01-01`;
+  const endDate = `${fiscalYear}-12-31`;
+
+  // Calculate net income from GL
+  const { data: revenueData } = await supabase
+    .from("gl_journal_lines")
+    .select(`
+      account_id,
+      debit,
+      credit,
+      gl_journal_entries!inner(entry_date, is_posted)
+    `)
+    .gte("gl_journal_entries.entry_date", startDate)
+    .lte("gl_journal_entries.entry_date", endDate)
+    .eq("gl_journal_entries.is_posted", true);
+
+  // Get account types
+  const { data: accounts } = await supabase
+    .from("gl_accounts")
+    .select("id, account_type, account_code, account_name");
+
+  const accountMap = new Map(accounts?.map((a) => [a.id, a]) || []);
+
+  // Calculate totals by account type
+  let totalRevenue = 0;
+  let totalExpenses = 0;
+  const revenueAccounts: { accountId: string; balance: number }[] = [];
+  const expenseAccounts: { accountId: string; balance: number }[] = [];
+
+  // Group by account and calculate balances
+  const accountBalances = new Map<string, number>();
+  (revenueData || []).forEach((line: any) => {
+    const current = accountBalances.get(line.account_id) || 0;
+    accountBalances.set(line.account_id, current + (line.credit || 0) - (line.debit || 0));
+  });
+
+  accountBalances.forEach((balance, accountId) => {
+    const account = accountMap.get(accountId);
+    if (!account) return;
+
+    if (account.account_type === "revenue") {
+      totalRevenue += balance;
+      if (balance !== 0) {
+        revenueAccounts.push({ accountId, balance });
+      }
+    } else if (account.account_type === "expense") {
+      totalExpenses += Math.abs(balance);
+      if (balance !== 0) {
+        expenseAccounts.push({ accountId, balance: Math.abs(balance) });
+      }
+    }
+  });
+
+  const netIncome = totalRevenue - totalExpenses;
+
+  // Find retained earnings account (usually code starts with 3 for equity)
+  const retainedEarningsAccount = accounts?.find(
+    (a) => a.account_code?.startsWith("3") && a.account_name?.includes("أرباح")
+  );
+
+  if (!retainedEarningsAccount) {
+    throw new Error("لم يتم العثور على حساب الأرباح المحتجزة");
+  }
+
+  // Build closing journal entry lines
+  const lines: any[] = [];
+  let lineNo = 0;
+
+  // Close revenue accounts (debit to zero them out)
+  revenueAccounts.forEach(({ accountId, balance }) => {
+    if (balance > 0) {
+      lineNo++;
+      lines.push({
+        accountId,
+        debit: balance,
+        credit: 0,
+        description: "إقفال حساب إيرادات",
+        lineNo,
+      });
+    }
+  });
+
+  // Close expense accounts (credit to zero them out)
+  expenseAccounts.forEach(({ accountId, balance }) => {
+    if (balance > 0) {
+      lineNo++;
+      lines.push({
+        accountId,
+        debit: 0,
+        credit: balance,
+        description: "إقفال حساب مصروفات",
+        lineNo,
+      });
+    }
+  });
+
+  // Transfer net income to retained earnings
+  if (netIncome !== 0) {
+    lineNo++;
+    lines.push({
+      accountId: retainedEarningsAccount.id,
+      debit: netIncome < 0 ? Math.abs(netIncome) : 0,
+      credit: netIncome > 0 ? netIncome : 0,
+      description: netIncome > 0 ? "صافي ربح السنة" : "صافي خسارة السنة",
+      lineNo,
+    });
+  }
+
+  if (lines.length === 0) {
+    throw new Error("لا توجد حركات لإقفالها في هذه السنة");
+  }
+
+  // Create the closing journal entry
+  const entryHeader = {
+    entryDate: closingDate,
+    description: `قيد إقفال السنة المالية ${fiscalYear}`,
+    sourceModule: "year_end_closing" as const,
+    sourceDocumentId: `year_end_${fiscalYear}`,
+  };
+
+  const result = await createJournalEntry(entryHeader, lines);
+
+  // Post the entry immediately
+  await postJournalEntry(result.journalId);
+
+  return {
+    journalEntryId: result.journalId,
+    journalEntryNumber: result.entryNo,
+    netIncome,
+  };
+}

@@ -521,7 +521,7 @@ const POS = () => {
         data: { user },
       } = await supabase.auth.getUser();
 
-      // Create sales invoice
+      // Create sales invoice linked to POS session
       const { data: invoice, error: invoiceError } = await supabase
         .from("sales_invoices")
         .insert({
@@ -537,6 +537,7 @@ const POS = () => {
           status: "posted",
           payment_method_id: selectedPaymentMethod,
           warehouse_id: currentSession.warehouse_id,
+          pos_session_id: currentSession.id, // Link to POS session for GL posting
           created_by: user?.id,
           posted_by: user?.id,
           posted_at: new Date().toISOString(),

@@ -2313,11 +2313,21 @@ export async function getSupplierStatement(
  */
 export interface TaxPeriod {
   id: string;
-  period_number: string;
+  period_number: string | null;
   start_date: string;
   end_date: string;
-  period_type: string;
+  period_type: string | null;
   status: string;
+}
+
+/**
+ * Partial Tax Period for joined relations (subset of fields)
+ */
+export interface TaxPeriodPartial {
+  period_number: string | null;
+  start_date: string;
+  end_date: string;
+  period_type: string | null;
 }
 
 /**
@@ -2328,28 +2338,33 @@ export interface VatReturnRecord {
   return_number: string;
   filing_date: string | null;
   tax_period_id: string | null;
+
+  // Joined relation from tax_periods (partial fields)
+  tax_periods?: TaxPeriodPartial | null;
+
   total_sales: number | null;
   total_purchases: number | null;
   standard_rated_sales: number | null;
   standard_rated_purchases: number | null;
-  zero_rated_sales: number | null;
-  zero_rated_purchases: number | null;
-  exempt_sales: number | null;
-  exempt_purchases: number | null;
+  zero_rated_sales?: number | null;
+  exempt_sales?: number | null;
+  zero_rated_purchases?: number | null;
+  exempt_purchases?: number | null;
+
   output_vat: number | null;
   input_vat: number | null;
-  corrections: number | null;
   net_vat: number | null;
   amount_due: number | null;
-  status: 'draft' | 'submitted' | 'approved' | 'rejected';
-  notes?: string | null;
-  created_at?: string;
+  corrections?: number | null;
+
+  status: 'draft' | 'submitted' | 'approved' | 'rejected' | string;
   submitted_at?: string | null;
   submitted_by?: string | null;
   approved_at?: string | null;
   submission_reference?: string | null;
-  // Joined relation from tax_periods
-  tax_periods?: TaxPeriod | null;
+  notes?: string | null;
+
+  created_at?: string;
 }
 
 /**

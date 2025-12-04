@@ -36,7 +36,7 @@ const VATReturns = () => {
   const { isAdmin, hasRole, loading: roleLoading } = useUserRole();
 
   // Fetch VAT returns with tax period details
-  const { data: returns, isLoading } = useQuery({
+  const { data: returns = [], isLoading } = useQuery<VatReturnRecord[]>({
     queryKey: ["vat-returns"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -44,12 +44,10 @@ const VATReturns = () => {
         .select(`
           *,
           tax_periods (
-            id,
             period_number,
             start_date,
             end_date,
-            period_type,
-            status
+            period_type
           )
         `)
         .order("created_at", { ascending: false });
@@ -59,7 +57,7 @@ const VATReturns = () => {
   });
 
   // Fetch open tax periods for selection
-  const { data: taxPeriods } = useQuery({
+  const { data: taxPeriods = [] } = useQuery<TaxPeriod[]>({
     queryKey: ["tax-periods-open"],
     queryFn: async () => {
       const { data, error } = await supabase

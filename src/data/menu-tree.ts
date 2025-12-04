@@ -283,6 +283,11 @@ export const menuTree: TreeMenuItem[] = [
         route: "/accounting/opening-balances",
       },
       {
+        id: "accounting-periods",
+        label: "الفترات المحاسبية",
+        route: "/accounting/periods",
+      },
+      {
         id: "accounting-journal-entries",
         label: "قيود اليومية",
         route: "/accounting/journal-entries",

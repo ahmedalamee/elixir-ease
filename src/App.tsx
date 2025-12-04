@@ -108,6 +108,7 @@ import SupplierReports from "./pages/SupplierReports";
 import ActivityLog from "./pages/ActivityLog";
 import AccountMappingsConfig from "./pages/AccountMappingsConfig";
 import OpeningBalances from "./pages/OpeningBalances";
+import AccountingPeriods from "./pages/AccountingPeriods";
 
 const queryClient = new QueryClient();
 
@@ -186,6 +187,7 @@ const AppContent = () => {
           <Route path="/accounting/journal/:id" element={<JournalEntryDetail />} />
           <Route path="/accounting/account-mappings" element={<AccountMappingsConfig />} />
           <Route path="/accounting/opening-balances" element={<OpeningBalances />} />
+          <Route path="/accounting/periods" element={<AccountingPeriods />} />
           <Route path="/chart-of-accounts" element={<ChartOfAccountsPage />} />
           <Route path="/account-ledger" element={<AccountLedger />} />
           <Route path="/trial-balance" element={<TrialBalance />} />

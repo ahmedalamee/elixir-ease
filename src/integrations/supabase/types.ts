@@ -2598,6 +2598,7 @@ export type Database = {
       }
       gl_journal_entries: {
         Row: {
+          accounting_period_id: string | null
           branch_id: string | null
           created_at: string
           created_by: string | null
@@ -2614,6 +2615,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          accounting_period_id?: string | null
           branch_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -2630,6 +2632,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          accounting_period_id?: string | null
           branch_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -2645,7 +2648,15 @@ export type Database = {
           source_module?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "gl_journal_entries_accounting_period_id_fkey"
+            columns: ["accounting_period_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_periods"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       gl_journal_lines: {
         Row: {
@@ -7564,6 +7575,7 @@ export type Database = {
           warehouse_name: string
         }[]
       }
+      close_accounting_period: { Args: { p_period_id: string }; Returns: Json }
       consume_fifo_layers: {
         Args: {
           p_product_id: string
@@ -7717,6 +7729,7 @@ export type Database = {
         Args: { p_end_date?: string; p_start_date?: string }
         Returns: Json
       }
+      get_period_statistics: { Args: { p_period_id: string }; Returns: Json }
       get_returnable_invoice_items: {
         Args: { p_invoice_id: string }
         Returns: {
@@ -7841,12 +7854,17 @@ export type Database = {
       }
       refresh_inventory_summary: { Args: never; Returns: undefined }
       refresh_sales_summary: { Args: never; Returns: undefined }
+      reopen_accounting_period: { Args: { p_period_id: string }; Returns: Json }
       user_has_permission: {
         Args: { _permission_key: string; _user_id: string }
         Returns: boolean
       }
       validate_admin_action: { Args: never; Returns: boolean }
       validate_posting_period: { Args: { p_date: string }; Returns: boolean }
+      validate_posting_period_strict: {
+        Args: { p_date: string }
+        Returns: string
+      }
       validate_role_action: {
         Args: { required_roles: Database["public"]["Enums"]["app_role"][] }
         Returns: boolean

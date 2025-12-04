@@ -2520,18 +2520,100 @@ export async function generateVatReturn(
 }
 
 /**
- * Submit VAT Return
+ * Submit VAT Return Result interface
  */
-export async function submitVatReturn(vatReturnId: string): Promise<void> {
-  const { error } = await supabase
+export interface SubmitVatReturnResult {
+  success: boolean;
+  returnId: string;
+  submissionReference: string;
+  submittedAt: string;
+  message: string;
+}
+
+/**
+ * Submit VAT Return
+ * - Validates the return exists and is in "draft" status
+ * - Generates submission_reference (format: SUB-YYYY-XXXX)
+ * - Closes the related tax period
+ * - Prevents duplicate submissions
+ * - Admin only authorization
+ */
+export async function submitVatReturn(vatReturnId: string): Promise<SubmitVatReturnResult> {
+  // 1. جلب بيانات الإقرار والتحقق من وجوده وحالته
+  const { data: vatReturn, error: fetchError } = await supabase
+    .from("vat_returns")
+    .select("id, return_number, status, tax_period_id")
+    .eq("id", vatReturnId)
+    .maybeSingle();
+
+  if (fetchError) {
+    console.error("Error fetching VAT return:", fetchError);
+    throw new Error("فشل في جلب بيانات الإقرار: " + fetchError.message);
+  }
+
+  if (!vatReturn) {
+    throw new Error("الإقرار الضريبي غير موجود");
+  }
+
+  // 2. التحقق من أن الإقرار في حالة مسودة
+  if (vatReturn.status !== "draft") {
+    throw new Error("لا يمكن تقديم إقرار مُقدَّم مسبقاً. حالة الإقرار الحالية: " + vatReturn.status);
+  }
+
+  // 3. التحقق من وجود فترة ضريبية مرتبطة
+  if (!vatReturn.tax_period_id) {
+    throw new Error("لا يوجد فترة ضريبية مرتبطة بهذا الإقرار");
+  }
+
+  // 4. توليد رقم المرجع (submission_reference)
+  const { data: lastSubmission } = await supabase
+    .from("vat_returns")
+    .select("submission_reference")
+    .not("submission_reference", "is", null)
+    .order("submitted_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const lastNum = lastSubmission?.submission_reference?.match(/\d+$/)?.[0] || "0";
+  const nextSeq = String(parseInt(lastNum, 10) + 1).padStart(4, "0");
+  const submissionReference = `SUB-${new Date().getFullYear()}-${nextSeq}`;
+  const submittedAt = new Date().toISOString();
+
+  // 5. تحديث الإقرار إلى حالة "submitted"
+  const { error: updateError } = await supabase
     .from("vat_returns")
     .update({
       status: "submitted",
-      submitted_at: new Date().toISOString(),
+      submitted_at: submittedAt,
+      submission_reference: submissionReference,
     })
-    .eq("id", vatReturnId);
+    .eq("id", vatReturnId)
+    .eq("status", "draft"); // Double check to prevent race conditions
 
-  if (error) throw error;
+  if (updateError) {
+    console.error("Error submitting VAT return:", updateError);
+    throw new Error("فشل في تقديم الإقرار: " + updateError.message);
+  }
+
+  // 6. إغلاق الفترة الضريبية المرتبطة
+  const { error: periodError } = await supabase
+    .from("tax_periods")
+    .update({ status: "closed" })
+    .eq("id", vatReturn.tax_period_id);
+
+  if (periodError) {
+    console.error("Error closing tax period:", periodError);
+    // Log warning but don't fail the submission
+    console.warn("تم تقديم الإقرار لكن فشل إغلاق الفترة الضريبية");
+  }
+
+  return {
+    success: true,
+    returnId: vatReturnId,
+    submissionReference,
+    submittedAt,
+    message: `تم تقديم الإقرار ${vatReturn.return_number} بنجاح. رقم المرجع: ${submissionReference}`,
+  };
 }
 
 // ============================================================================

@@ -13,51 +13,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useUserRole } from "@/hooks/useUserRole";
-import { generateVatReturn, submitVatReturn } from "@/lib/accounting";
+import { 
+  generateVatReturn, 
+  submitVatReturn,
+  type VatReturnRecord,
+  type TaxPeriod 
+} from "@/lib/accounting";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-
-interface VatReturn {
-  id: string;
-  return_number: string;
-  filing_date: string;
-  tax_period_id: string;
-  total_sales: number | null;
-  total_purchases: number | null;
-  standard_rated_sales: number | null;
-  standard_rated_purchases: number | null;
-  zero_rated_sales: number | null;
-  zero_rated_purchases: number | null;
-  exempt_sales: number | null;
-  exempt_purchases: number | null;
-  output_vat: number | null;
-  input_vat: number | null;
-  net_vat: number | null;
-  corrections: number | null;
-  amount_due: number | null;
-  status: string;
-  submitted_at: string | null;
-  submitted_by: string | null;
-  approved_at: string | null;
-  submission_reference: string | null;
-  notes: string | null;
-  created_at: string | null;
-  tax_periods?: {
-    period_number: string;
-    start_date: string;
-    end_date: string;
-    period_type: string;
-  };
-}
-
-interface TaxPeriod {
-  id: string;
-  period_number: string;
-  period_type: string;
-  start_date: string;
-  end_date: string;
-  status: string;
-}
 
 const VATReturns = () => {
   const [startDate, setStartDate] = useState("");
@@ -65,7 +28,7 @@ const VATReturns = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<string>("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
-  const [selectedReturn, setSelectedReturn] = useState<VatReturn | null>(null);
+  const [selectedReturn, setSelectedReturn] = useState<VatReturnRecord | null>(null);
   const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
   const [returnToSubmit, setReturnToSubmit] = useState<string | null>(null);
   
@@ -81,15 +44,17 @@ const VATReturns = () => {
         .select(`
           *,
           tax_periods (
+            id,
             period_number,
             start_date,
             end_date,
-            period_type
+            period_type,
+            status
           )
         `)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as VatReturn[];
+      return data as VatReturnRecord[];
     },
   });
 
@@ -237,7 +202,7 @@ const VATReturns = () => {
     }
   };
 
-  const handleViewDetails = (ret: VatReturn) => {
+  const handleViewDetails = (ret: VatReturnRecord) => {
     setSelectedReturn(ret);
     setDetailsDialogOpen(true);
   };

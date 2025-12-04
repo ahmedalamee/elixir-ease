@@ -7677,6 +7677,20 @@ export type Database = {
           total_sales: number
         }[]
       }
+      get_customer_aging: {
+        Args: { p_as_of_date?: string }
+        Returns: {
+          bucket_1_30: number
+          bucket_31_60: number
+          bucket_61_90: number
+          bucket_91_120: number
+          bucket_over_120: number
+          current_amount: number
+          customer_id: string
+          customer_name: string
+          total_outstanding: number
+        }[]
+      }
       get_exchange_rate: {
         Args: {
           p_date?: string
@@ -7778,6 +7792,20 @@ export type Database = {
         Returns: {
           active_count: number
           total_count: number
+        }[]
+      }
+      get_supplier_aging: {
+        Args: { p_as_of_date?: string }
+        Returns: {
+          bucket_1_30: number
+          bucket_31_60: number
+          bucket_61_90: number
+          bucket_91_120: number
+          bucket_over_120: number
+          current_amount: number
+          supplier_id: string
+          supplier_name: string
+          total_outstanding: number
         }[]
       }
       get_user_comprehensive_permissions: {

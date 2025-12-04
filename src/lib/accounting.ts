@@ -1414,56 +1414,158 @@ export async function createAccountingPeriod(
   };
 }
 
-/**
- * Close accounting period
- */
-export async function closeAccountingPeriod(periodId: string): Promise<void> {
-  const { data: user } = await supabase.auth.getUser();
+// ============================================================================
+// ACCOUNTING PERIOD VALIDATION (Phase 9)
+// ============================================================================
 
-  const { error } = await supabase
-    .from("accounting_periods")
-    .update({
-      is_closed: true,
-      closed_at: new Date().toISOString(),
-      closed_by: user?.user?.id,
-    })
-    .eq("id", periodId);
+/**
+ * Validate that a posting date falls within an open accounting period
+ * Should be called before any GL posting operation
+ * 
+ * @param date - The date to validate (YYYY-MM-DD format)
+ * @returns The accounting period ID if valid
+ * @throws Error if period is closed or doesn't exist
+ */
+export async function validatePostingPeriod(date: string): Promise<string | null> {
+  const { data, error } = await supabase.rpc("validate_posting_period_strict", {
+    p_date: date,
+  });
 
   if (error) {
-    console.error("Error closing accounting period:", error);
-    throw error;
+    // Parse the error message to provide user-friendly feedback
+    const errorMsg = error.message || "";
+    if (errorMsg.includes("INVALID_PERIOD")) {
+      const cleanMessage = errorMsg.replace("INVALID_PERIOD:", "").trim();
+      throw new Error(cleanMessage);
+    }
+    console.error("Error validating posting period:", error);
+    throw new Error("فشل التحقق من الفترة المحاسبية");
   }
+
+  return data;
 }
 
 /**
- * Reopen accounting period
+ * Get statistics for an accounting period
+ * Returns entry counts and totals for the period
+ */
+export async function getPeriodStatistics(periodId: string): Promise<{
+  totalEntries: number;
+  postedEntries: number;
+  draftEntries: number;
+  totalDebit: number;
+  totalCredit: number;
+}> {
+  const { data, error } = await supabase.rpc("get_period_statistics", {
+    p_period_id: periodId,
+  });
+
+  if (error) {
+    console.error("Error fetching period statistics:", error);
+    throw error;
+  }
+
+  const stats = data as Record<string, any> | null;
+  
+  return {
+    totalEntries: stats?.total_entries || 0,
+    postedEntries: stats?.posted_entries || 0,
+    draftEntries: stats?.draft_entries || 0,
+    totalDebit: stats?.total_debit || 0,
+    totalCredit: stats?.total_credit || 0,
+  };
+}
+
+/**
+ * Close accounting period using RPC function
+ * Validates that no draft entries exist before closing
+ */
+export async function closeAccountingPeriod(periodId: string): Promise<{
+  success: boolean;
+  periodName: string;
+  message: string;
+}> {
+  const { data, error } = await supabase.rpc("close_accounting_period", {
+    p_period_id: periodId,
+  });
+
+  if (error) {
+    // Parse the error message for user-friendly feedback
+    const errorMsg = error.message || "";
+    if (errorMsg.includes("DRAFT_ENTRIES_EXIST")) {
+      const match = errorMsg.match(/يوجد (\d+) قيد/);
+      const count = match ? match[1] : "بعض";
+      throw new Error(`لا يمكن إغلاق الفترة: يوجد ${count} قيد محاسبي غير مرحّل`);
+    }
+    if (errorMsg.includes("UNAUTHORIZED")) {
+      throw new Error("غير مصرح لك بإغلاق الفترات المحاسبية");
+    }
+    if (errorMsg.includes("ALREADY_CLOSED")) {
+      throw new Error("الفترة مغلقة بالفعل");
+    }
+    console.error("Error closing accounting period:", error);
+    throw new Error("فشل في إغلاق الفترة المحاسبية");
+  }
+
+  const result = data as Record<string, any> | null;
+  
+  return {
+    success: result?.success || true,
+    periodName: result?.period_name || "",
+    message: result?.message || "تم إغلاق الفترة بنجاح",
+  };
+}
+
+/**
+ * Reopen accounting period using RPC function
  */
 export async function reopenAccountingPeriod(
   periodId: string,
   reason: string
-): Promise<void> {
-  const { data: period } = await supabase
-    .from("accounting_periods")
-    .select("notes")
-    .eq("id", periodId)
-    .single();
-
-  const newNotes = `${period?.notes || ""}\n[إعادة فتح: ${new Date().toLocaleDateString("ar-SA")}] ${reason}`.trim();
-
-  const { error } = await supabase
-    .from("accounting_periods")
-    .update({
-      is_closed: false,
-      closed_at: null,
-      closed_by: null,
-      notes: newNotes,
-    })
-    .eq("id", periodId);
+): Promise<{
+  success: boolean;
+  periodName: string;
+  message: string;
+}> {
+  const { data, error } = await supabase.rpc("reopen_accounting_period", {
+    p_period_id: periodId,
+  });
 
   if (error) {
+    const errorMsg = error.message || "";
+    if (errorMsg.includes("UNAUTHORIZED")) {
+      throw new Error("غير مصرح لك بإعادة فتح الفترات المحاسبية");
+    }
+    if (errorMsg.includes("ALREADY_OPEN")) {
+      throw new Error("الفترة مفتوحة بالفعل");
+    }
     console.error("Error reopening accounting period:", error);
-    throw error;
+    throw new Error("فشل في إعادة فتح الفترة المحاسبية");
   }
+
+  const result = data as Record<string, any> | null;
+
+  // Log the reopening reason in period notes
+  if (reason) {
+    const { data: period } = await supabase
+      .from("accounting_periods")
+      .select("notes")
+      .eq("id", periodId)
+      .single();
+
+    const newNotes = `${period?.notes || ""}\n[إعادة فتح: ${new Date().toLocaleDateString("ar-SA")}] ${reason}`.trim();
+
+    await supabase
+      .from("accounting_periods")
+      .update({ notes: newNotes })
+      .eq("id", periodId);
+  }
+
+  return {
+    success: result?.success || true,
+    periodName: result?.period_name || "",
+    message: result?.message || "تم إعادة فتح الفترة بنجاح",
+  };
 }
 
 /**

@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -35,7 +35,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Plus, Lock, Unlock, Calendar, AlertTriangle } from "lucide-react";
+import { Plus, Lock, Unlock, Calendar, AlertTriangle, BarChart3, FileText, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import {
@@ -44,6 +44,7 @@ import {
   closeAccountingPeriod,
   reopenAccountingPeriod,
   performYearEndClosing,
+  getPeriodStatistics,
   type AccountingPeriod,
   type AccountingPeriodInsert,
 } from "@/lib/accounting";
@@ -55,6 +56,8 @@ export default function AccountingPeriods() {
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isYearEndDialogOpen, setIsYearEndDialogOpen] = useState(false);
+  const [isStatsDialogOpen, setIsStatsDialogOpen] = useState(false);
+  const [selectedPeriodForStats, setSelectedPeriodForStats] = useState<AccountingPeriod | null>(null);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [newPeriod, setNewPeriod] = useState<AccountingPeriodInsert>({
     periodName: "",
@@ -68,6 +71,13 @@ export default function AccountingPeriods() {
   const { data: periods = [], isLoading } = useQuery({
     queryKey: ["accounting-periods"],
     queryFn: fetchAccountingPeriods,
+  });
+
+  // Fetch period statistics
+  const { data: periodStats, isLoading: statsLoading } = useQuery({
+    queryKey: ["period-statistics", selectedPeriodForStats?.id],
+    queryFn: () => selectedPeriodForStats ? getPeriodStatistics(selectedPeriodForStats.id) : null,
+    enabled: !!selectedPeriodForStats,
   });
 
   // Create period mutation
@@ -93,12 +103,12 @@ export default function AccountingPeriods() {
   // Close period mutation
   const closeMutation = useMutation({
     mutationFn: closeAccountingPeriod,
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["accounting-periods"] });
-      toast.success("تم إغلاق الفترة المحاسبية بنجاح");
+      toast.success(result.message || "تم إغلاق الفترة المحاسبية بنجاح");
     },
     onError: (error: Error) => {
-      toast.error(`خطأ في إغلاق الفترة: ${error.message}`);
+      toast.error(error.message || "خطأ في إغلاق الفترة");
     },
   });
 
@@ -106,14 +116,20 @@ export default function AccountingPeriods() {
   const reopenMutation = useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) =>
       reopenAccountingPeriod(id, reason),
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["accounting-periods"] });
-      toast.success("تم إعادة فتح الفترة المحاسبية");
+      toast.success(result.message || "تم إعادة فتح الفترة المحاسبية");
     },
     onError: (error: Error) => {
-      toast.error(`خطأ في إعادة فتح الفترة: ${error.message}`);
+      toast.error(error.message || "خطأ في إعادة فتح الفترة");
     },
   });
+
+  // Show period statistics
+  const handleShowStats = (period: AccountingPeriod) => {
+    setSelectedPeriodForStats(period);
+    setIsStatsDialogOpen(true);
+  };
 
   // Year-end closing mutation
   const yearEndMutation = useMutation({
@@ -355,64 +371,73 @@ export default function AccountingPeriods() {
                       </TableCell>
                       {isAdmin && (
                         <TableCell>
-                          {period.isClosed ? (
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="outline" size="sm">
-                                  <Unlock className="h-4 w-4 ml-1" />
-                                  إعادة فتح
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>إعادة فتح الفترة المحاسبية</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    هل أنت متأكد من إعادة فتح الفترة "{period.periodName}"؟
-                                    سيسمح هذا بالترحيل داخل هذه الفترة مرة أخرى.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() =>
-                                      reopenMutation.mutate({
-                                        id: period.id,
-                                        reason: "إعادة فتح يدوية",
-                                      })
-                                    }
-                                  >
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleShowStats(period)}
+                            >
+                              <BarChart3 className="h-4 w-4" />
+                            </Button>
+                            {period.isClosed ? (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="outline" size="sm">
+                                    <Unlock className="h-4 w-4 ml-1" />
                                     إعادة فتح
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          ) : (
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="outline" size="sm">
-                                  <Lock className="h-4 w-4 ml-1" />
-                                  إغلاق
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>إغلاق الفترة المحاسبية</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    هل أنت متأكد من إغلاق الفترة "{period.periodName}"؟
-                                    لن يُسمح بالترحيل داخل هذه الفترة بعد الإغلاق.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => closeMutation.mutate(period.id)}
-                                  >
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>إعادة فتح الفترة المحاسبية</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      هل أنت متأكد من إعادة فتح الفترة "{period.periodName}"؟
+                                      سيسمح هذا بالترحيل داخل هذه الفترة مرة أخرى.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() =>
+                                        reopenMutation.mutate({
+                                          id: period.id,
+                                          reason: "إعادة فتح يدوية",
+                                        })
+                                      }
+                                    >
+                                      إعادة فتح
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            ) : (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="outline" size="sm">
+                                    <Lock className="h-4 w-4 ml-1" />
                                     إغلاق
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          )}
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>إغلاق الفترة المحاسبية</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      هل أنت متأكد من إغلاق الفترة "{period.periodName}"؟
+                                      لن يُسمح بالترحيل داخل هذه الفترة بعد الإغلاق.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => closeMutation.mutate(period.id)}
+                                    >
+                                      إغلاق
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
+                          </div>
                         </TableCell>
                       )}
                     </TableRow>
@@ -435,6 +460,73 @@ export default function AccountingPeriods() {
             <p>• يمكن إعادة فتح الفترة المغلقة في حالات استثنائية (للمدير فقط).</p>
           </CardContent>
         </Card>
+
+        {/* Period Statistics Dialog */}
+        <Dialog open={isStatsDialogOpen} onOpenChange={setIsStatsDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                إحصائيات الفترة: {selectedPeriodForStats?.periodName}
+              </DialogTitle>
+            </DialogHeader>
+            {statsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <span className="text-muted-foreground">جاري التحميل...</span>
+              </div>
+            ) : periodStats ? (
+              <div className="space-y-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="text-center">
+                        <p className="text-3xl font-bold text-primary">{periodStats.totalEntries}</p>
+                        <p className="text-sm text-muted-foreground">إجمالي القيود</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="text-center">
+                        <p className="text-3xl font-bold text-green-600">{periodStats.postedEntries}</p>
+                        <p className="text-sm text-muted-foreground">قيود مرحّلة</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+                
+                {periodStats.draftEntries > 0 && (
+                  <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                    <span className="text-sm text-yellow-800">
+                      يوجد {periodStats.draftEntries} قيد غير مرحّل - لا يمكن إغلاق الفترة
+                    </span>
+                  </div>
+                )}
+
+                <div className="border-t pt-4 space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">إجمالي المدين:</span>
+                    <span className="font-medium">{periodStats.totalDebit.toLocaleString('ar-SA')} ر.ي</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">إجمالي الدائن:</span>
+                    <span className="font-medium">{periodStats.totalCredit.toLocaleString('ar-SA')} ر.ي</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                لا توجد بيانات متاحة
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsStatsDialogOpen(false)}>
+                إغلاق
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

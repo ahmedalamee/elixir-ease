@@ -164,8 +164,11 @@ const SalesReturns = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      toast.success("تم ترحيل المرتجع بنجاح");
+    onSuccess: (data: any) => {
+      const result = data as { credit_note_number?: string; total_cogs_restored?: number };
+      toast.success(
+        `تم ترحيل المرتجع بنجاح${result?.credit_note_number ? ` - إشعار دائن: ${result.credit_note_number}` : ''}`
+      );
       queryClient.invalidateQueries({ queryKey: ["sales-returns"] });
     },
     onError: (error: any) => {
@@ -299,11 +302,12 @@ const SalesReturns = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>رقم المرتجع</TableHead>
+                  <TableHead>الإشعار الدائن</TableHead>
                   <TableHead>الفاتورة الأصلية</TableHead>
                   <TableHead>العميل</TableHead>
-                  <TableHead>المستودع</TableHead>
                   <TableHead>التاريخ</TableHead>
                   <TableHead>المبلغ المسترد</TableHead>
+                  <TableHead>تكلفة المسترجعة</TableHead>
                   <TableHead>الحالة</TableHead>
                   <TableHead>الإجراءات</TableHead>
                 </TableRow>
@@ -312,11 +316,16 @@ const SalesReturns = () => {
                 {returns?.map((returnItem: any) => (
                   <TableRow key={returnItem.id}>
                     <TableCell className="font-medium">{returnItem.return_number}</TableCell>
+                    <TableCell className="text-primary font-medium">
+                      {returnItem.credit_note_number || '-'}
+                    </TableCell>
                     <TableCell>{returnItem.sales_invoices?.invoice_number}</TableCell>
                     <TableCell>{returnItem.customers?.name}</TableCell>
-                    <TableCell className="text-muted-foreground">{returnItem.warehouses?.name || 'غير محدد'}</TableCell>
                     <TableCell>{new Date(returnItem.return_date).toLocaleDateString("ar-SA")}</TableCell>
                     <TableCell className="font-medium">{returnItem.refund_amount?.toFixed(2)} ر.س</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {returnItem.total_cogs_restored ? `${returnItem.total_cogs_restored.toFixed(2)} ر.س` : '-'}
+                    </TableCell>
                     <TableCell>{getStatusBadge(returnItem.status)}</TableCell>
                     <TableCell>
                       {returnItem.status === "draft" && (
@@ -329,6 +338,11 @@ const SalesReturns = () => {
                           <CheckCircle2 className="h-4 w-4 mr-2" />
                           ترحيل
                         </Button>
+                      )}
+                      {returnItem.journal_entry_id && (
+                        <Badge variant="outline" className="mr-2">
+                          قيد محاسبي
+                        </Badge>
                       )}
                     </TableCell>
                   </TableRow>

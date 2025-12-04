@@ -17,7 +17,8 @@ import {
   generateVatReturn, 
   submitVatReturn,
   type VatReturnRecord,
-  type TaxPeriod 
+  type TaxPeriod,
+  type SubmitVatReturnResult 
 } from "@/lib/accounting";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -98,14 +99,28 @@ const VATReturns = () => {
 
   // Submit VAT Return mutation
   const submitMutation = useMutation({
-    mutationFn: async (returnId: string) => {
-      await submitVatReturn(returnId);
+    mutationFn: async (returnId: string): Promise<SubmitVatReturnResult> => {
+      // التحقق من صلاحية المسؤول فقط
+      if (!isAdmin) {
+        throw new Error("فقط المسؤول يمكنه تقديم الإقرارات الضريبية");
+      }
+      return await submitVatReturn(returnId);
     },
-    onSuccess: () => {
-      toast.success("تم تقديم الإقرار الضريبي بنجاح");
+    onSuccess: (data) => {
+      toast.success(data.message);
       queryClient.invalidateQueries({ queryKey: ["vat-returns"] });
+      queryClient.invalidateQueries({ queryKey: ["tax-periods-open"] });
       setSubmitConfirmOpen(false);
       setReturnToSubmit(null);
+      // تحديث التفاصيل المعروضة إذا كانت مفتوحة
+      if (selectedReturn && selectedReturn.id === data.returnId) {
+        setSelectedReturn({
+          ...selectedReturn,
+          status: "submitted",
+          submitted_at: data.submittedAt,
+          submission_reference: data.submissionReference,
+        });
+      }
     },
     onError: (error: any) => {
       toast.error(`فشل تقديم الإقرار: ${error.message}`);
@@ -627,16 +642,26 @@ const VATReturns = () => {
             <DialogHeader>
               <DialogTitle>تأكيد تقديم الإقرار</DialogTitle>
               <DialogDescription>
-                هل أنت متأكد من رغبتك في تقديم هذا الإقرار الضريبي؟ لا يمكن التراجع عن هذا الإجراء.
+                هل أنت متأكد من رغبتك في تقديم هذا الإقرار الضريبي؟
               </DialogDescription>
             </DialogHeader>
+            <Alert className="my-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <ul className="list-disc mr-4 space-y-1 mt-2">
+                  <li>لا يمكن التراجع عن هذا الإجراء</li>
+                  <li>سيتم إغلاق الفترة الضريبية المرتبطة تلقائياً</li>
+                  <li>سيتم توليد رقم مرجع فريد للتقديم</li>
+                </ul>
+              </AlertDescription>
+            </Alert>
             <DialogFooter>
               <Button variant="outline" onClick={() => setSubmitConfirmOpen(false)}>
                 إلغاء
               </Button>
               <Button
                 onClick={() => returnToSubmit && submitMutation.mutate(returnToSubmit)}
-                disabled={submitMutation.isPending}
+                disabled={submitMutation.isPending || !isAdmin}
               >
                 {submitMutation.isPending ? "جارٍ التقديم..." : "تأكيد التقديم"}
               </Button>

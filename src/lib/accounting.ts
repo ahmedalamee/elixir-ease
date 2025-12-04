@@ -2392,23 +2392,29 @@ export async function generateVatReturn(
   periodStart: string,
   periodEnd: string
 ): Promise<VatReturnSummary> {
-  // First, check if a tax period exists for this range or create one
+  // أولاً: حاول إيجاد فترة ضريبية تغطي هذا النطاق
   let taxPeriodId: string;
-  
-  const { data: existingPeriod } = await supabase
+
+  const { data: existingPeriod, error: existingError } = await supabase
     .from("tax_periods")
     .select("id")
-    .lte("start_date", periodEnd)
-    .gte("end_date", periodStart)
-    .limit(1)
-    .single();
-  
+    .lte("start_date", periodStart) // start_date <= periodStart
+    .gte("end_date", periodEnd)     // end_date   >= periodEnd
+    .maybeSingle();                 // يسمح بعدم وجود سجل بدون رمي خطأ
+
+  if (existingError) {
+    console.error("Error fetching tax period:", existingError);
+    throw existingError;
+  }
+
   if (existingPeriod) {
     taxPeriodId = existingPeriod.id;
   } else {
-    // Create a new tax period
-    const periodNum = `TP-${new Date(periodStart).getFullYear()}-${String(new Date(periodStart).getMonth() + 1).padStart(2, "0")}`;
-    
+    // إنشاء فترة ضريبية جديدة
+    const year = new Date(periodStart).getFullYear();
+    const month = new Date(periodStart).getMonth() + 1;
+    const periodNum = `TP-${year}-${String(month).padStart(2, "0")}`;
+
     const { data: newPeriod, error: periodError } = await supabase
       .from("tax_periods")
       .insert({
@@ -2420,12 +2426,12 @@ export async function generateVatReturn(
       })
       .select()
       .single();
-    
+
     if (periodError) throw periodError;
     taxPeriodId = newPeriod.id;
   }
 
-  // Calculate output VAT from sales invoices
+  // حساب ضريبة المخرجات من فواتير المبيعات
   const { data: salesInvoices, error: salesError } = await supabase
     .from("sales_invoices")
     .select("tax_amount, grand_total")
@@ -2444,7 +2450,7 @@ export async function generateVatReturn(
     0
   );
 
-  // Calculate input VAT from purchase invoices
+  // حساب ضريبة المدخلات من فواتير المشتريات
   const { data: purchaseInvoices, error: purchaseError } = await supabase
     .from("purchase_invoices")
     .select("tax_amount, total_amount")
@@ -2465,23 +2471,26 @@ export async function generateVatReturn(
 
   const netVat = outputVat - inputVat;
 
-  // Generate unique return number
+  // توليد رقم إقرار متسلسل
   const { data: lastReturn } = await supabase
     .from("vat_returns")
     .select("return_number")
     .order("created_at", { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
 
   const lastNum = lastReturn?.return_number?.match(/\d+$/)?.[0] || "0";
-  const returnNumber = `VAT-${new Date().getFullYear()}-${String(parseInt(lastNum) + 1).padStart(4, "0")}`;
+  const nextSeq = String(parseInt(lastNum, 10) + 1).padStart(4, "0");
+  const returnNumber = `VAT-${new Date().getFullYear()}-${nextSeq}`;
 
-  // Insert into vat_returns table using correct schema
+  // إدخال الإقرار في جدول vat_returns
+  const todayStr = new Date().toISOString().split("T")[0];
+
   const { data: vatReturn, error: insertError } = await supabase
     .from("vat_returns")
     .insert({
       return_number: returnNumber,
-      filing_date: new Date().toISOString().split("T")[0],
+      filing_date: todayStr,
       tax_period_id: taxPeriodId,
       total_sales: totalSales,
       total_purchases: totalPurchases,

@@ -56,7 +56,10 @@ import {
   Settings2,
   ListChecks,
   ClipboardCheck,
-  Check
+  Check,
+  Warehouse,
+  Calendar,
+  FileSpreadsheet
 } from "lucide-react";
 import { generateAdjustmentNumber, postInventoryAdjustment, getCurrentStockQuantity } from "@/lib/inventory";
 
@@ -95,6 +98,12 @@ interface PostResult {
 
 type Step = 'setup' | 'count' | 'review';
 
+const STEPS_CONFIG = [
+  { key: 'setup' as Step, label: 'إعداد الجرد', icon: Settings2, number: 1 },
+  { key: 'count' as Step, label: 'إدخال الكميات', icon: ListChecks, number: 2 },
+  { key: 'review' as Step, label: 'المراجعة والاعتماد', icon: ClipboardCheck, number: 3 },
+];
+
 const StockCount = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -123,6 +132,7 @@ const StockCount = () => {
   const [resultDialogOpen, setResultDialogOpen] = useState(false);
   const [postResult, setPostResult] = useState<PostResult | null>(null);
   const [showOnlyDifferences, setShowOnlyDifferences] = useState(false);
+  const [showSetupWarning, setShowSetupWarning] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -175,6 +185,7 @@ const StockCount = () => {
   // Load all products for selected warehouse
   const loadWarehouseProducts = async () => {
     if (!selectedWarehouse) {
+      setShowSetupWarning(true);
       toast({
         title: "تنبيه",
         description: "يرجى اختيار المستودع أولاً",
@@ -207,6 +218,7 @@ const StockCount = () => {
       
       setCountItems(items);
       setCurrentStep('count');
+      setShowSetupWarning(false);
       
       toast({
         title: "تم تحميل المنتجات",
@@ -228,6 +240,7 @@ const StockCount = () => {
     setSelectedWarehouse(warehouseId);
     const wh = warehouses.find(w => w.id === warehouseId);
     setWarehouseName(wh?.name || '');
+    setShowSetupWarning(false);
   };
 
   // Update counted quantity
@@ -472,6 +485,17 @@ const StockCount = () => {
     setBarcodeMode(false);
   };
 
+  // Navigate to a step (only backward allowed)
+  const handleStepClick = (step: Step) => {
+    const currentIndex = STEPS_CONFIG.findIndex(s => s.key === currentStep);
+    const targetIndex = STEPS_CONFIG.findIndex(s => s.key === step);
+    
+    // Only allow going backward
+    if (targetIndex < currentIndex) {
+      setCurrentStep(step);
+    }
+  };
+
   // Export to Excel (CSV)
   const handleExport = () => {
     const headers = ['barcode', 'sku', 'product_name', 'system_qty', 'counted_qty', 'difference', 'unit_cost', 'cost_impact'];
@@ -537,12 +561,67 @@ const StockCount = () => {
 
   // Row style based on adjustment type
   const getRowClass = (item: CountItem) => {
-    if (item.lastScanned) return 'bg-primary/20 ring-2 ring-primary ring-inset';
+    if (item.lastScanned) return 'bg-primary/20 ring-2 ring-primary ring-inset animate-pulse';
     switch (item.adjustment_type) {
       case 'increase': return 'bg-green-50 dark:bg-green-950/30';
       case 'decrease': return 'bg-red-50 dark:bg-red-950/30';
       default: return '';
     }
+  };
+
+  // Step indicator component with click navigation
+  const StepIndicator = () => {
+    const currentIndex = STEPS_CONFIG.findIndex(s => s.key === currentStep);
+
+    return (
+      <div className="flex items-center justify-center mb-6">
+        <div className="flex items-center gap-1 sm:gap-2 p-2 bg-muted/50 rounded-xl">
+          {STEPS_CONFIG.map((step, index) => {
+            const Icon = step.icon;
+            const isActive = currentStep === step.key;
+            const isCompleted = index < currentIndex;
+            const canClick = index < currentIndex;
+            
+            return (
+              <div key={step.key} className="flex items-center">
+                {index > 0 && (
+                  <div className={`w-6 sm:w-10 h-0.5 mx-1 ${
+                    isCompleted ? 'bg-primary' : 'bg-muted-foreground/30'
+                  }`} />
+                )}
+                <button
+                  onClick={() => canClick && handleStepClick(step.key)}
+                  disabled={!canClick}
+                  className={`
+                    flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg transition-all
+                    ${isActive 
+                      ? 'bg-primary text-primary-foreground shadow-md scale-105' 
+                      : isCompleted 
+                        ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/60 cursor-pointer' 
+                        : 'bg-muted text-muted-foreground cursor-default'
+                    }
+                  `}
+                >
+                  <div className={`
+                    flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold
+                    ${isActive 
+                      ? 'bg-primary-foreground/20' 
+                      : isCompleted 
+                        ? 'bg-green-600 text-white' 
+                        : 'bg-muted-foreground/20'
+                    }
+                  `}>
+                    {isCompleted ? <Check className="w-3.5 h-3.5" /> : step.number}
+                  </div>
+                  <Icon className="w-4 h-4 hidden sm:block" />
+                  <span className="text-sm font-medium hidden md:inline">{step.label}</span>
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
   };
 
   if (loading && warehouses.length === 0) {
@@ -559,48 +638,6 @@ const StockCount = () => {
     );
   }
 
-  // Step indicator component
-  const StepIndicator = () => {
-    const steps = [
-      { key: 'setup', label: 'إعداد الجرد', icon: Settings2, completed: currentStep !== 'setup' },
-      { key: 'count', label: 'إدخال الكميات', icon: ListChecks, completed: currentStep === 'review' },
-      { key: 'review', label: 'المراجعة والاعتماد', icon: ClipboardCheck, completed: false },
-    ];
-
-    return (
-      <div className="flex items-center justify-center gap-2 mb-6 flex-wrap">
-        {steps.map((step, index) => {
-          const Icon = step.icon;
-          const isActive = currentStep === step.key;
-          const isCompleted = step.completed;
-          
-          return (
-            <div key={step.key} className="flex items-center gap-2">
-              {index > 0 && <ArrowLeft className="w-4 h-4 text-muted-foreground hidden sm:block" />}
-              <div 
-                className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full transition-all ${
-                  isActive 
-                    ? 'bg-primary text-primary-foreground shadow-md' 
-                    : isCompleted 
-                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
-                      : 'bg-muted text-muted-foreground'
-                }`}
-              >
-                {isCompleted ? (
-                  <Check className="w-4 h-4" />
-                ) : (
-                  <Icon className="w-4 h-4" />
-                )}
-                <span className="text-sm font-medium hidden sm:inline">{step.label}</span>
-                <span className="text-sm font-medium sm:hidden">{index + 1}</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -609,7 +646,7 @@ const StockCount = () => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Package className="w-7 h-7" />
+              <Package className="w-7 h-7 text-primary" />
               الجرد الفعلي
             </h1>
             <p className="text-muted-foreground text-sm mt-1">
@@ -627,20 +664,23 @@ const StockCount = () => {
 
         {/* STEP 1: Setup */}
         {currentStep === 'setup' && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings2 className="w-5 h-5" />
-                إعداد الجرد
-              </CardTitle>
+          <Card className="max-w-2xl mx-auto">
+            <CardHeader className="text-center pb-2">
+              <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-3">
+                <Settings2 className="w-6 h-6 text-primary" />
+              </div>
+              <CardTitle>إعداد الجرد</CardTitle>
               <CardDescription>اختر المستودع وحدد تاريخ الجرد لبدء عملية الجرد الفعلي</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label>المستودع <span className="text-destructive">*</span></Label>
+                  <Label className="flex items-center gap-1">
+                    <Warehouse className="w-4 h-4" />
+                    المستودع <span className="text-destructive">*</span>
+                  </Label>
                   <Select value={selectedWarehouse} onValueChange={handleWarehouseChange}>
-                    <SelectTrigger className={!selectedWarehouse ? 'border-destructive/50' : ''}>
+                    <SelectTrigger className={showSetupWarning && !selectedWarehouse ? 'border-destructive ring-2 ring-destructive/20' : ''}>
                       <SelectValue placeholder="اختر المستودع" />
                     </SelectTrigger>
                     <SelectContent>
@@ -649,12 +689,18 @@ const StockCount = () => {
                       ))}
                     </SelectContent>
                   </Select>
-                  {!selectedWarehouse && (
-                    <p className="text-xs text-muted-foreground">يجب اختيار المستودع للمتابعة</p>
+                  {showSetupWarning && !selectedWarehouse && (
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      يجب اختيار المستودع للمتابعة
+                    </p>
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label>تاريخ الجرد</Label>
+                  <Label className="flex items-center gap-1">
+                    <Calendar className="w-4 h-4" />
+                    تاريخ الجرد
+                  </Label>
                   <Input
                     type="date"
                     value={countDate}
@@ -663,7 +709,10 @@ const StockCount = () => {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>ملاحظات (اختياري)</Label>
+                <Label className="flex items-center gap-1">
+                  <FileText className="w-4 h-4" />
+                  ملاحظات (اختياري)
+                </Label>
                 <Input
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -671,22 +720,22 @@ const StockCount = () => {
                 />
               </div>
               <Separator />
-              <div className="flex justify-end">
+              <div className="flex justify-center">
                 <Button 
                   onClick={loadWarehouseProducts} 
-                  disabled={!selectedWarehouse || loadingProducts}
-                  className="gap-2"
+                  disabled={loadingProducts}
+                  className="gap-2 min-w-[220px]"
                   size="lg"
                 >
                   {loadingProducts ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <Loader2 className="w-5 h-5 animate-spin" />
                       جارٍ تحميل المنتجات...
                     </>
                   ) : (
                     <>
                       تحميل منتجات المستودع
-                      <ArrowLeft className="w-4 h-4" />
+                      <ArrowLeft className="w-5 h-5" />
                     </>
                   )}
                 </Button>
@@ -699,24 +748,29 @@ const StockCount = () => {
         {currentStep === 'count' && (
           <>
             {/* Info Bar */}
-            <Card className="mb-4">
+            <Card className="mb-4 border-primary/20">
               <CardContent className="py-3">
                 <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div className="flex flex-wrap items-center gap-3 text-sm">
-                    <Badge variant="outline" className="gap-1 px-3 py-1">
-                      <Package className="w-3 h-3" />
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <Badge variant="outline" className="gap-1.5 px-3 py-1.5 text-sm font-medium bg-primary/5">
+                      <Warehouse className="w-3.5 h-3.5" />
                       {warehouseName}
                     </Badge>
-                    <Badge variant="outline" className="gap-1 px-3 py-1">
-                      <FileText className="w-3 h-3" />
+                    <Badge variant="outline" className="gap-1.5 px-3 py-1.5 text-sm">
+                      <Calendar className="w-3.5 h-3.5" />
                       {countDate}
                     </Badge>
-                    <div className="flex gap-4 text-muted-foreground">
-                      <span>إجمالي: <strong className="text-foreground">{countItems.length}</strong></span>
-                      <span>تم جردها: <strong className="text-foreground">{summaryStats.countedItemsCount}</strong></span>
+                    <Separator orientation="vertical" className="h-6 hidden sm:block" />
+                    <div className="flex gap-3 sm:gap-4 text-sm">
+                      <span className="text-muted-foreground">
+                        إجمالي: <strong className="text-foreground">{countItems.length}</strong>
+                      </span>
+                      <span className="text-muted-foreground">
+                        تم جردها: <strong className="text-primary">{summaryStats.countedItemsCount}</strong>
+                      </span>
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => setCurrentStep('setup')} className="gap-1">
+                  <Button variant="ghost" size="sm" onClick={() => setCurrentStep('setup')} className="gap-1.5 text-muted-foreground hover:text-foreground">
                     <ArrowLeft className="w-4 h-4 rotate-180" />
                     تعديل الإعداد
                   </Button>
@@ -725,33 +779,37 @@ const StockCount = () => {
             </Card>
 
             {/* Barcode Mode Card */}
-            <Card className={`mb-4 transition-all ${barcodeMode ? 'border-primary shadow-lg' : ''}`}>
+            <Card className={`mb-4 transition-all duration-300 ${barcodeMode ? 'border-primary shadow-lg shadow-primary/10' : ''}`}>
               <CardContent className="py-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <Switch
                       checked={barcodeMode}
                       onCheckedChange={setBarcodeMode}
                       id="barcode-mode"
+                      className="data-[state=checked]:bg-primary"
                     />
-                    <Label htmlFor="barcode-mode" className="cursor-pointer flex items-center gap-2">
-                      <ScanLine className="w-4 h-4" />
+                    <Label htmlFor="barcode-mode" className="cursor-pointer flex items-center gap-2 font-medium">
+                      <ScanLine className={`w-5 h-5 ${barcodeMode ? 'text-primary' : 'text-muted-foreground'}`} />
                       وضع الباركود
                     </Label>
                   </div>
                   
                   {barcodeMode && (
-                    <div className="flex-1 w-full sm:w-auto flex items-center gap-3">
-                      <Barcode className="w-6 h-6 text-primary hidden sm:block" />
-                      <Input
-                        ref={barcodeInputRef}
-                        value={barcodeInput}
-                        onChange={(e) => setBarcodeInput(e.target.value)}
-                        onKeyDown={handleBarcodeKeyDown}
-                        placeholder="امسح الباركود ثم Enter..."
-                        className="flex-1"
-                        autoFocus
-                      />
+                    <div className="flex-1 w-full sm:w-auto flex items-center gap-3 animate-in slide-in-from-top-2">
+                      <Barcode className="w-7 h-7 text-primary hidden sm:block" />
+                      <div className="relative flex-1">
+                        <Input
+                          ref={barcodeInputRef}
+                          value={barcodeInput}
+                          onChange={(e) => setBarcodeInput(e.target.value)}
+                          onKeyDown={handleBarcodeKeyDown}
+                          placeholder="امسح الباركود ثم Enter..."
+                          className="flex-1 pr-10 text-lg h-12 border-primary/50 focus:border-primary"
+                          autoFocus
+                        />
+                        <ScanLine className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-primary animate-pulse" />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -780,12 +838,12 @@ const StockCount = () => {
                     الفروقات فقط
                   </Label>
                 </div>
-                <Button variant="outline" size="sm" onClick={handleExport} className="gap-1">
+                <Button variant="outline" size="sm" onClick={handleExport} className="gap-1.5">
                   <Download className="w-4 h-4" />
                   <span className="hidden sm:inline">تصدير</span>
                 </Button>
                 <label>
-                  <Button variant="outline" size="sm" className="gap-1 cursor-pointer" asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5 cursor-pointer" asChild>
                     <span>
                       <Upload className="w-4 h-4" />
                       <span className="hidden sm:inline">استيراد</span>
@@ -802,21 +860,21 @@ const StockCount = () => {
                 <ScrollArea className="h-[400px] sm:h-[450px]">
                   <Table>
                     <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
-                      <TableRow>
-                        <TableHead className="text-right min-w-[180px]">المنتج</TableHead>
-                        <TableHead className="text-right w-[80px] hidden md:table-cell">SKU</TableHead>
-                        <TableHead className="text-right w-[100px] hidden lg:table-cell">الباركود</TableHead>
-                        <TableHead className="text-center w-[70px]">النظام</TableHead>
-                        <TableHead className="text-center w-[140px]">الكمية الفعلية</TableHead>
-                        <TableHead className="text-center w-[60px]">الفرق</TableHead>
-                        <TableHead className="text-left w-[80px] hidden sm:table-cell">التكلفة</TableHead>
-                        <TableHead className="text-center w-[60px]">النوع</TableHead>
+                      <TableRow className="bg-muted/50">
+                        <TableHead className="text-right min-w-[180px] font-semibold">المنتج</TableHead>
+                        <TableHead className="text-right w-[80px] hidden md:table-cell font-semibold">SKU</TableHead>
+                        <TableHead className="text-right w-[100px] hidden lg:table-cell font-semibold">الباركود</TableHead>
+                        <TableHead className="text-center w-[70px] font-semibold">النظام</TableHead>
+                        <TableHead className="text-center w-[150px] font-semibold">الكمية الفعلية</TableHead>
+                        <TableHead className="text-center w-[70px] font-semibold">الفرق</TableHead>
+                        <TableHead className="text-left w-[90px] hidden sm:table-cell font-semibold">التكلفة</TableHead>
+                        <TableHead className="text-center w-[70px] font-semibold">النوع</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredItems.length > 0 ? (
                         filteredItems.map((item) => (
-                          <TableRow key={item.id} className={getRowClass(item)}>
+                          <TableRow key={item.id} className={`transition-all ${getRowClass(item)}`}>
                             <TableCell className="font-medium">
                               <div>{item.product_name}</div>
                               <div className="text-xs text-muted-foreground md:hidden">
@@ -825,13 +883,13 @@ const StockCount = () => {
                             </TableCell>
                             <TableCell className="text-muted-foreground text-sm hidden md:table-cell">{item.sku || '-'}</TableCell>
                             <TableCell className="font-mono text-xs hidden lg:table-cell">{item.barcode || '-'}</TableCell>
-                            <TableCell className="text-center font-medium">{item.system_qty}</TableCell>
+                            <TableCell className="text-center font-semibold text-muted-foreground">{item.system_qty}</TableCell>
                             <TableCell>
                               <div className="flex items-center justify-center gap-1">
                                 <Button
                                   variant="outline"
                                   size="icon"
-                                  className="h-7 w-7"
+                                  className="h-8 w-8 rounded-full"
                                   onClick={() => updateCountedQty(item.id, Math.max(0, (item.counted_qty ?? 0) - 1))}
                                 >
                                   <Minus className="w-3 h-3" />
@@ -841,13 +899,13 @@ const StockCount = () => {
                                   min="0"
                                   value={item.counted_qty ?? ''}
                                   onChange={(e) => updateCountedQty(item.id, e.target.value ? parseFloat(e.target.value) : null)}
-                                  className="w-16 sm:w-20 text-center h-8"
+                                  className="w-16 sm:w-20 text-center h-9 font-semibold"
                                   placeholder="-"
                                 />
                                 <Button
                                   variant="outline"
                                   size="icon"
-                                  className="h-7 w-7"
+                                  className="h-8 w-8 rounded-full"
                                   onClick={() => updateCountedQty(item.id, (item.counted_qty ?? 0) + 1)}
                                 >
                                   <Plus className="w-3 h-3" />
@@ -862,7 +920,7 @@ const StockCount = () => {
                                 item.difference > 0 ? `+${item.difference}` : item.difference
                               ) : '-'}
                             </TableCell>
-                            <TableCell className={`text-left text-sm font-medium hidden sm:table-cell ${
+                            <TableCell className={`text-left text-sm font-semibold hidden sm:table-cell ${
                               item.cost_impact > 0 ? 'text-green-600' : 
                               item.cost_impact < 0 ? 'text-red-600' : 'text-muted-foreground'
                             }`}>
@@ -872,21 +930,24 @@ const StockCount = () => {
                             </TableCell>
                             <TableCell className="text-center">
                               {item.adjustment_type === 'increase' && (
-                                <Badge className="bg-green-500 text-xs px-1.5">زيادة</Badge>
+                                <Badge className="bg-green-500 hover:bg-green-600 text-xs px-2">زيادة</Badge>
                               )}
                               {item.adjustment_type === 'decrease' && (
-                                <Badge variant="destructive" className="text-xs px-1.5">نقص</Badge>
+                                <Badge variant="destructive" className="text-xs px-2">نقص</Badge>
                               )}
                               {item.adjustment_type === 'no_change' && item.counted_qty !== null && (
-                                <Badge variant="secondary" className="text-xs px-1.5">✓</Badge>
+                                <Badge variant="secondary" className="text-xs px-2">✓</Badge>
                               )}
                             </TableCell>
                           </TableRow>
                         ))
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                            {showOnlyDifferences ? 'لا توجد فروقات بعد' : 'لا توجد منتجات مطابقة للبحث'}
+                          <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
+                            <div className="flex flex-col items-center gap-2">
+                              <Search className="w-8 h-8 text-muted-foreground/50" />
+                              {showOnlyDifferences ? 'لا توجد فروقات بعد' : 'لا توجد منتجات مطابقة للبحث'}
+                            </div>
                           </TableCell>
                         </TableRow>
                       )}
@@ -902,29 +963,31 @@ const StockCount = () => {
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                   {/* Summary Stats */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-1 w-full lg:w-auto">
-                    <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-                      <Calculator className="w-5 h-5 text-muted-foreground" />
+                    <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                      <Calculator className="w-5 h-5 text-primary" />
                       <div>
                         <div className="text-xs text-muted-foreground">التغييرات</div>
-                        <div className="font-bold">{itemsWithDifference.length}</div>
+                        <div className="font-bold text-lg">{itemsWithDifference.length}</div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
+                    <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
                       <TrendingUp className="w-5 h-5 text-green-600" />
                       <div>
                         <div className="text-xs text-muted-foreground">الزيادة</div>
                         <div className="font-bold text-green-600">{summaryStats.totalIncrease.toFixed(2)}</div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-950/30 rounded-lg">
+                    <div className="flex items-center gap-3 p-3 bg-red-50 dark:bg-red-950/30 rounded-lg border border-red-200 dark:border-red-800">
                       <TrendingDown className="w-5 h-5 text-red-600" />
                       <div>
                         <div className="text-xs text-muted-foreground">النقص</div>
                         <div className="font-bold text-red-600">{summaryStats.totalDecrease.toFixed(2)}</div>
                       </div>
                     </div>
-                    <div className={`flex items-center gap-2 p-3 rounded-lg ${
-                      summaryStats.netImpact >= 0 ? 'bg-green-50 dark:bg-green-950/30' : 'bg-red-50 dark:bg-red-950/30'
+                    <div className={`flex items-center gap-3 p-3 rounded-lg border ${
+                      summaryStats.netImpact >= 0 
+                        ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800' 
+                        : 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800'
                     }`}>
                       <AlertCircle className={`w-5 h-5 ${summaryStats.netImpact >= 0 ? 'text-green-600' : 'text-red-600'}`} />
                       <div>
@@ -964,43 +1027,51 @@ const StockCount = () => {
 
         {/* STEP 3: Review */}
         {currentStep === 'review' && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ClipboardCheck className="w-5 h-5" />
-                مراجعة واعتماد الجرد
-              </CardTitle>
+          <Card className="max-w-4xl mx-auto">
+            <CardHeader className="text-center pb-2">
+              <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-3">
+                <ClipboardCheck className="w-6 h-6 text-primary" />
+              </div>
+              <CardTitle>مراجعة واعتماد الجرد</CardTitle>
               <CardDescription>راجع الفروقات قبل الاعتماد النهائي وإنشاء القيود المحاسبية</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Summary Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card className="bg-muted/50">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <Card className="bg-gradient-to-br from-muted/50 to-muted">
                   <CardContent className="p-4 text-center">
-                    <div className="text-xl sm:text-2xl font-bold truncate">{warehouseName}</div>
-                    <div className="text-sm text-muted-foreground">المستودع</div>
+                    <Warehouse className="w-5 h-5 mx-auto mb-1 text-muted-foreground" />
+                    <div className="text-lg font-bold truncate">{warehouseName}</div>
+                    <div className="text-xs text-muted-foreground">المستودع</div>
                   </CardContent>
                 </Card>
-                <Card className="bg-muted/50">
+                <Card className="bg-gradient-to-br from-muted/50 to-muted">
                   <CardContent className="p-4 text-center">
-                    <div className="text-xl sm:text-2xl font-bold">{countDate}</div>
-                    <div className="text-sm text-muted-foreground">تاريخ الجرد</div>
+                    <Calendar className="w-5 h-5 mx-auto mb-1 text-muted-foreground" />
+                    <div className="text-lg font-bold">{countDate}</div>
+                    <div className="text-xs text-muted-foreground">تاريخ الجرد</div>
                   </CardContent>
                 </Card>
-                <Card className="bg-muted/50">
+                <Card className="bg-gradient-to-br from-muted/50 to-muted">
                   <CardContent className="p-4 text-center">
-                    <div className="text-xl sm:text-2xl font-bold">{itemsWithDifference.length}</div>
-                    <div className="text-sm text-muted-foreground">منتجات بفروقات</div>
+                    <FileSpreadsheet className="w-5 h-5 mx-auto mb-1 text-muted-foreground" />
+                    <div className="text-lg font-bold">{itemsWithDifference.length}</div>
+                    <div className="text-xs text-muted-foreground">منتجات بفروقات</div>
                   </CardContent>
                 </Card>
-                <Card className="bg-muted/50">
+                <Card className={`bg-gradient-to-br ${
+                  summaryStats.netImpact >= 0 
+                    ? 'from-green-50 to-green-100 dark:from-green-950/40 dark:to-green-950/20' 
+                    : 'from-red-50 to-red-100 dark:from-red-950/40 dark:to-red-950/20'
+                }`}>
                   <CardContent className="p-4 text-center">
-                    <div className={`text-xl sm:text-2xl font-bold ${
+                    <AlertCircle className={`w-5 h-5 mx-auto mb-1 ${summaryStats.netImpact >= 0 ? 'text-green-600' : 'text-red-600'}`} />
+                    <div className={`text-lg font-bold ${
                       summaryStats.netImpact >= 0 ? 'text-green-600' : 'text-red-600'
                     }`}>
                       {summaryStats.netImpact >= 0 ? '+' : ''}{summaryStats.netImpact.toFixed(2)}
                     </div>
-                    <div className="text-sm text-muted-foreground">صافي التأثير</div>
+                    <div className="text-xs text-muted-foreground">صافي التأثير</div>
                   </CardContent>
                 </Card>
               </div>
@@ -1009,20 +1080,24 @@ const StockCount = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Card className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
                   <CardContent className="p-4 flex items-center gap-4">
-                    <TrendingUp className="w-8 sm:w-10 h-8 sm:h-10 text-green-600" />
+                    <div className="w-12 h-12 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center">
+                      <TrendingUp className="w-6 h-6 text-green-600" />
+                    </div>
                     <div>
                       <div className="text-sm text-muted-foreground">إجمالي الزيادة في المخزون</div>
-                      <div className="text-xl sm:text-2xl font-bold text-green-600">+{summaryStats.totalIncrease.toFixed(2)}</div>
+                      <div className="text-2xl font-bold text-green-600">+{summaryStats.totalIncrease.toFixed(2)}</div>
                       <div className="text-xs text-muted-foreground">{summaryStats.increaseCount} منتج</div>
                     </div>
                   </CardContent>
                 </Card>
                 <Card className="bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800">
                   <CardContent className="p-4 flex items-center gap-4">
-                    <TrendingDown className="w-8 sm:w-10 h-8 sm:h-10 text-red-600" />
+                    <div className="w-12 h-12 bg-red-100 dark:bg-red-900/50 rounded-full flex items-center justify-center">
+                      <TrendingDown className="w-6 h-6 text-red-600" />
+                    </div>
                     <div>
                       <div className="text-sm text-muted-foreground">إجمالي النقص في المخزون</div>
-                      <div className="text-xl sm:text-2xl font-bold text-red-600">-{summaryStats.totalDecrease.toFixed(2)}</div>
+                      <div className="text-2xl font-bold text-red-600">-{summaryStats.totalDecrease.toFixed(2)}</div>
                       <div className="text-xs text-muted-foreground">{summaryStats.decreaseCount} منتج</div>
                     </div>
                   </CardContent>
@@ -1031,28 +1106,31 @@ const StockCount = () => {
 
               {/* Items with differences */}
               <div>
-                <h3 className="font-semibold mb-3">المنتجات التي بها فروقات ({itemsWithDifference.length})</h3>
-                <ScrollArea className="h-[200px] sm:h-[250px] border rounded-md">
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  المنتجات التي بها فروقات ({itemsWithDifference.length})
+                </h3>
+                <ScrollArea className="h-[200px] sm:h-[250px] border rounded-lg">
                   <Table>
-                    <TableHeader className="sticky top-0 bg-background">
+                    <TableHeader className="sticky top-0 bg-muted/80 backdrop-blur">
                       <TableRow>
-                        <TableHead className="text-right">المنتج</TableHead>
-                        <TableHead className="text-center">النظام</TableHead>
-                        <TableHead className="text-center">الفعلية</TableHead>
-                        <TableHead className="text-center">الفرق</TableHead>
-                        <TableHead className="text-left hidden sm:table-cell">التكلفة</TableHead>
+                        <TableHead className="text-right font-semibold">المنتج</TableHead>
+                        <TableHead className="text-center font-semibold">النظام</TableHead>
+                        <TableHead className="text-center font-semibold">الفعلية</TableHead>
+                        <TableHead className="text-center font-semibold">الفرق</TableHead>
+                        <TableHead className="text-left hidden sm:table-cell font-semibold">التكلفة</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {itemsWithDifference.map(item => (
                         <TableRow key={item.id} className={getRowClass(item)}>
                           <TableCell className="font-medium">{item.product_name}</TableCell>
-                          <TableCell className="text-center">{item.system_qty}</TableCell>
-                          <TableCell className="text-center">{item.counted_qty}</TableCell>
+                          <TableCell className="text-center text-muted-foreground">{item.system_qty}</TableCell>
+                          <TableCell className="text-center font-semibold">{item.counted_qty}</TableCell>
                           <TableCell className={`text-center font-bold ${item.difference > 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {item.difference > 0 ? `+${item.difference}` : item.difference}
                           </TableCell>
-                          <TableCell className={`text-left font-medium hidden sm:table-cell ${item.cost_impact > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          <TableCell className={`text-left font-semibold hidden sm:table-cell ${item.cost_impact > 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {item.cost_impact > 0 ? '+' : ''}{item.cost_impact.toFixed(2)}
                           </TableCell>
                         </TableRow>
@@ -1063,8 +1141,11 @@ const StockCount = () => {
               </div>
 
               {notes && (
-                <div className="p-3 bg-muted rounded-md">
-                  <div className="text-sm text-muted-foreground mb-1">ملاحظات:</div>
+                <div className="p-4 bg-muted/50 rounded-lg border">
+                  <div className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
+                    <FileText className="w-3.5 h-3.5" />
+                    ملاحظات:
+                  </div>
                   <div>{notes}</div>
                 </div>
               )}
@@ -1090,11 +1171,20 @@ const StockCount = () => {
                   <Button
                     onClick={handleFinalize}
                     disabled={finalizing}
-                    className="gap-2"
+                    className="gap-2 min-w-[140px]"
                     size="lg"
                   >
-                    {finalizing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-                    {finalizing ? 'جارٍ الترحيل...' : 'اعتماد الجرد'}
+                    {finalizing ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        جارٍ الترحيل...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-5 h-5" />
+                        اعتماد الجرد
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>
@@ -1105,11 +1195,11 @@ const StockCount = () => {
         {/* Result Dialog */}
         <Dialog open={resultDialogOpen} onOpenChange={setResultDialogOpen}>
           <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-green-600">
-                <CheckCircle className="w-6 h-6" />
-                تم اعتماد الجرد بنجاح
-              </DialogTitle>
+            <DialogHeader className="text-center">
+              <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4">
+                <CheckCircle className="w-9 h-9 text-green-600" />
+              </div>
+              <DialogTitle className="text-xl">تم اعتماد الجرد بنجاح</DialogTitle>
               <DialogDescription>
                 تم ترحيل التسوية وإنشاء القيود المحاسبية وتحديث المخزون
               </DialogDescription>
@@ -1118,29 +1208,31 @@ const StockCount = () => {
             {postResult && (
               <div className="space-y-4 py-4">
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-muted p-3 rounded-lg">
+                  <div className="bg-muted p-3 rounded-lg text-center">
                     <div className="text-xs text-muted-foreground">رقم التسوية</div>
-                    <div className="font-bold text-sm">{postResult.adjustment_number}</div>
+                    <div className="font-bold text-primary">{postResult.adjustment_number}</div>
                   </div>
-                  <div className="bg-muted p-3 rounded-lg">
+                  <div className="bg-muted p-3 rounded-lg text-center">
                     <div className="text-xs text-muted-foreground">عدد المنتجات</div>
                     <div className="font-bold">{postResult.items_count}</div>
                   </div>
-                  <div className="bg-green-50 dark:bg-green-950/30 p-3 rounded-lg">
+                  <div className="bg-green-50 dark:bg-green-950/30 p-3 rounded-lg text-center border border-green-200 dark:border-green-800">
                     <div className="text-xs text-muted-foreground">إجمالي الزيادة</div>
                     <div className="font-bold text-green-600">+{postResult.total_increase?.toFixed(2)}</div>
                   </div>
-                  <div className="bg-red-50 dark:bg-red-950/30 p-3 rounded-lg">
+                  <div className="bg-red-50 dark:bg-red-950/30 p-3 rounded-lg text-center border border-red-200 dark:border-red-800">
                     <div className="text-xs text-muted-foreground">إجمالي النقص</div>
                     <div className="font-bold text-red-600">-{postResult.total_decrease?.toFixed(2)}</div>
                   </div>
                 </div>
                 
-                <div className={`p-3 rounded-lg ${
-                  (postResult.net_impact ?? 0) >= 0 ? 'bg-green-50 dark:bg-green-950/30' : 'bg-red-50 dark:bg-red-950/30'
+                <div className={`p-4 rounded-lg text-center ${
+                  (postResult.net_impact ?? 0) >= 0 
+                    ? 'bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800' 
+                    : 'bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800'
                 }`}>
                   <div className="text-xs text-muted-foreground">صافي التأثير</div>
-                  <div className={`font-bold text-lg ${
+                  <div className={`font-bold text-2xl ${
                     (postResult.net_impact ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'
                   }`}>
                     {(postResult.net_impact ?? 0) >= 0 ? '+' : ''}{postResult.net_impact?.toFixed(2)}
@@ -1148,9 +1240,9 @@ const StockCount = () => {
                 </div>
                 
                 {postResult.journal_entry_number && (
-                  <div className="bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg">
+                  <div className="bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg text-center border border-blue-200 dark:border-blue-800">
                     <div className="text-xs text-muted-foreground">القيد المحاسبي</div>
-                    <div className="font-bold">{postResult.journal_entry_number}</div>
+                    <div className="font-bold text-blue-600">{postResult.journal_entry_number}</div>
                   </div>
                 )}
               </div>
@@ -1160,13 +1252,15 @@ const StockCount = () => {
               <Button variant="outline" onClick={() => {
                 setResultDialogOpen(false);
                 resetForm();
-              }}>
+              }} className="gap-2">
+                <Plus className="w-4 h-4" />
                 جرد جديد
               </Button>
               <Button onClick={() => {
                 setResultDialogOpen(false);
                 navigate('/inventory/stock-adjustments');
-              }}>
+              }} className="gap-2">
+                <History className="w-4 h-4" />
                 عرض سجل التسويات
               </Button>
             </DialogFooter>

@@ -55,6 +55,7 @@ import GoodsReceipts from "./pages/GoodsReceipts";
 import PurchaseInvoices from "./pages/PurchaseInvoices";
 import Taxes from "./pages/Taxes";
 import Currencies from "./pages/Currencies";
+import ExchangeRates from "./pages/ExchangeRates";
 import InventorySettings from "./pages/InventorySettings";
 import CustomerPayments from "./pages/CustomerPayments";
 import SalesInvoices from "./pages/SalesInvoices";
@@ -222,6 +223,7 @@ const AppContent = () => {
           <Route path="/purchase-invoices" element={<PurchaseInvoices />} />
           <Route path="/settings/taxes" element={<Taxes />} />
           <Route path="/settings/currencies" element={<Currencies />} />
+          <Route path="/settings/exchange-rates" element={<ExchangeRates />} />
           <Route path="/inventory/settings" element={<InventorySettings />} />
           <Route path="/warehouse-stock" element={<WarehouseStock />} />
           <Route path="/company-profile" element={<CompanyProfile />} />

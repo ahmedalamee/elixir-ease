@@ -516,6 +516,11 @@ export const menuTree: TreeMenuItem[] = [
         route: "/settings/currencies",
       },
       {
+        id: "settings-exchange-rates",
+        label: "أسعار الصرف",
+        route: "/settings/exchange-rates",
+      },
+      {
         id: "settings-taxes",
         label: "إعدادات الضرائب",
         route: "/settings/taxes",

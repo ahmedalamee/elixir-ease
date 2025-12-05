@@ -22,7 +22,9 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { Pencil, Trash2, Plus, Star, ArrowLeftRight } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { useNavigate as useNav } from "react-router-dom";
 
 interface Currency {
   code: string;
@@ -31,6 +33,7 @@ interface Currency {
   symbol: string | null;
   precision: number;
   is_active: boolean;
+  is_base: boolean;
   created_at: string;
 }
 
@@ -125,7 +128,12 @@ export default function Currencies() {
     }
   };
 
-  const handleDelete = async (code: string) => {
+  const handleDelete = async (code: string, isBase: boolean) => {
+    if (isBase) {
+      toast.error("لا يمكن حذف العملة الأساسية");
+      return;
+    }
+    
     if (!confirm("هل أنت متأكد من حذف هذه العملة؟")) return;
 
     try {
@@ -175,13 +183,26 @@ export default function Currencies() {
       <Navbar />
       <div className="container mx-auto p-6 space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">إدارة العملات</h1>
-          {isAdmin && (
-            <Button onClick={() => openDialog()}>
-              <Plus className="ml-2 h-4 w-4" />
-              إضافة عملة
-            </Button>
-          )}
+          <div>
+            <h1 className="text-3xl font-bold">إدارة العملات</h1>
+            <p className="text-muted-foreground mt-1">
+              العملة الأساسية: {currencies.find(c => c.is_base)?.name || "YER"}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            {isAdmin && (
+              <Button variant="outline" onClick={() => navigate("/settings/exchange-rates")}>
+                <ArrowLeftRight className="ml-2 h-4 w-4" />
+                أسعار الصرف
+              </Button>
+            )}
+            {isAdmin && (
+              <Button onClick={() => openDialog()}>
+                <Plus className="ml-2 h-4 w-4" />
+                إضافة عملة
+              </Button>
+            )}
+          </div>
         </div>
 
         <Table>
@@ -192,19 +213,33 @@ export default function Currencies() {
               <TableHead>الاسم بالإنجليزية</TableHead>
               <TableHead>الرمز</TableHead>
               <TableHead>الدقة</TableHead>
-              <TableHead>نشط</TableHead>
+              <TableHead>الحالة</TableHead>
               {isAdmin && <TableHead>الإجراءات</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {currencies.map((currency) => (
               <TableRow key={currency.code}>
-                <TableCell className="font-medium">{currency.code}</TableCell>
+                <TableCell className="font-medium">
+                  <span className="flex items-center gap-2">
+                    {currency.code}
+                    {currency.is_base && (
+                      <Badge variant="default" className="text-xs">
+                        <Star className="h-3 w-3 ml-1" />
+                        أساسية
+                      </Badge>
+                    )}
+                  </span>
+                </TableCell>
                 <TableCell>{currency.name}</TableCell>
                 <TableCell>{currency.name_en || "-"}</TableCell>
                 <TableCell>{currency.symbol || "-"}</TableCell>
                 <TableCell>{currency.precision}</TableCell>
-                <TableCell>{currency.is_active ? "نعم" : "لا"}</TableCell>
+                <TableCell>
+                  <Badge variant={currency.is_active ? "default" : "secondary"}>
+                    {currency.is_active ? "نشط" : "غير نشط"}
+                  </Badge>
+                </TableCell>
                 {isAdmin && (
                   <TableCell>
                     <div className="flex gap-2">
@@ -215,13 +250,15 @@ export default function Currencies() {
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(currency.code)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {!currency.is_base && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(currency.code, currency.is_base)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 )}

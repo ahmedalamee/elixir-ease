@@ -403,3 +403,118 @@ export async function getExpiredLayers(
 
   return data || [];
 }
+
+// =====================================================
+// Stock Adjustments / تسويات المخزون
+// =====================================================
+
+export interface StockAdjustment {
+  id: string;
+  adjustment_number: string;
+  warehouse_id: string;
+  adjustment_date: string;
+  reason: string;
+  notes: string | null;
+  status: 'draft' | 'posted' | 'cancelled';
+  total_difference_qty: number;
+  total_difference_value: number;
+  journal_entry_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  posted_by: string | null;
+  posted_at: string | null;
+}
+
+export interface StockAdjustmentItem {
+  id: string;
+  adjustment_id: string;
+  product_id: string;
+  batch_number: string | null;
+  quantity_before: number;
+  quantity_after: number;
+  quantity_diff: number;
+  unit_cost: number;
+  total_cost_diff: number;
+  line_reason: string | null;
+  expiry_date: string | null;
+}
+
+export interface PostAdjustmentResult {
+  success: boolean;
+  adjustment_id: string;
+  adjustment_number: string;
+  journal_entry_id: string | null;
+  journal_entry_number: string | null;
+  total_increase_value: number;
+  total_decrease_value: number;
+  net_value: number;
+}
+
+/**
+ * Generate a new adjustment number
+ * توليد رقم تسوية جديد
+ */
+export async function generateAdjustmentNumber(): Promise<string> {
+  const { data, error } = await supabase.rpc('generate_adjustment_number');
+
+  if (error) {
+    console.error('Error generating adjustment number:', error);
+    throw new Error(`فشل في توليد رقم التسوية: ${error.message}`);
+  }
+
+  return data as string;
+}
+
+/**
+ * Post an inventory adjustment (integrates with FIFO & GL)
+ * ترحيل تسوية مخزون (مع تكامل FIFO والقيود المحاسبية)
+ */
+export async function postInventoryAdjustment(
+  adjustmentId: string
+): Promise<PostAdjustmentResult> {
+  const { data, error } = await supabase.rpc('post_inventory_adjustment', {
+    p_adjustment_id: adjustmentId
+  });
+
+  if (error) {
+    console.error('Error posting inventory adjustment:', error);
+    throw new Error(`فشل في ترحيل التسوية: ${error.message}`);
+  }
+
+  // Cast to any to handle JSONB response from Supabase
+  const result = data as any;
+
+  return {
+    success: result?.success ?? false,
+    adjustment_id: result?.adjustment_id,
+    adjustment_number: result?.adjustment_number,
+    journal_entry_id: result?.journal_entry_id,
+    journal_entry_number: result?.journal_entry_number,
+    total_increase_value: Number(result?.total_increase_value) || 0,
+    total_decrease_value: Number(result?.total_decrease_value) || 0,
+    net_value: Number(result?.net_value) || 0
+  };
+}
+
+/**
+ * Get current stock quantity for a product in a warehouse
+ * الحصول على كمية المخزون الحالية لمنتج في مستودع
+ */
+export async function getCurrentStockQuantity(
+  productId: string,
+  warehouseId: string
+): Promise<number> {
+  const { data, error } = await supabase
+    .from('warehouse_stock')
+    .select('qty_on_hand')
+    .eq('item_id', productId)
+    .eq('warehouse_id', warehouseId)
+    .single();
+
+  if (error && error.code !== 'PGRST116') {
+    console.error('Error fetching stock quantity:', error);
+    return 0;
+  }
+
+  return Number(data?.qty_on_hand) || 0;
+}

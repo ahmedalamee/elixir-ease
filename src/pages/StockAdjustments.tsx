@@ -32,7 +32,19 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Edit, Plus, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { Edit, Plus, CheckCircle, XCircle, FileText, Trash2 } from "lucide-react";
+import { generateAdjustmentNumber, postInventoryAdjustment, getCurrentStockQuantity } from "@/lib/inventory";
+
+interface AdjustmentItem {
+  product_id: string;
+  product_name: string;
+  quantity_before: number;
+  quantity_after: number;
+  quantity_diff: number;
+  unit_cost: number;
+  batch_number: string;
+  expiry_date: string;
+}
 
 const StockAdjustments = () => {
   const navigate = useNavigate();
@@ -42,27 +54,31 @@ const StockAdjustments = () => {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    warehouse_id: "",
-    item_id: "",
-    adjustment_type: "",
-    qty: "",
-    reason: "",
-    notes: "",
-  });
-
-  const adjustmentTypes = [
-    { value: "increase", label: "زيادة" },
-    { value: "decrease", label: "نقص" },
-  ];
+  const [posting, setPosting] = useState(false);
+  
+  // Form state
+  const [selectedWarehouse, setSelectedWarehouse] = useState("");
+  const [adjustmentDate, setAdjustmentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [reason, setReason] = useState("");
+  const [notes, setNotes] = useState("");
+  const [items, setItems] = useState<AdjustmentItem[]>([]);
+  
+  // Item form state
+  const [selectedProduct, setSelectedProduct] = useState("");
+  const [quantityAfter, setQuantityAfter] = useState("");
+  const [unitCost, setUnitCost] = useState("");
+  const [batchNumber, setBatchNumber] = useState("");
+  const [expiryDate, setExpiryDate] = useState("");
+  const [currentQuantity, setCurrentQuantity] = useState(0);
 
   const reasonOptions = [
+    { value: "stock_count", label: "فرق جرد" },
     { value: "damaged", label: "هالك" },
     { value: "expired", label: "منتهي الصلاحية" },
-    { value: "inventory_count", label: "فرق جرد" },
-    { value: "donation", label: "منحة" },
+    { value: "found", label: "مخزون مكتشف" },
+    { value: "opening_balance", label: "رصيد افتتاحي" },
     { value: "theft", label: "سرقة" },
-    { value: "return", label: "مرتجع" },
+    { value: "donation", label: "منحة" },
     { value: "other", label: "أخرى" },
   ];
 
@@ -91,12 +107,11 @@ const StockAdjustments = () => {
 
   const fetchAdjustments = async () => {
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("stock_adjustments")
         .select(`
           *,
-          warehouse:warehouses(name),
-          item:products(name, quantity)
+          warehouse:warehouses(name)
         `)
         .order("created_at", { ascending: false });
 
@@ -126,7 +141,7 @@ const StockAdjustments = () => {
     try {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, quantity")
+        .select("id, name, cost_price")
         .eq("is_active", true)
         .order("name");
 
@@ -137,17 +152,78 @@ const StockAdjustments = () => {
     }
   };
 
-  const handleSubmit = async () => {
-    if (
-      !formData.warehouse_id ||
-      !formData.item_id ||
-      !formData.adjustment_type ||
-      !formData.qty ||
-      !formData.reason
-    ) {
+  // Fetch current quantity when product or warehouse changes
+  useEffect(() => {
+    const fetchCurrentQty = async () => {
+      if (selectedProduct && selectedWarehouse) {
+        const qty = await getCurrentStockQuantity(selectedProduct, selectedWarehouse);
+        setCurrentQuantity(qty);
+        
+        // Set default unit cost from product
+        const product = products.find(p => p.id === selectedProduct);
+        if (product && !unitCost) {
+          setUnitCost(product.cost_price?.toString() || "0");
+        }
+      }
+    };
+    fetchCurrentQty();
+  }, [selectedProduct, selectedWarehouse]);
+
+  const handleAddItem = () => {
+    if (!selectedProduct || quantityAfter === "") {
       toast({
         title: "خطأ",
-        description: "الرجاء ملء جميع الحقول المطلوبة",
+        description: "الرجاء اختيار المنتج وإدخال الكمية الجديدة",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const product = products.find(p => p.id === selectedProduct);
+    const qtyAfter = parseFloat(quantityAfter);
+    const qtyDiff = qtyAfter - currentQuantity;
+
+    // For increases, unit cost is required
+    if (qtyDiff > 0 && (!unitCost || parseFloat(unitCost) <= 0)) {
+      toast({
+        title: "خطأ",
+        description: "يجب إدخال تكلفة الوحدة للزيادات",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newItem: AdjustmentItem = {
+      product_id: selectedProduct,
+      product_name: product?.name || "",
+      quantity_before: currentQuantity,
+      quantity_after: qtyAfter,
+      quantity_diff: qtyDiff,
+      unit_cost: qtyDiff > 0 ? parseFloat(unitCost) : 0,
+      batch_number: batchNumber,
+      expiry_date: expiryDate,
+    };
+
+    setItems([...items, newItem]);
+    
+    // Reset item form
+    setSelectedProduct("");
+    setQuantityAfter("");
+    setUnitCost("");
+    setBatchNumber("");
+    setExpiryDate("");
+    setCurrentQuantity(0);
+  };
+
+  const handleRemoveItem = (index: number) => {
+    setItems(items.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedWarehouse || !reason || items.length === 0) {
+      toast({
+        title: "خطأ",
+        description: "الرجاء ملء جميع الحقول المطلوبة وإضافة منتج واحد على الأقل",
         variant: "destructive",
       });
       return;
@@ -155,60 +231,54 @@ const StockAdjustments = () => {
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      const adjustmentNumber = `ADJ-${Date.now()}`;
-      const qty = parseFloat(formData.qty);
+      const adjustmentNumber = await generateAdjustmentNumber();
+      
+      const totalDiffQty = items.reduce((sum, item) => sum + item.quantity_diff, 0);
 
-      // Check if needs approval (large adjustments)
-      const needsApproval = Math.abs(qty) > 100; // Example threshold
+      // Create adjustment header
+      const { data: adjustment, error: headerError } = await supabase
+        .from("stock_adjustments")
+        .insert({
+          adjustment_number: adjustmentNumber,
+          warehouse_id: selectedWarehouse,
+          adjustment_date: adjustmentDate,
+          reason: reason,
+          notes: notes,
+          status: "draft",
+          total_difference_qty: totalDiffQty,
+          created_by: user?.id,
+        })
+        .select()
+        .single();
 
-      const { error } = await (supabase as any).from("stock_adjustments").insert({
-        adjustment_number: adjustmentNumber,
-        warehouse_id: formData.warehouse_id,
-        item_id: formData.item_id,
-        adjustment_type: formData.adjustment_type,
-        qty: formData.adjustment_type === "decrease" ? -qty : qty,
-        reason: formData.reason,
-        notes: formData.notes,
-        status: needsApproval ? "pending" : "approved",
-        created_by: user?.id,
-      });
+      if (headerError) throw headerError;
 
-      if (error) throw error;
+      // Create adjustment items
+      const itemsToInsert = items.map(item => ({
+        adjustment_id: adjustment.id,
+        product_id: item.product_id,
+        batch_number: item.batch_number || null,
+        quantity_before: item.quantity_before,
+        quantity_after: item.quantity_after,
+        quantity_diff: item.quantity_diff,
+        unit_cost: item.unit_cost,
+        expiry_date: item.expiry_date || null,
+      }));
 
-      // If auto-approved, update inventory
-      if (!needsApproval) {
-        const product = products.find((p) => p.id === formData.item_id);
-        if (product) {
-          const newQty =
-            formData.adjustment_type === "increase"
-              ? product.quantity + qty
-              : product.quantity - qty;
+      const { error: itemsError } = await supabase
+        .from("stock_adjustment_items")
+        .insert(itemsToInsert);
 
-          await supabase
-            .from("products")
-            .update({ quantity: newQty })
-            .eq("id", formData.item_id);
-        }
-      }
+      if (itemsError) throw itemsError;
 
       toast({
         title: "تمت العملية بنجاح",
-        description: needsApproval
-          ? "تم إنشاء التعديل وهو بانتظار الموافقة"
-          : `تم إنشاء التعديل رقم: ${adjustmentNumber}`,
+        description: `تم إنشاء التسوية رقم: ${adjustmentNumber}`,
       });
 
+      resetForm();
       setDialogOpen(false);
-      setFormData({
-        warehouse_id: "",
-        item_id: "",
-        adjustment_type: "",
-        qty: "",
-        reason: "",
-        notes: "",
-      });
       fetchAdjustments();
-      fetchProducts();
     } catch (error: any) {
       toast({
         title: "خطأ",
@@ -218,86 +288,57 @@ const StockAdjustments = () => {
     }
   };
 
-  const handleApproval = async (adjustmentId: string, approved: boolean) => {
+  const handlePost = async (adjustmentId: string) => {
+    setPosting(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const adjustment = adjustments.find((a) => a.id === adjustmentId);
-
-      if (!adjustment) return;
-
-      if (approved) {
-        // Update inventory
-        const product = products.find((p) => p.id === adjustment.item_id);
-        if (product) {
-          const newQty = product.quantity + adjustment.qty;
-
-          await supabase
-            .from("products")
-            .update({ quantity: newQty })
-            .eq("id", adjustment.item_id);
-        }
-
-        await (supabase as any)
-          .from("stock_adjustments")
-          .update({
-            status: "approved",
-            approved_by: user?.id,
-            approved_at: new Date().toISOString(),
-          })
-          .eq("id", adjustmentId);
-      } else {
-        await (supabase as any)
-          .from("stock_adjustments")
-          .update({ status: "rejected" })
-          .eq("id", adjustmentId);
-      }
-
+      const result = await postInventoryAdjustment(adjustmentId);
+      
       toast({
-        title: "تم التحديث",
-        description: approved ? "تمت الموافقة على التعديل" : "تم رفض التعديل",
+        title: "تم الترحيل بنجاح",
+        description: `تم ترحيل التسوية ${result.adjustment_number}. القيد المحاسبي: ${result.journal_entry_number || 'لا يوجد'}`,
       });
 
       fetchAdjustments();
-      fetchProducts();
     } catch (error: any) {
       toast({
-        title: "خطأ",
+        title: "خطأ في الترحيل",
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setPosting(false);
     }
+  };
+
+  const resetForm = () => {
+    setSelectedWarehouse("");
+    setAdjustmentDate(new Date().toISOString().split('T')[0]);
+    setReason("");
+    setNotes("");
+    setItems([]);
+    setSelectedProduct("");
+    setQuantityAfter("");
+    setUnitCost("");
+    setBatchNumber("");
+    setExpiryDate("");
+    setCurrentQuantity(0);
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "pending":
-        return (
-          <Badge variant="secondary" className="gap-1">
-            <AlertTriangle className="w-3 h-3" />
-            بانتظار الموافقة
-          </Badge>
-        );
-      case "approved":
-        return (
-          <Badge className="bg-green-500 gap-1">
-            <CheckCircle className="w-3 h-3" />
-            معتمد
-          </Badge>
-        );
-      case "rejected":
-        return (
-          <Badge variant="destructive" className="gap-1">
-            <XCircle className="w-3 h-3" />
-            مرفوض
-          </Badge>
-        );
+      case "draft":
+        return <Badge variant="secondary">مسودة</Badge>;
+      case "posted":
+        return <Badge className="bg-green-500 gap-1"><CheckCircle className="w-3 h-3" />مرحّل</Badge>;
+      case "cancelled":
+        return <Badge variant="destructive" className="gap-1"><XCircle className="w-3 h-3" />ملغي</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
   };
 
-  const getReasonLabel = (reason: string) => {
-    return reasonOptions.find((r) => r.value === reason)?.label || reason;
+  const getReasonLabel = (reasonValue: string) => {
+    return reasonOptions.find((r) => r.value === reasonValue)?.label || reasonValue;
   };
 
   if (loading) {
@@ -320,29 +361,28 @@ const StockAdjustments = () => {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Edit className="w-6 h-6" />
-                تعديلات المخزون
+                تسويات المخزون
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-2">
-                إدارة تعديلات كميات المخزون والموافقات
+                إدارة تسويات كميات المخزون مع تكامل FIFO والقيود المحاسبية
               </p>
             </div>
             <Button onClick={() => setDialogOpen(true)} className="gap-2">
               <Plus className="w-4 h-4" />
-              تعديل جديد
+              تسوية جديدة
             </Button>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-right">رقم التعديل</TableHead>
+                  <TableHead className="text-right">رقم التسوية</TableHead>
                   <TableHead className="text-right">المستودع</TableHead>
-                  <TableHead className="text-right">المنتج</TableHead>
-                  <TableHead className="text-right">النوع</TableHead>
-                  <TableHead className="text-right">الكمية</TableHead>
-                  <TableHead className="text-right">السبب</TableHead>
-                  <TableHead className="text-right">الحالة</TableHead>
                   <TableHead className="text-right">التاريخ</TableHead>
+                  <TableHead className="text-right">السبب</TableHead>
+                  <TableHead className="text-right">فرق الكمية</TableHead>
+                  <TableHead className="text-right">فرق القيمة</TableHead>
+                  <TableHead className="text-right">الحالة</TableHead>
                   <TableHead className="text-right">إجراءات</TableHead>
                 </TableRow>
               </TableHeader>
@@ -354,58 +394,44 @@ const StockAdjustments = () => {
                         {adjustment.adjustment_number}
                       </TableCell>
                       <TableCell>{adjustment.warehouse?.name}</TableCell>
-                      <TableCell>{adjustment.item?.name}</TableCell>
                       <TableCell>
-                        <Badge
-                          variant={
-                            adjustment.adjustment_type === "increase"
-                              ? "default"
-                              : "secondary"
-                          }
-                        >
-                          {adjustment.adjustment_type === "increase"
-                            ? "زيادة"
-                            : "نقص"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell
-                        className={
-                          adjustment.qty > 0 ? "text-green-600" : "text-red-600"
-                        }
-                      >
-                        {adjustment.qty > 0 ? "+" : ""}
-                        {adjustment.qty}
+                        {new Date(adjustment.adjustment_date).toLocaleDateString("ar-SA")}
                       </TableCell>
                       <TableCell>{getReasonLabel(adjustment.reason)}</TableCell>
+                      <TableCell className={adjustment.total_difference_qty > 0 ? "text-green-600" : adjustment.total_difference_qty < 0 ? "text-red-600" : ""}>
+                        {adjustment.total_difference_qty > 0 ? "+" : ""}
+                        {adjustment.total_difference_qty?.toFixed(2)}
+                      </TableCell>
+                      <TableCell className={adjustment.total_difference_value > 0 ? "text-green-600" : adjustment.total_difference_value < 0 ? "text-red-600" : ""}>
+                        {adjustment.total_difference_value > 0 ? "+" : ""}
+                        {adjustment.total_difference_value?.toFixed(2)}
+                      </TableCell>
                       <TableCell>{getStatusBadge(adjustment.status)}</TableCell>
                       <TableCell>
-                        {new Date(adjustment.created_at).toLocaleDateString("ar-SA")}
-                      </TableCell>
-                      <TableCell>
-                        {adjustment.status === "pending" && (
+                        {adjustment.status === "draft" && (
                           <div className="flex gap-2">
                             <Button
                               size="sm"
-                              onClick={() => handleApproval(adjustment.id, true)}
+                              onClick={() => handlePost(adjustment.id)}
+                              disabled={posting}
                             >
-                              موافقة
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleApproval(adjustment.id, false)}
-                            >
-                              رفض
+                              <FileText className="w-4 h-4 ml-1" />
+                              ترحيل
                             </Button>
                           </div>
+                        )}
+                        {adjustment.journal_entry_id && (
+                          <Badge variant="outline" className="text-xs">
+                            قيد: {adjustment.journal_entry_id.slice(0, 8)}...
+                          </Badge>
                         )}
                       </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center text-muted-foreground">
-                      لا توجد تعديلات حالياً
+                    <TableCell colSpan={8} className="text-center text-muted-foreground">
+                      لا توجد تسويات حالياً
                     </TableCell>
                   </TableRow>
                 )}
@@ -416,133 +442,182 @@ const StockAdjustments = () => {
 
         {/* New Adjustment Dialog */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>إنشاء تعديل جديد</DialogTitle>
+              <DialogTitle>إنشاء تسوية مخزون جديدة</DialogTitle>
               <DialogDescription>
-                قم بإدخال تفاصيل تعديل المخزون
+                قم بإدخال تفاصيل تسوية المخزون - ستتكامل التسوية مع FIFO والقيود المحاسبية عند الترحيل
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="warehouse">المستودع *</Label>
-                <Select
-                  value={formData.warehouse_id}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, warehouse_id: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر المستودع" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {warehouses.map((wh) => (
-                      <SelectItem key={wh.id} value={wh.id}>
-                        {wh.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <div className="space-y-6 py-4">
+              {/* Header Fields */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>المستودع *</Label>
+                  <Select value={selectedWarehouse} onValueChange={setSelectedWarehouse}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر المستودع" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {warehouses.map((wh) => (
+                        <SelectItem key={wh.id} value={wh.id}>{wh.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>تاريخ التسوية *</Label>
+                  <Input
+                    type="date"
+                    value={adjustmentDate}
+                    onChange={(e) => setAdjustmentDate(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>السبب *</Label>
+                  <Select value={reason} onValueChange={setReason}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر السبب" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {reasonOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>ملاحظات</Label>
+                  <Textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="ملاحظات إضافية..."
+                  />
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="item">المنتج *</Label>
-                <Select
-                  value={formData.item_id}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, item_id: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر المنتج" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {products.map((product) => (
-                      <SelectItem key={product.id} value={product.id}>
-                        {product.name} (متوفر: {product.quantity})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Add Item Section */}
+              <Card className="p-4">
+                <h4 className="font-semibold mb-4">إضافة منتج للتسوية</h4>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-2">
+                    <Label>المنتج *</Label>
+                    <Select value={selectedProduct} onValueChange={setSelectedProduct}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر المنتج" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {products.map((product) => (
+                          <SelectItem key={product.id} value={product.id}>{product.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="adjustment_type">نوع التعديل *</Label>
-                <Select
-                  value={formData.adjustment_type}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, adjustment_type: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر النوع" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {adjustmentTypes.map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
-                        {type.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                  <div className="space-y-2">
+                    <Label>الكمية الحالية</Label>
+                    <Input value={currentQuantity.toString()} disabled className="bg-muted" />
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="qty">الكمية *</Label>
-                <Input
-                  id="qty"
-                  type="number"
-                  step="0.01"
-                  value={formData.qty}
-                  onChange={(e) =>
-                    setFormData({ ...formData, qty: e.target.value })
-                  }
-                  placeholder="0.00"
-                  className="text-right"
-                />
-              </div>
+                  <div className="space-y-2">
+                    <Label>الكمية الجديدة *</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={quantityAfter}
+                      onChange={(e) => setQuantityAfter(e.target.value)}
+                      placeholder="الكمية بعد التسوية"
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="reason">السبب *</Label>
-                <Select
-                  value={formData.reason}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, reason: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر السبب" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {reasonOptions.map((reason) => (
-                      <SelectItem key={reason.value} value={reason.value}>
-                        {reason.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                  <div className="space-y-2">
+                    <Label>تكلفة الوحدة (للزيادات)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={unitCost}
+                      onChange={(e) => setUnitCost(e.target.value)}
+                      placeholder="0.00"
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="notes">ملاحظات</Label>
-                <Textarea
-                  id="notes"
-                  value={formData.notes}
-                  onChange={(e) =>
-                    setFormData({ ...formData, notes: e.target.value })
-                  }
-                  placeholder="ملاحظات اختيارية..."
-                  className="text-right"
-                />
-              </div>
+                  <div className="space-y-2">
+                    <Label>رقم الدفعة</Label>
+                    <Input
+                      value={batchNumber}
+                      onChange={(e) => setBatchNumber(e.target.value)}
+                      placeholder="اختياري"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>تاريخ الانتهاء</Label>
+                    <Input
+                      type="date"
+                      value={expiryDate}
+                      onChange={(e) => setExpiryDate(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <Button onClick={handleAddItem} className="mt-4 gap-2">
+                  <Plus className="w-4 h-4" />
+                  إضافة للقائمة
+                </Button>
+              </Card>
+
+              {/* Items List */}
+              {items.length > 0 && (
+                <Card className="p-4">
+                  <h4 className="font-semibold mb-4">بنود التسوية ({items.length})</h4>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-right">المنتج</TableHead>
+                        <TableHead className="text-right">قبل</TableHead>
+                        <TableHead className="text-right">بعد</TableHead>
+                        <TableHead className="text-right">الفرق</TableHead>
+                        <TableHead className="text-right">التكلفة</TableHead>
+                        <TableHead className="text-right">حذف</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {items.map((item, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{item.product_name}</TableCell>
+                          <TableCell>{item.quantity_before.toFixed(2)}</TableCell>
+                          <TableCell>{item.quantity_after.toFixed(2)}</TableCell>
+                          <TableCell className={item.quantity_diff > 0 ? "text-green-600" : item.quantity_diff < 0 ? "text-red-600" : ""}>
+                            {item.quantity_diff > 0 ? "+" : ""}{item.quantity_diff.toFixed(2)}
+                          </TableCell>
+                          <TableCell>{item.unit_cost.toFixed(2)}</TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveItem(index)}
+                            >
+                              <Trash2 className="w-4 h-4 text-red-500" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </Card>
+              )}
             </div>
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              <Button variant="outline" onClick={() => { resetForm(); setDialogOpen(false); }}>
                 إلغاء
               </Button>
-              <Button onClick={handleSubmit}>إنشاء التعديل</Button>
+              <Button onClick={handleSubmit} disabled={items.length === 0}>
+                حفظ كمسودة
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

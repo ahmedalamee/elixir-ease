@@ -6242,6 +6242,159 @@ export type Database = {
           },
         ]
       }
+      stock_adjustment_items: {
+        Row: {
+          adjustment_id: string
+          batch_number: string | null
+          created_at: string | null
+          expiry_date: string | null
+          id: string
+          line_reason: string | null
+          product_id: string
+          quantity_after: number
+          quantity_before: number
+          quantity_diff: number
+          total_cost_diff: number | null
+          unit_cost: number | null
+        }
+        Insert: {
+          adjustment_id: string
+          batch_number?: string | null
+          created_at?: string | null
+          expiry_date?: string | null
+          id?: string
+          line_reason?: string | null
+          product_id: string
+          quantity_after?: number
+          quantity_before?: number
+          quantity_diff?: number
+          total_cost_diff?: number | null
+          unit_cost?: number | null
+        }
+        Update: {
+          adjustment_id?: string
+          batch_number?: string | null
+          created_at?: string | null
+          expiry_date?: string | null
+          id?: string
+          line_reason?: string | null
+          product_id?: string
+          quantity_after?: number
+          quantity_before?: number
+          quantity_diff?: number
+          total_cost_diff?: number | null
+          unit_cost?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_adjustment_items_adjustment_id_fkey"
+            columns: ["adjustment_id"]
+            isOneToOne: false
+            referencedRelation: "stock_adjustments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_adjustment_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_adjustment_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["product_id"]
+          },
+        ]
+      }
+      stock_adjustments: {
+        Row: {
+          adjustment_date: string
+          adjustment_number: string
+          cancelled_at: string | null
+          cancelled_by: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          journal_entry_id: string | null
+          notes: string | null
+          posted_at: string | null
+          posted_by: string | null
+          reason: string
+          status: string
+          total_difference_qty: number | null
+          total_difference_value: number | null
+          warehouse_id: string
+        }
+        Insert: {
+          adjustment_date?: string
+          adjustment_number: string
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
+          reason: string
+          status?: string
+          total_difference_qty?: number | null
+          total_difference_value?: number | null
+          warehouse_id: string
+        }
+        Update: {
+          adjustment_date?: string
+          adjustment_number?: string
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
+          reason?: string
+          status?: string
+          total_difference_qty?: number | null
+          total_difference_value?: number | null
+          warehouse_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_adjustments_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "gl_journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_adjustments_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "vw_document_gl_links"
+            referencedColumns: ["journal_entry_id"]
+          },
+          {
+            foreignKeyName: "stock_adjustments_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "stock_adjustments_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_integration_log: {
         Row: {
           created_at: string | null
@@ -7635,6 +7788,7 @@ export type Database = {
         Returns: string
       }
       encrypt_data: { Args: { data: string; key?: string }; Returns: string }
+      generate_adjustment_number: { Args: never; Returns: string }
       generate_campaign_number: { Args: never; Returns: string }
       generate_complaint_number: { Args: never; Returns: string }
       generate_doctor_code: { Args: never; Returns: string }
@@ -7858,6 +8012,10 @@ export type Database = {
       post_customer_payment: { Args: { p_payment_id: string }; Returns: Json }
       post_customer_receipt: { Args: { p_payment_id: string }; Returns: Json }
       post_goods_receipt: { Args: { p_grn_id: string }; Returns: Json }
+      post_inventory_adjustment: {
+        Args: { p_adjustment_id: string }
+        Returns: Json
+      }
       post_pos_session: {
         Args: { p_closing_cash?: number; p_session_id: string }
         Returns: Json

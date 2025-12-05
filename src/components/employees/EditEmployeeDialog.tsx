@@ -96,51 +96,43 @@ export default function EditEmployeeDialog({
     setLoading(true);
 
     try {
-      // 1. Update employee record
-      const { error: employeeError } = await supabase
-        .from("employees")
-        .update({
-          full_name: formData.full_name,
-          full_name_en: formData.full_name_en || null,
-          phone: formData.phone || null,
-          national_id: formData.national_id || null,
-          job_title: formData.job_title || null,
-          department: formData.department || null,
-          salary: formData.salary ? parseFloat(formData.salary) : null,
-          is_active: formData.is_active,
-          notes: formData.notes || null,
-        })
-        .eq("id", employee.id);
+      // Get current session for authorization header
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error("يجب تسجيل الدخول أولاً");
+      }
 
-      if (employeeError) throw employeeError;
-
-      // 2. Update or insert role
-      if (formData.role) {
-        if (employee.role_id) {
-          // Update existing role
-          const { error: roleError } = await supabase
-            .from("user_roles")
-            .update({ role: formData.role })
-            .eq("id", employee.role_id);
-
-          if (roleError) throw roleError;
-        } else {
-          // Insert new role
-          const { error: roleError } = await supabase.from("user_roles").insert({
-            user_id: employee.user_id,
-            role: formData.role,
-          });
-
-          if (roleError) throw roleError;
+      // Call the secure Edge Function
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-employee`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            action: 'update',
+            employee_id: employee.id,
+            update_data: {
+              full_name: formData.full_name,
+              full_name_en: formData.full_name_en || null,
+              phone: formData.phone || null,
+              national_id: formData.national_id || null,
+              job_title: formData.job_title || null,
+              department: formData.department || null,
+              salary: formData.salary ? parseFloat(formData.salary) : null,
+              is_active: formData.is_active,
+              notes: formData.notes || null,
+            },
+          }),
         }
-      } else if (employee.role_id) {
-        // Delete role if cleared
-        const { error: roleError } = await supabase
-          .from("user_roles")
-          .delete()
-          .eq("id", employee.role_id);
+      );
 
-        if (roleError) throw roleError;
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'فشل في تحديث الموظف');
       }
 
       toast({

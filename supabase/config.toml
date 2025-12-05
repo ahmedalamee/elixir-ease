@@ -1,1 +1,7 @@
 project_id = "htpghucuqmzxgzbutnsn"
+
+[functions.generate-journal-entry]
+verify_jwt = true
+
+[functions.manage-employee]
+verify_jwt = true

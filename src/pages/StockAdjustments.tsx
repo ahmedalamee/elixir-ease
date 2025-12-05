@@ -32,7 +32,20 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Edit, Plus, CheckCircle, XCircle, FileText, Trash2 } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { 
+  Edit, 
+  Plus, 
+  CheckCircle, 
+  XCircle, 
+  FileText, 
+  Trash2, 
+  Eye, 
+  Package,
+  Search,
+  ScanLine,
+  Download
+} from "lucide-react";
 import { generateAdjustmentNumber, postInventoryAdjustment, getCurrentStockQuantity } from "@/lib/inventory";
 
 interface AdjustmentItem {
@@ -46,6 +59,18 @@ interface AdjustmentItem {
   expiry_date: string;
 }
 
+interface AdjustmentDetail {
+  id: string;
+  adjustment_id: string;
+  product_id: string;
+  quantity_before: number;
+  quantity_after: number;
+  quantity_diff: number;
+  unit_cost: number;
+  total_cost_diff: number;
+  product?: { name: string };
+}
+
 const StockAdjustments = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -54,7 +79,12 @@ const StockAdjustments = () => {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [selectedAdjustment, setSelectedAdjustment] = useState<any>(null);
+  const [adjustmentDetails, setAdjustmentDetails] = useState<AdjustmentDetail[]>([]);
   const [posting, setPosting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   
   // Form state
   const [selectedWarehouse, setSelectedWarehouse] = useState("");
@@ -152,6 +182,24 @@ const StockAdjustments = () => {
     }
   };
 
+  const fetchAdjustmentDetails = async (adjustmentId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("stock_adjustment_items")
+        .select(`
+          *,
+          product:products(name)
+        `)
+        .eq("adjustment_id", adjustmentId)
+        .order("created_at");
+
+      if (error) throw error;
+      setAdjustmentDetails(data || []);
+    } catch (error) {
+      console.error("Error fetching adjustment details:", error);
+    }
+  };
+
   // Fetch current quantity when product or warehouse changes
   useEffect(() => {
     const fetchCurrentQty = async () => {
@@ -159,7 +207,6 @@ const StockAdjustments = () => {
         const qty = await getCurrentStockQuantity(selectedProduct, selectedWarehouse);
         setCurrentQuantity(qty);
         
-        // Set default unit cost from product
         const product = products.find(p => p.id === selectedProduct);
         if (product && !unitCost) {
           setUnitCost(product.cost_price?.toString() || "0");
@@ -183,7 +230,6 @@ const StockAdjustments = () => {
     const qtyAfter = parseFloat(quantityAfter);
     const qtyDiff = qtyAfter - currentQuantity;
 
-    // For increases, unit cost is required
     if (qtyDiff > 0 && (!unitCost || parseFloat(unitCost) <= 0)) {
       toast({
         title: "خطأ",
@@ -206,7 +252,6 @@ const StockAdjustments = () => {
 
     setItems([...items, newItem]);
     
-    // Reset item form
     setSelectedProduct("");
     setQuantityAfter("");
     setUnitCost("");
@@ -235,7 +280,6 @@ const StockAdjustments = () => {
       
       const totalDiffQty = items.reduce((sum, item) => sum + item.quantity_diff, 0);
 
-      // Create adjustment header
       const { data: adjustment, error: headerError } = await supabase
         .from("stock_adjustments")
         .insert({
@@ -253,7 +297,6 @@ const StockAdjustments = () => {
 
       if (headerError) throw headerError;
 
-      // Create adjustment items
       const itemsToInsert = items.map(item => ({
         adjustment_id: adjustment.id,
         product_id: item.product_id,
@@ -310,6 +353,12 @@ const StockAdjustments = () => {
     }
   };
 
+  const handleViewDetails = async (adjustment: any) => {
+    setSelectedAdjustment(adjustment);
+    await fetchAdjustmentDetails(adjustment.id);
+    setDetailsDialogOpen(true);
+  };
+
   const resetForm = () => {
     setSelectedWarehouse("");
     setAdjustmentDate(new Date().toISOString().split('T')[0]);
@@ -341,6 +390,38 @@ const StockAdjustments = () => {
     return reasonOptions.find((r) => r.value === reasonValue)?.label || reasonValue;
   };
 
+  // Filter adjustments
+  const filteredAdjustments = adjustments.filter(adj => {
+    const matchesSearch = !searchTerm || 
+      adj.adjustment_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      adj.warehouse?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || adj.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  // Export to CSV
+  const handleExport = () => {
+    const headers = ['رقم التسوية', 'المستودع', 'التاريخ', 'السبب', 'فرق الكمية', 'فرق القيمة', 'الحالة'];
+    const rows = filteredAdjustments.map(adj => [
+      adj.adjustment_number,
+      adj.warehouse?.name || '',
+      adj.adjustment_date,
+      getReasonLabel(adj.reason),
+      adj.total_difference_qty,
+      adj.total_difference_value || 0,
+      adj.status
+    ]);
+
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `stock-adjustments-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -355,24 +436,65 @@ const StockAdjustments = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="container mx-auto px-4 py-8">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Edit className="w-6 h-6" />
-                تسويات المخزون
-              </CardTitle>
-              <p className="text-sm text-muted-foreground mt-2">
-                إدارة تسويات كميات المخزون مع تكامل FIFO والقيود المحاسبية
-              </p>
-            </div>
+      <div className="container mx-auto px-4 py-6">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <Edit className="w-7 h-7" />
+              سجل تسويات المخزون
+            </h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              عرض وإدارة جميع تسويات المخزون مع تكامل FIFO والقيود المحاسبية
+            </p>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" onClick={() => navigate('/inventory/stock-count')} className="gap-2">
+              <ScanLine className="w-4 h-4" />
+              جرد جديد
+            </Button>
             <Button onClick={() => setDialogOpen(true)} className="gap-2">
               <Plus className="w-4 h-4" />
-              تسوية جديدة
+              تسوية يدوية
             </Button>
-          </CardHeader>
-          <CardContent>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <Card className="mb-6">
+          <CardContent className="py-4">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="بحث برقم التسوية أو المستودع..."
+                  className="pr-10"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="الحالة" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">جميع الحالات</SelectItem>
+                  <SelectItem value="draft">مسودة</SelectItem>
+                  <SelectItem value="posted">مرحّل</SelectItem>
+                  <SelectItem value="cancelled">ملغي</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" onClick={handleExport} className="gap-1">
+                <Download className="w-4 h-4" />
+                تصدير
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Adjustments Table */}
+        <Card>
+          <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -383,14 +505,15 @@ const StockAdjustments = () => {
                   <TableHead className="text-right">فرق الكمية</TableHead>
                   <TableHead className="text-right">فرق القيمة</TableHead>
                   <TableHead className="text-right">الحالة</TableHead>
-                  <TableHead className="text-right">إجراءات</TableHead>
+                  <TableHead className="text-right">القيد</TableHead>
+                  <TableHead className="text-center">إجراءات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {adjustments.length > 0 ? (
-                  adjustments.map((adjustment) => (
+                {filteredAdjustments.length > 0 ? (
+                  filteredAdjustments.map((adjustment) => (
                     <TableRow key={adjustment.id}>
-                      <TableCell className="font-medium">
+                      <TableCell className="font-medium font-mono">
                         {adjustment.adjustment_number}
                       </TableCell>
                       <TableCell>{adjustment.warehouse?.name}</TableCell>
@@ -398,40 +521,52 @@ const StockAdjustments = () => {
                         {new Date(adjustment.adjustment_date).toLocaleDateString("ar-SA")}
                       </TableCell>
                       <TableCell>{getReasonLabel(adjustment.reason)}</TableCell>
-                      <TableCell className={adjustment.total_difference_qty > 0 ? "text-green-600" : adjustment.total_difference_qty < 0 ? "text-red-600" : ""}>
+                      <TableCell className={adjustment.total_difference_qty > 0 ? "text-green-600 font-medium" : adjustment.total_difference_qty < 0 ? "text-red-600 font-medium" : ""}>
                         {adjustment.total_difference_qty > 0 ? "+" : ""}
                         {adjustment.total_difference_qty?.toFixed(2)}
                       </TableCell>
-                      <TableCell className={adjustment.total_difference_value > 0 ? "text-green-600" : adjustment.total_difference_value < 0 ? "text-red-600" : ""}>
+                      <TableCell className={adjustment.total_difference_value > 0 ? "text-green-600 font-medium" : adjustment.total_difference_value < 0 ? "text-red-600 font-medium" : ""}>
                         {adjustment.total_difference_value > 0 ? "+" : ""}
-                        {adjustment.total_difference_value?.toFixed(2)}
+                        {adjustment.total_difference_value?.toFixed(2) || '0.00'}
                       </TableCell>
                       <TableCell>{getStatusBadge(adjustment.status)}</TableCell>
                       <TableCell>
-                        {adjustment.status === "draft" && (
-                          <div className="flex gap-2">
+                        {adjustment.journal_entry_id ? (
+                          <Badge variant="outline" className="text-xs font-mono">
+                            {adjustment.journal_entry_id.slice(0, 8)}...
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex justify-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleViewDetails(adjustment)}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          {adjustment.status === "draft" && (
                             <Button
+                              variant="ghost"
                               size="sm"
                               onClick={() => handlePost(adjustment.id)}
                               disabled={posting}
                             >
-                              <FileText className="w-4 h-4 ml-1" />
-                              ترحيل
+                              <FileText className="w-4 h-4" />
                             </Button>
-                          </div>
-                        )}
-                        {adjustment.journal_entry_id && (
-                          <Badge variant="outline" className="text-xs">
-                            قيد: {adjustment.journal_entry_id.slice(0, 8)}...
-                          </Badge>
-                        )}
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground">
-                      لا توجد تسويات حالياً
+                    <TableCell colSpan={9} className="text-center text-muted-foreground py-12">
+                      <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                      لا توجد تسويات
                     </TableCell>
                   </TableRow>
                 )}
@@ -440,11 +575,129 @@ const StockAdjustments = () => {
           </CardContent>
         </Card>
 
+        {/* Details Dialog */}
+        <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+          <DialogContent className="sm:max-w-3xl max-h-[90vh]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                تفاصيل التسوية: {selectedAdjustment?.adjustment_number}
+              </DialogTitle>
+              <DialogDescription>
+                عرض تفصيلي لبنود التسوية
+              </DialogDescription>
+            </DialogHeader>
+
+            {selectedAdjustment && (
+              <div className="space-y-4">
+                {/* Summary */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="bg-muted p-3 rounded-lg">
+                    <div className="text-xs text-muted-foreground">المستودع</div>
+                    <div className="font-medium">{selectedAdjustment.warehouse?.name}</div>
+                  </div>
+                  <div className="bg-muted p-3 rounded-lg">
+                    <div className="text-xs text-muted-foreground">التاريخ</div>
+                    <div className="font-medium">
+                      {new Date(selectedAdjustment.adjustment_date).toLocaleDateString("ar-SA")}
+                    </div>
+                  </div>
+                  <div className="bg-muted p-3 rounded-lg">
+                    <div className="text-xs text-muted-foreground">السبب</div>
+                    <div className="font-medium">{getReasonLabel(selectedAdjustment.reason)}</div>
+                  </div>
+                  <div className="bg-muted p-3 rounded-lg">
+                    <div className="text-xs text-muted-foreground">الحالة</div>
+                    <div>{getStatusBadge(selectedAdjustment.status)}</div>
+                  </div>
+                </div>
+
+                {/* Totals */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className={`p-3 rounded-lg ${selectedAdjustment.total_difference_qty >= 0 ? 'bg-green-50 dark:bg-green-950/20' : 'bg-red-50 dark:bg-red-950/20'}`}>
+                    <div className="text-xs text-muted-foreground">إجمالي فرق الكمية</div>
+                    <div className={`text-lg font-bold ${selectedAdjustment.total_difference_qty >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {selectedAdjustment.total_difference_qty > 0 ? '+' : ''}{selectedAdjustment.total_difference_qty?.toFixed(2)}
+                    </div>
+                  </div>
+                  <div className={`p-3 rounded-lg ${(selectedAdjustment.total_difference_value || 0) >= 0 ? 'bg-green-50 dark:bg-green-950/20' : 'bg-red-50 dark:bg-red-950/20'}`}>
+                    <div className="text-xs text-muted-foreground">إجمالي فرق القيمة</div>
+                    <div className={`text-lg font-bold ${(selectedAdjustment.total_difference_value || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {(selectedAdjustment.total_difference_value || 0) > 0 ? '+' : ''}{(selectedAdjustment.total_difference_value || 0).toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Items Table */}
+                <ScrollArea className="h-[300px] border rounded-lg">
+                  <Table>
+                    <TableHeader className="sticky top-0 bg-background">
+                      <TableRow>
+                        <TableHead className="text-right">المنتج</TableHead>
+                        <TableHead className="text-center">الكمية قبل</TableHead>
+                        <TableHead className="text-center">الكمية بعد</TableHead>
+                        <TableHead className="text-center">الفرق</TableHead>
+                        <TableHead className="text-left">أثر التكلفة</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {adjustmentDetails.map((item) => (
+                        <TableRow key={item.id} className={
+                          item.quantity_diff > 0 ? 'bg-green-50/50 dark:bg-green-950/10' :
+                          item.quantity_diff < 0 ? 'bg-red-50/50 dark:bg-red-950/10' : ''
+                        }>
+                          <TableCell className="font-medium">{item.product?.name}</TableCell>
+                          <TableCell className="text-center">{item.quantity_before}</TableCell>
+                          <TableCell className="text-center">{item.quantity_after}</TableCell>
+                          <TableCell className={`text-center font-bold ${
+                            item.quantity_diff > 0 ? 'text-green-600' : 
+                            item.quantity_diff < 0 ? 'text-red-600' : ''
+                          }`}>
+                            {item.quantity_diff > 0 ? '+' : ''}{item.quantity_diff}
+                          </TableCell>
+                          <TableCell className={`text-left font-medium ${
+                            (item.total_cost_diff || 0) > 0 ? 'text-green-600' : 
+                            (item.total_cost_diff || 0) < 0 ? 'text-red-600' : ''
+                          }`}>
+                            {(item.total_cost_diff || 0) > 0 ? '+' : ''}{(item.total_cost_diff || 0).toFixed(2)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+
+                {selectedAdjustment.notes && (
+                  <div className="bg-muted p-3 rounded-lg">
+                    <div className="text-xs text-muted-foreground mb-1">ملاحظات</div>
+                    <div>{selectedAdjustment.notes}</div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDetailsDialogOpen(false)}>
+                إغلاق
+              </Button>
+              {selectedAdjustment?.status === "draft" && (
+                <Button onClick={() => {
+                  handlePost(selectedAdjustment.id);
+                  setDetailsDialogOpen(false);
+                }} disabled={posting}>
+                  <CheckCircle className="w-4 h-4 ml-2" />
+                  ترحيل التسوية
+                </Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {/* New Adjustment Dialog */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>إنشاء تسوية مخزون جديدة</DialogTitle>
+              <DialogTitle>إنشاء تسوية مخزون يدوية</DialogTitle>
               <DialogDescription>
                 قم بإدخال تفاصيل تسوية المخزون - ستتكامل التسوية مع FIFO والقيود المحاسبية عند الترحيل
               </DialogDescription>

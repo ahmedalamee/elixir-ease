@@ -16,6 +16,7 @@ import SalesReports from "./pages/SalesReports";
 import ExecutiveDashboard from "./pages/ExecutiveDashboard";
 import WarehouseTransfers from "./pages/WarehouseTransfers";
 import StockAdjustments from "./pages/StockAdjustments";
+import StockCount from "./pages/StockCount";
 import BatchTracking from "./pages/BatchTracking";
 import InventoryReports from "./pages/InventoryReports";
 import POS from "./pages/POS";
@@ -165,6 +166,8 @@ const AppContent = () => {
             <Route path="/pos/reports" element={<POSReports />} />
             <Route path="/warehouse-transfers" element={<WarehouseTransfers />} />
             <Route path="/stock-adjustments" element={<StockAdjustments />} />
+            <Route path="/inventory/stock-adjustments" element={<StockAdjustments />} />
+            <Route path="/inventory/stock-count" element={<StockCount />} />
             <Route path="/batch-tracking" element={<BatchTracking />} />
             <Route path="/inventory/reports" element={<InventoryReports />} />
             <Route path="/sales-reports" element={<SalesReports />} />

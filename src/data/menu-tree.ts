@@ -192,9 +192,14 @@ export const menuTree: TreeMenuItem[] = [
         route: "/warehouse-transfers",
       },
       {
+        id: "inventory-stock-count",
+        label: "الجرد الفعلي",
+        route: "/inventory/stock-count",
+      },
+      {
         id: "inventory-adjustments",
-        label: "تعديلات المخزون",
-        route: "/stock-adjustments",
+        label: "سجل التسويات",
+        route: "/inventory/stock-adjustments",
       },
       {
         id: "inventory-batch-tracking",

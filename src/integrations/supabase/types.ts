@@ -712,6 +712,8 @@ export type Database = {
       cash_transactions: {
         Row: {
           amount: number
+          amount_bc: number | null
+          amount_fc: number | null
           approved_at: string | null
           approved_by: string | null
           cash_box_id: string
@@ -719,6 +721,7 @@ export type Database = {
           created_by: string | null
           currency_code: string | null
           description: string | null
+          exchange_rate: number | null
           id: string
           notes: string | null
           posted_at: string | null
@@ -733,6 +736,8 @@ export type Database = {
         }
         Insert: {
           amount: number
+          amount_bc?: number | null
+          amount_fc?: number | null
           approved_at?: string | null
           approved_by?: string | null
           cash_box_id: string
@@ -740,6 +745,7 @@ export type Database = {
           created_by?: string | null
           currency_code?: string | null
           description?: string | null
+          exchange_rate?: number | null
           id?: string
           notes?: string | null
           posted_at?: string | null
@@ -754,6 +760,8 @@ export type Database = {
         }
         Update: {
           amount?: number
+          amount_bc?: number | null
+          amount_fc?: number | null
           approved_at?: string | null
           approved_by?: string | null
           cash_box_id?: string
@@ -761,6 +769,7 @@ export type Database = {
           created_by?: string | null
           currency_code?: string | null
           description?: string | null
+          exchange_rate?: number | null
           id?: string
           notes?: string | null
           posted_at?: string | null
@@ -941,6 +950,7 @@ export type Database = {
           code: string
           created_at: string | null
           is_active: boolean | null
+          is_base: boolean | null
           name: string
           name_en: string | null
           precision: number | null
@@ -950,6 +960,7 @@ export type Database = {
           code: string
           created_at?: string | null
           is_active?: boolean | null
+          is_base?: boolean | null
           name: string
           name_en?: string | null
           precision?: number | null
@@ -959,6 +970,7 @@ export type Database = {
           code?: string
           created_at?: string | null
           is_active?: boolean | null
+          is_base?: boolean | null
           name?: string
           name_en?: string | null
           precision?: number | null
@@ -2700,8 +2712,14 @@ export type Database = {
           cost_center_id: string | null
           created_at: string
           credit: number
+          credit_bc: number | null
+          credit_fc: number | null
+          currency_code: string | null
           debit: number
+          debit_bc: number | null
+          debit_fc: number | null
           description: string | null
+          exchange_rate: number | null
           id: string
           journal_id: string
           line_no: number
@@ -2712,8 +2730,14 @@ export type Database = {
           cost_center_id?: string | null
           created_at?: string
           credit?: number
+          credit_bc?: number | null
+          credit_fc?: number | null
+          currency_code?: string | null
           debit?: number
+          debit_bc?: number | null
+          debit_fc?: number | null
           description?: string | null
+          exchange_rate?: number | null
           id?: string
           journal_id: string
           line_no: number
@@ -2724,8 +2748,14 @@ export type Database = {
           cost_center_id?: string | null
           created_at?: string
           credit?: number
+          credit_bc?: number | null
+          credit_fc?: number | null
+          currency_code?: string | null
           debit?: number
+          debit_bc?: number | null
+          debit_fc?: number | null
           description?: string | null
+          exchange_rate?: number | null
           id?: string
           journal_id?: string
           line_no?: number
@@ -7645,6 +7675,32 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_latest_exchange_rates: {
+        Row: {
+          created_at: string | null
+          effective_date: string | null
+          from_currency: string | null
+          id: string | null
+          rate: number | null
+          to_currency: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exchange_rates_from_currency_fkey"
+            columns: ["from_currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "exchange_rates_to_currency_fkey"
+            columns: ["to_currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
     }
     Functions: {
       add_cost_layer: {
@@ -7746,6 +7802,15 @@ export type Database = {
         Args: { p_end_date: string; p_start_date: string }
         Returns: Json
       }
+      calculate_fx_gain_loss: {
+        Args: {
+          p_original_amount_fc: number
+          p_original_rate: number
+          p_settlement_amount_fc: number
+          p_settlement_rate: number
+        }
+        Returns: number
+      }
       check_credit_limit: {
         Args: { p_amount: number; p_customer_id: string }
         Returns: Json
@@ -7781,6 +7846,10 @@ export type Database = {
           p_from_currency: string
           p_to_currency: string
         }
+        Returns: number
+      }
+      convert_to_base_currency: {
+        Args: { p_amount: number; p_date?: string; p_from_currency: string }
         Returns: number
       }
       copy_role_permissions: {
@@ -7851,6 +7920,7 @@ export type Database = {
         }[]
       }
       get_balance_sheet: { Args: { p_as_of_date?: string }; Returns: Json }
+      get_base_currency: { Args: never; Returns: string }
       get_comprehensive_income_statement: {
         Args: { p_end_date: string; p_start_date: string }
         Returns: Json

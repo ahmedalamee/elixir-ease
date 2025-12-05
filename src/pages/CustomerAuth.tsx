@@ -107,10 +107,11 @@ const CustomerAuth = () => {
         if (authError) throw authError;
 
         if (authData.user) {
-          // Create customer record with validated data
+          // Create customer record with validated data using upsert
+          // onConflict: 'user_id' ensures only one customer record per user
           const { error: customerError } = await supabase
             .from("customers")
-            .insert([{
+            .upsert({
               name: validatedData.name,
               email: validatedData.email || null,
               phone: validatedData.phone || null,
@@ -120,9 +121,19 @@ const CustomerAuth = () => {
               credit_limit: 0,
               loyalty_points: 0,
               is_active: true,
-            }]);
+            }, {
+              onConflict: 'user_id',
+              ignoreDuplicates: false,
+            });
 
-          if (customerError) throw customerError;
+          if (customerError) {
+            // Handle duplicate key error gracefully
+            if (customerError.code === '23505') {
+              console.log('Customer record already exists for this user');
+            } else {
+              throw customerError;
+            }
+          }
 
           toast({
             title: "تم إنشاء الحساب بنجاح",

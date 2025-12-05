@@ -95,12 +95,33 @@ export default function Employees() {
     if (!selectedEmployee) return;
 
     try {
-      const { error } = await supabase
-        .from("employees")
-        .delete()
-        .eq("id", selectedEmployee.id);
+      // Get current session for authorization header
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error("يجب تسجيل الدخول أولاً");
+      }
 
-      if (error) throw error;
+      // Call the secure Edge Function
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-employee`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            action: 'delete',
+            employee_id: selectedEmployee.id,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'فشل في حذف الموظف');
+      }
 
       showSuccess("تم حذف الموظف بنجاح");
       fetchEmployees();

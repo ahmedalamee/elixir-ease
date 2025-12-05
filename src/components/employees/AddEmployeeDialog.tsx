@@ -57,77 +57,49 @@ export default function AddEmployeeDialog({
     setLoading(true);
 
     try {
-      // التحقق من صلاحيات المسؤول من جانب العميل
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      // Get current session for authorization header
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
         throw new Error("يجب تسجيل الدخول أولاً");
       }
 
-      const { data: userRoles, error: roleError } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id);
-
-      if (roleError) throw roleError;
-
-      const isAdmin = userRoles?.some(r => r.role === "admin");
-      if (!isAdmin) {
-        throw new Error("غير مصرح: مطلوب صلاحيات المسؤول لإضافة موظفين");
-      }
-      // 1. Create auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-      });
-
-      if (authError) {
-        // Handle specific error cases
-        if (authError.message.includes("already registered")) {
-          throw new Error("البريد الإلكتروني مسجل بالفعل. يرجى استخدام بريد إلكتروني آخر.");
+      // Call the secure Edge Function
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-employee`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            action: 'create',
+            employee_data: {
+              email: formData.email,
+              password: formData.password,
+              full_name: formData.full_name,
+              full_name_en: formData.full_name_en || undefined,
+              phone: formData.phone || undefined,
+              national_id: formData.national_id || undefined,
+              job_title: formData.job_title || undefined,
+              department: formData.department || undefined,
+              salary: formData.salary ? parseFloat(formData.salary) : undefined,
+              role: formData.role || undefined,
+              notes: formData.notes || undefined,
+            },
+          }),
         }
-        throw new Error(authError.message);
-      }
-      if (!authData.user) throw new Error("فشل في إنشاء المستخدم");
-
-      // 2. Generate employee code
-      const { data: codeData, error: codeError } = await supabase.rpc(
-        "generate_employee_code"
       );
 
-      if (codeError) throw codeError;
+      const result = await response.json();
 
-      // 3. Create employee record
-      const { error: employeeError } = await supabase
-        .from("employees")
-        .insert({
-          user_id: authData.user.id,
-          employee_code: codeData,
-          full_name: formData.full_name,
-          full_name_en: formData.full_name_en || null,
-          phone: formData.phone || null,
-          email: formData.email,
-          national_id: formData.national_id || null,
-          job_title: formData.job_title || null,
-          department: formData.department || null,
-          salary: formData.salary ? parseFloat(formData.salary) : null,
-          notes: formData.notes || null,
-        });
-
-      if (employeeError) throw employeeError;
-
-      // 4. Assign role if selected
-      if (formData.role) {
-        const { error: roleError } = await supabase.from("user_roles").insert({
-          user_id: authData.user.id,
-          role: formData.role,
-        });
-
-        if (roleError) throw roleError;
+      if (!response.ok) {
+        throw new Error(result.error || 'فشل في إنشاء الموظف');
       }
 
       toast({
         title: "تم إضافة الموظف",
-        description: "تم إنشاء حساب الموظف بنجاح",
+        description: `تم إنشاء حساب الموظف بنجاح - الكود: ${result.employee_code}`,
       });
 
       onSuccess();

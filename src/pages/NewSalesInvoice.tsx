@@ -15,6 +15,7 @@ import { Plus, Trash2, Save, Search, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CustomerCombobox } from "@/components/customers/CustomerCombobox";
 import { CustomerInfoCard } from "@/components/customers/CustomerInfoCard";
+import { InvoiceCurrencyPanel, InvoiceTotalsSummary } from "@/components/currency";
 
 interface InvoiceItem {
   item_id: string;
@@ -43,6 +44,10 @@ const NewSalesInvoice = () => {
   const [items, setItems] = useState<InvoiceItem[]>([]);
   const [paymentMethodId, setPaymentMethodId] = useState("");
   const [paymentAmount, setPaymentAmount] = useState(0);
+  
+  // Currency state
+  const [currencyCode, setCurrencyCode] = useState("YER");
+  const [exchangeRate, setExchangeRate] = useState(1);
 
   // Product Selection Dialog
   const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
@@ -123,6 +128,34 @@ const NewSalesInvoice = () => {
     },
     enabled: !!warehouseId,
   });
+
+  // Fetch selected customer details for currency
+  const { data: selectedCustomer } = useQuery({
+    queryKey: ["customer-detail", customerId],
+    queryFn: async () => {
+      if (!customerId || customerId === "walk-in") return null;
+      const { data, error } = await supabase
+        .from("customers")
+        .select("currency_code")
+        .eq("id", customerId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!customerId && customerId !== "walk-in",
+  });
+
+  // Set currency from customer when selected
+  useEffect(() => {
+    if (selectedCustomer?.currency_code) {
+      setCurrencyCode(selectedCustomer.currency_code);
+    }
+  }, [selectedCustomer]);
+
+  const handleCurrencyChange = (currency: string, rate: number) => {
+    setCurrencyCode(currency);
+    setExchangeRate(rate);
+  };
 
   // Filter products by search
   const filteredProducts = products?.filter((p) =>
@@ -277,17 +310,21 @@ const NewSalesInvoice = () => {
       // Get current user
       const { data: userData } = await supabase.auth.getUser();
 
-      // Create invoice object
+      // Create invoice object with currency support
+      const totalAmountBC = totalAmount * exchangeRate;
       const invoiceData: any = {
         invoice_number: invoiceNumber,
         customer_id: customerId,
         invoice_date: invoiceDate,
         due_date: dueDate || null,
         warehouse_id: warehouseId,
+        currency_code: currencyCode,
+        exchange_rate: exchangeRate,
         subtotal: subtotal - totalDiscount,
         discount_amount: totalDiscount,
         tax_amount: totalTax,
         total_amount: totalAmount,
+        total_amount_bc: totalAmountBC,
         status: "draft",
         payment_status: paymentAmount >= totalAmount ? "paid" : paymentAmount > 0 ? "partial" : "unpaid",
         paid_amount: paymentAmount,
@@ -388,6 +425,15 @@ const NewSalesInvoice = () => {
                 onChange={(e) => setInvoiceDate(e.target.value)}
               />
             </div>
+
+            {/* Currency Selection */}
+            <InvoiceCurrencyPanel
+              currencyCode={currencyCode}
+              onCurrencyChange={handleCurrencyChange}
+              invoiceDate={invoiceDate}
+              customerCurrency={selectedCustomer?.currency_code}
+              isLocked={false}
+            />
 
             <div className="space-y-2">
               <Label htmlFor="dueDate">تاريخ الاستحقاق</Label>
@@ -535,31 +581,24 @@ const NewSalesInvoice = () => {
           {/* الإجماليات */}
           {items.length > 0 && (
             <div className="border-t pt-4">
-              <div className="flex justify-end">
+              <InvoiceTotalsSummary
+                subtotalFC={subtotal}
+                discountFC={totalDiscount}
+                taxFC={totalTax}
+                totalFC={totalAmount}
+                exchangeRate={exchangeRate}
+                currencyFC={currencyCode}
+                currencyBC="YER"
+              />
+              <div className="flex justify-end mt-4">
                 <div className="w-full md:w-1/3 space-y-2">
-                  <div className="flex justify-between">
-                    <span>المجموع الفرعي:</span>
-                    <span>{subtotal.toFixed(2)} ر.س</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>الخصم:</span>
-                    <span className="text-red-600">-{totalDiscount.toFixed(2)} ر.س</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>الضريبة:</span>
-                    <span>{totalTax.toFixed(2)} ر.س</span>
-                  </div>
-                  <div className="flex justify-between font-bold text-lg border-t pt-2">
-                    <span>الإجمالي:</span>
-                    <span>{totalAmount.toFixed(2)} ر.س</span>
-                  </div>
                   <div className="flex justify-between text-green-600 border-t pt-2">
                     <span>المدفوع:</span>
-                    <span className="font-medium">{paymentAmount.toFixed(2)} ر.س</span>
+                    <span className="font-medium">{paymentAmount.toFixed(2)} {currencyCode}</span>
                   </div>
                   <div className="flex justify-between text-orange-600 font-semibold">
                     <span>المتبقي:</span>
-                    <span className="font-bold">{(totalAmount - paymentAmount).toFixed(2)} ر.س</span>
+                    <span className="font-bold">{(totalAmount - paymentAmount).toFixed(2)} {currencyCode}</span>
                   </div>
                 </div>
               </div>

@@ -6,6 +6,7 @@ import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Card,
   CardContent,
@@ -39,11 +40,19 @@ interface Supplier {
   address: string | null;
   credit_limit: number;
   balance: number;
+  currency_code?: string;
   created_at: string;
+}
+
+interface Currency {
+  code: string;
+  name: string;
+  symbol: string;
 }
 
 const Suppliers = () => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
@@ -53,6 +62,7 @@ const Suppliers = () => {
     email: "",
     address: "",
     credit_limit: 0,
+    currency_code: "YER",
   });
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -60,6 +70,7 @@ const Suppliers = () => {
   useEffect(() => {
     checkAuth();
     fetchSuppliers();
+    fetchCurrencies();
   }, []);
 
   const checkAuth = async () => {
@@ -83,6 +94,20 @@ const Suppliers = () => {
       });
     } else {
       setSuppliers(data || []);
+    }
+  };
+
+  const fetchCurrencies = async () => {
+    const { data, error } = await supabase
+      .from("currencies")
+      .select("code, name, symbol")
+      .eq("is_active", true)
+      .order("code");
+
+    if (error) {
+      console.error("Error fetching currencies:", error);
+    } else {
+      setCurrencies(data || []);
     }
   };
 
@@ -151,6 +176,7 @@ const Suppliers = () => {
       email: "",
       address: "",
       credit_limit: 0,
+      currency_code: "YER",
     });
     setEditingSupplier(null);
     setIsDialogOpen(false);
@@ -164,6 +190,7 @@ const Suppliers = () => {
       email: supplier.email || "",
       address: supplier.address || "",
       credit_limit: supplier.credit_limit,
+      currency_code: supplier.currency_code || "YER",
     });
     setIsDialogOpen(true);
   };
@@ -262,6 +289,26 @@ const Suppliers = () => {
                         }
                       />
                     </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="currency_code">العملة</Label>
+                      <Select
+                        value={formData.currency_code}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, currency_code: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="اختر العملة" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {currencies.map((currency) => (
+                            <SelectItem key={currency.code} value={currency.code}>
+                              {currency.code} - {currency.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <div className="flex gap-2">
                       <Button type="submit" className="flex-1">
                         {editingSupplier ? "تحديث" : "إضافة"}
@@ -299,6 +346,7 @@ const Suppliers = () => {
                     <TableHead>الاسم</TableHead>
                     <TableHead>الهاتف</TableHead>
                     <TableHead>البريد الإلكتروني</TableHead>
+                    <TableHead>العملة</TableHead>
                     <TableHead>الرصيد</TableHead>
                     <TableHead>حد الائتمان</TableHead>
                     <TableHead className="text-left">الإجراءات</TableHead>
@@ -312,9 +360,10 @@ const Suppliers = () => {
                       </TableCell>
                       <TableCell>{supplier.phone || "-"}</TableCell>
                       <TableCell>{supplier.email || "-"}</TableCell>
-                      <TableCell>{supplier.balance.toFixed(2)} ر.س</TableCell>
+                      <TableCell>{supplier.currency_code || "YER"}</TableCell>
+                      <TableCell>{supplier.balance.toFixed(2)}</TableCell>
                       <TableCell>
-                        {supplier.credit_limit.toFixed(2)} ر.س
+                        {supplier.credit_limit.toFixed(2)}
                       </TableCell>
                       <TableCell className="text-left">
                         <div className="flex gap-2">

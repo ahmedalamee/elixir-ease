@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -55,7 +55,8 @@ import {
   AlertCircle,
   Settings2,
   ListChecks,
-  ClipboardCheck
+  ClipboardCheck,
+  Check
 } from "lucide-react";
 import { generateAdjustmentNumber, postInventoryAdjustment, getCurrentStockQuantity } from "@/lib/inventory";
 
@@ -80,6 +81,16 @@ interface Product {
   sku: string;
   barcode: string;
   cost_price: number;
+}
+
+interface PostResult {
+  success?: boolean;
+  adjustment_number?: string;
+  items_count?: number;
+  total_increase?: number;
+  total_decrease?: number;
+  net_impact?: number;
+  journal_entry_number?: string;
 }
 
 type Step = 'setup' | 'count' | 'review';
@@ -110,7 +121,7 @@ const StockCount = () => {
   const [saving, setSaving] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
   const [resultDialogOpen, setResultDialogOpen] = useState(false);
-  const [postResult, setPostResult] = useState<any>(null);
+  const [postResult, setPostResult] = useState<PostResult | null>(null);
   const [showOnlyDifferences, setShowOnlyDifferences] = useState(false);
 
   useEffect(() => {
@@ -120,10 +131,10 @@ const StockCount = () => {
 
   // Auto-focus barcode input when in barcode mode
   useEffect(() => {
-    if (barcodeMode && barcodeInputRef.current) {
+    if (barcodeMode && barcodeInputRef.current && currentStep === 'count') {
       barcodeInputRef.current.focus();
     }
-  }, [barcodeMode]);
+  }, [barcodeMode, currentStep]);
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -199,7 +210,7 @@ const StockCount = () => {
       
       toast({
         title: "تم تحميل المنتجات",
-        description: `تم تحميل ${items.length} منتج من المستودع`,
+        description: `تم تحميل ${items.length} منتج من المستودع "${warehouseName}"`,
       });
     } catch (error) {
       console.error("Error loading products:", error);
@@ -289,38 +300,93 @@ const StockCount = () => {
     }
   };
 
-  // Filter items
-  const filteredItems = countItems.filter(item => {
-    // Apply difference filter
-    if (showOnlyDifferences && (item.counted_qty === null || item.difference === 0)) {
-      return false;
-    }
-    
-    // Apply search filter
-    if (!searchTerm) return true;
-    const search = searchTerm.toLowerCase();
-    return (
-      item.product_name.toLowerCase().includes(search) ||
-      item.sku?.toLowerCase().includes(search) ||
-      item.barcode?.toLowerCase().includes(search)
-    );
-  });
+  // Memoized calculations for performance
+  const filteredItems = useMemo(() => {
+    return countItems.filter(item => {
+      // Apply difference filter
+      if (showOnlyDifferences && (item.counted_qty === null || item.difference === 0)) {
+        return false;
+      }
+      
+      // Apply search filter
+      if (!searchTerm) return true;
+      const search = searchTerm.toLowerCase();
+      return (
+        item.product_name.toLowerCase().includes(search) ||
+        item.sku?.toLowerCase().includes(search) ||
+        item.barcode?.toLowerCase().includes(search)
+      );
+    });
+  }, [countItems, searchTerm, showOnlyDifferences]);
 
   // Get items with differences only
-  const itemsWithDifference = countItems.filter(item => item.counted_qty !== null && item.difference !== 0);
+  const itemsWithDifference = useMemo(() => {
+    return countItems.filter(item => item.counted_qty !== null && item.difference !== 0);
+  }, [countItems]);
 
   // Summary calculations
-  const totalIncrease = countItems
-    .filter(i => i.adjustment_type === 'increase')
-    .reduce((sum, i) => sum + i.cost_impact, 0);
-  
-  const totalDecrease = countItems
-    .filter(i => i.adjustment_type === 'decrease')
-    .reduce((sum, i) => sum + Math.abs(i.cost_impact), 0);
+  const summaryStats = useMemo(() => {
+    const increaseItems = countItems.filter(i => i.adjustment_type === 'increase');
+    const decreaseItems = countItems.filter(i => i.adjustment_type === 'decrease');
+    
+    const totalIncrease = increaseItems.reduce((sum, i) => sum + i.cost_impact, 0);
+    const totalDecrease = decreaseItems.reduce((sum, i) => sum + Math.abs(i.cost_impact), 0);
+    const netImpact = totalIncrease - totalDecrease;
+    const countedItemsCount = countItems.filter(i => i.counted_qty !== null).length;
+    
+    return {
+      totalIncrease,
+      totalDecrease,
+      netImpact,
+      countedItemsCount,
+      increaseCount: increaseItems.length,
+      decreaseCount: decreaseItems.length
+    };
+  }, [countItems]);
 
-  const netImpact = totalIncrease - totalDecrease;
-  
-  const countedItemsCount = countItems.filter(i => i.counted_qty !== null).length;
+  // Shared function to create adjustment records
+  const createAdjustmentRecords = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    const adjustmentNumber = await generateAdjustmentNumber();
+
+    // Create adjustment header
+    const { data: adjustment, error: headerError } = await supabase
+      .from("stock_adjustments")
+      .insert({
+        adjustment_number: adjustmentNumber,
+        warehouse_id: selectedWarehouse,
+        adjustment_date: countDate,
+        reason: "stock_count",
+        notes: notes,
+        status: "draft",
+        total_difference_qty: itemsWithDifference.reduce((sum, i) => sum + i.difference, 0),
+        total_difference_value: summaryStats.netImpact,
+        created_by: user?.id,
+      })
+      .select()
+      .single();
+
+    if (headerError) throw headerError;
+
+    // Create adjustment items
+    const itemsToInsert = itemsWithDifference.map(item => ({
+      adjustment_id: adjustment.id,
+      product_id: item.product_id,
+      quantity_before: item.system_qty,
+      quantity_after: item.counted_qty,
+      quantity_diff: item.difference,
+      unit_cost: item.unit_cost,
+      total_cost_diff: item.cost_impact,
+    }));
+
+    const { error: itemsError } = await supabase
+      .from("stock_adjustment_items")
+      .insert(itemsToInsert);
+
+    if (itemsError) throw itemsError;
+
+    return { adjustment, adjustmentNumber };
+  };
 
   // Save as draft
   const handleSaveDraft = async () => {
@@ -335,44 +401,7 @@ const StockCount = () => {
 
     setSaving(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const adjustmentNumber = await generateAdjustmentNumber();
-
-      // Create adjustment header
-      const { data: adjustment, error: headerError } = await supabase
-        .from("stock_adjustments")
-        .insert({
-          adjustment_number: adjustmentNumber,
-          warehouse_id: selectedWarehouse,
-          adjustment_date: countDate,
-          reason: "stock_count",
-          notes: notes,
-          status: "draft",
-          total_difference_qty: itemsWithDifference.reduce((sum, i) => sum + i.difference, 0),
-          total_difference_value: netImpact,
-          created_by: user?.id,
-        })
-        .select()
-        .single();
-
-      if (headerError) throw headerError;
-
-      // Create adjustment items
-      const itemsToInsert = itemsWithDifference.map(item => ({
-        adjustment_id: adjustment.id,
-        product_id: item.product_id,
-        quantity_before: item.system_qty,
-        quantity_after: item.counted_qty,
-        quantity_diff: item.difference,
-        unit_cost: item.unit_cost,
-        total_cost_diff: item.cost_impact,
-      }));
-
-      const { error: itemsError } = await supabase
-        .from("stock_adjustment_items")
-        .insert(itemsToInsert);
-
-      if (itemsError) throw itemsError;
+      const { adjustmentNumber } = await createAdjustmentRecords();
 
       toast({
         title: "تم الحفظ",
@@ -406,44 +435,7 @@ const StockCount = () => {
 
     setFinalizing(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const adjustmentNumber = await generateAdjustmentNumber();
-
-      // Create adjustment header
-      const { data: adjustment, error: headerError } = await supabase
-        .from("stock_adjustments")
-        .insert({
-          adjustment_number: adjustmentNumber,
-          warehouse_id: selectedWarehouse,
-          adjustment_date: countDate,
-          reason: "stock_count",
-          notes: notes,
-          status: "draft",
-          total_difference_qty: itemsWithDifference.reduce((sum, i) => sum + i.difference, 0),
-          total_difference_value: netImpact,
-          created_by: user?.id,
-        })
-        .select()
-        .single();
-
-      if (headerError) throw headerError;
-
-      // Create adjustment items
-      const itemsToInsert = itemsWithDifference.map(item => ({
-        adjustment_id: adjustment.id,
-        product_id: item.product_id,
-        quantity_before: item.system_qty,
-        quantity_after: item.counted_qty,
-        quantity_diff: item.difference,
-        unit_cost: item.unit_cost,
-        total_cost_diff: item.cost_impact,
-      }));
-
-      const { error: itemsError } = await supabase
-        .from("stock_adjustment_items")
-        .insert(itemsToInsert);
-
-      if (itemsError) throw itemsError;
+      const { adjustment, adjustmentNumber } = await createAdjustmentRecords();
 
       // Post the adjustment
       const result = await postInventoryAdjustment(adjustment.id);
@@ -452,9 +444,9 @@ const StockCount = () => {
         ...result,
         adjustment_number: adjustmentNumber,
         items_count: itemsWithDifference.length,
-        total_increase: totalIncrease,
-        total_decrease: totalDecrease,
-        net_impact: netImpact
+        total_increase: summaryStats.totalIncrease,
+        total_decrease: summaryStats.totalDecrease,
+        net_impact: summaryStats.netImpact
       });
       setResultDialogOpen(true);
 
@@ -545,10 +537,10 @@ const StockCount = () => {
 
   // Row style based on adjustment type
   const getRowClass = (item: CountItem) => {
-    if (item.lastScanned) return 'bg-primary/10 animate-pulse';
+    if (item.lastScanned) return 'bg-primary/20 ring-2 ring-primary ring-inset';
     switch (item.adjustment_type) {
-      case 'increase': return 'bg-green-50 dark:bg-green-950/20';
-      case 'decrease': return 'bg-red-50 dark:bg-red-950/20';
+      case 'increase': return 'bg-green-50 dark:bg-green-950/30';
+      case 'decrease': return 'bg-red-50 dark:bg-red-950/30';
       default: return '';
     }
   };
@@ -568,24 +560,46 @@ const StockCount = () => {
   }
 
   // Step indicator component
-  const StepIndicator = () => (
-    <div className="flex items-center justify-center gap-2 mb-6">
-      <div className={`flex items-center gap-2 px-4 py-2 rounded-full transition-colors ${currentStep === 'setup' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-        <Settings2 className="w-4 h-4" />
-        <span className="text-sm font-medium">إعداد الجرد</span>
+  const StepIndicator = () => {
+    const steps = [
+      { key: 'setup', label: 'إعداد الجرد', icon: Settings2, completed: currentStep !== 'setup' },
+      { key: 'count', label: 'إدخال الكميات', icon: ListChecks, completed: currentStep === 'review' },
+      { key: 'review', label: 'المراجعة والاعتماد', icon: ClipboardCheck, completed: false },
+    ];
+
+    return (
+      <div className="flex items-center justify-center gap-2 mb-6 flex-wrap">
+        {steps.map((step, index) => {
+          const Icon = step.icon;
+          const isActive = currentStep === step.key;
+          const isCompleted = step.completed;
+          
+          return (
+            <div key={step.key} className="flex items-center gap-2">
+              {index > 0 && <ArrowLeft className="w-4 h-4 text-muted-foreground hidden sm:block" />}
+              <div 
+                className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full transition-all ${
+                  isActive 
+                    ? 'bg-primary text-primary-foreground shadow-md' 
+                    : isCompleted 
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
+                      : 'bg-muted text-muted-foreground'
+                }`}
+              >
+                {isCompleted ? (
+                  <Check className="w-4 h-4" />
+                ) : (
+                  <Icon className="w-4 h-4" />
+                )}
+                <span className="text-sm font-medium hidden sm:inline">{step.label}</span>
+                <span className="text-sm font-medium sm:hidden">{index + 1}</span>
+              </div>
+            </div>
+          );
+        })}
       </div>
-      <ArrowLeft className="w-4 h-4 text-muted-foreground" />
-      <div className={`flex items-center gap-2 px-4 py-2 rounded-full transition-colors ${currentStep === 'count' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-        <ListChecks className="w-4 h-4" />
-        <span className="text-sm font-medium">إدخال الكميات</span>
-      </div>
-      <ArrowLeft className="w-4 h-4 text-muted-foreground" />
-      <div className={`flex items-center gap-2 px-4 py-2 rounded-full transition-colors ${currentStep === 'review' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-        <ClipboardCheck className="w-4 h-4" />
-        <span className="text-sm font-medium">المراجعة والاعتماد</span>
-      </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -619,14 +633,14 @@ const StockCount = () => {
                 <Settings2 className="w-5 h-5" />
                 إعداد الجرد
               </CardTitle>
-              <CardDescription>اختر المستودع وحدد تاريخ الجرد</CardDescription>
+              <CardDescription>اختر المستودع وحدد تاريخ الجرد لبدء عملية الجرد الفعلي</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label>المستودع *</Label>
+                  <Label>المستودع <span className="text-destructive">*</span></Label>
                   <Select value={selectedWarehouse} onValueChange={handleWarehouseChange}>
-                    <SelectTrigger>
+                    <SelectTrigger className={!selectedWarehouse ? 'border-destructive/50' : ''}>
                       <SelectValue placeholder="اختر المستودع" />
                     </SelectTrigger>
                     <SelectContent>
@@ -635,6 +649,9 @@ const StockCount = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                  {!selectedWarehouse && (
+                    <p className="text-xs text-muted-foreground">يجب اختيار المستودع للمتابعة</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>تاريخ الجرد</Label>
@@ -685,24 +702,22 @@ const StockCount = () => {
             <Card className="mb-4">
               <CardContent className="py-3">
                 <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div className="flex items-center gap-4 text-sm">
-                    <Badge variant="outline" className="gap-1">
+                  <div className="flex flex-wrap items-center gap-3 text-sm">
+                    <Badge variant="outline" className="gap-1 px-3 py-1">
                       <Package className="w-3 h-3" />
                       {warehouseName}
                     </Badge>
-                    <Badge variant="outline" className="gap-1">
+                    <Badge variant="outline" className="gap-1 px-3 py-1">
                       <FileText className="w-3 h-3" />
                       {countDate}
                     </Badge>
-                    <span className="text-muted-foreground">
-                      إجمالي المنتجات: <strong>{countItems.length}</strong>
-                    </span>
-                    <span className="text-muted-foreground">
-                      تم جردها: <strong>{countedItemsCount}</strong>
-                    </span>
+                    <div className="flex gap-4 text-muted-foreground">
+                      <span>إجمالي: <strong className="text-foreground">{countItems.length}</strong></span>
+                      <span>تم جردها: <strong className="text-foreground">{summaryStats.countedItemsCount}</strong></span>
+                    </div>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => setCurrentStep('setup')}>
-                    <ArrowLeft className="w-4 h-4 rotate-180 ml-1" />
+                  <Button variant="ghost" size="sm" onClick={() => setCurrentStep('setup')} className="gap-1">
+                    <ArrowLeft className="w-4 h-4 rotate-180" />
                     تعديل الإعداد
                   </Button>
                 </div>
@@ -710,9 +725,9 @@ const StockCount = () => {
             </Card>
 
             {/* Barcode Mode Card */}
-            <Card className={`mb-4 transition-colors ${barcodeMode ? 'border-primary shadow-md' : ''}`}>
+            <Card className={`mb-4 transition-all ${barcodeMode ? 'border-primary shadow-lg' : ''}`}>
               <CardContent className="py-4">
-                <div className="flex items-center gap-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                   <div className="flex items-center gap-2">
                     <Switch
                       checked={barcodeMode}
@@ -726,14 +741,14 @@ const StockCount = () => {
                   </div>
                   
                   {barcodeMode && (
-                    <div className="flex-1 flex items-center gap-3">
-                      <Barcode className="w-6 h-6 text-primary" />
+                    <div className="flex-1 w-full sm:w-auto flex items-center gap-3">
+                      <Barcode className="w-6 h-6 text-primary hidden sm:block" />
                       <Input
                         ref={barcodeInputRef}
                         value={barcodeInput}
                         onChange={(e) => setBarcodeInput(e.target.value)}
                         onKeyDown={handleBarcodeKeyDown}
-                        placeholder="امسح الباركود أو أدخله يدوياً ثم اضغط Enter..."
+                        placeholder="امسح الباركود ثم Enter..."
                         className="flex-1"
                         autoFocus
                       />
@@ -754,26 +769,26 @@ const StockCount = () => {
                   className="pr-10"
                 />
               </div>
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2 px-3 py-2 border rounded-md">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-2 px-3 py-2 border rounded-md bg-background">
                   <Switch
                     checked={showOnlyDifferences}
                     onCheckedChange={setShowOnlyDifferences}
                     id="show-diff"
                   />
-                  <Label htmlFor="show-diff" className="text-sm cursor-pointer">
+                  <Label htmlFor="show-diff" className="text-sm cursor-pointer whitespace-nowrap">
                     الفروقات فقط
                   </Label>
                 </div>
                 <Button variant="outline" size="sm" onClick={handleExport} className="gap-1">
                   <Download className="w-4 h-4" />
-                  تصدير
+                  <span className="hidden sm:inline">تصدير</span>
                 </Button>
                 <label>
                   <Button variant="outline" size="sm" className="gap-1 cursor-pointer" asChild>
                     <span>
                       <Upload className="w-4 h-4" />
-                      استيراد
+                      <span className="hidden sm:inline">استيراد</span>
                     </span>
                   </Button>
                   <input type="file" accept=".csv" onChange={handleImport} className="hidden" />
@@ -784,27 +799,32 @@ const StockCount = () => {
             {/* Products Table */}
             <Card>
               <CardContent className="p-0">
-                <ScrollArea className="h-[450px]">
+                <ScrollArea className="h-[400px] sm:h-[450px]">
                   <Table>
                     <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
                       <TableRow>
-                        <TableHead className="text-right w-[220px]">المنتج</TableHead>
-                        <TableHead className="text-right w-[90px]">SKU</TableHead>
-                        <TableHead className="text-right w-[110px]">الباركود</TableHead>
-                        <TableHead className="text-center w-[80px]">كمية النظام</TableHead>
-                        <TableHead className="text-center w-[150px]">الكمية الفعلية</TableHead>
-                        <TableHead className="text-center w-[70px]">الفرق</TableHead>
-                        <TableHead className="text-left w-[90px]">أثر التكلفة</TableHead>
-                        <TableHead className="text-center w-[70px]">النوع</TableHead>
+                        <TableHead className="text-right min-w-[180px]">المنتج</TableHead>
+                        <TableHead className="text-right w-[80px] hidden md:table-cell">SKU</TableHead>
+                        <TableHead className="text-right w-[100px] hidden lg:table-cell">الباركود</TableHead>
+                        <TableHead className="text-center w-[70px]">النظام</TableHead>
+                        <TableHead className="text-center w-[140px]">الكمية الفعلية</TableHead>
+                        <TableHead className="text-center w-[60px]">الفرق</TableHead>
+                        <TableHead className="text-left w-[80px] hidden sm:table-cell">التكلفة</TableHead>
+                        <TableHead className="text-center w-[60px]">النوع</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredItems.length > 0 ? (
                         filteredItems.map((item) => (
                           <TableRow key={item.id} className={getRowClass(item)}>
-                            <TableCell className="font-medium">{item.product_name}</TableCell>
-                            <TableCell className="text-muted-foreground text-sm">{item.sku || '-'}</TableCell>
-                            <TableCell className="font-mono text-xs">{item.barcode || '-'}</TableCell>
+                            <TableCell className="font-medium">
+                              <div>{item.product_name}</div>
+                              <div className="text-xs text-muted-foreground md:hidden">
+                                {item.sku && <span>{item.sku}</span>}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-muted-foreground text-sm hidden md:table-cell">{item.sku || '-'}</TableCell>
+                            <TableCell className="font-mono text-xs hidden lg:table-cell">{item.barcode || '-'}</TableCell>
                             <TableCell className="text-center font-medium">{item.system_qty}</TableCell>
                             <TableCell>
                               <div className="flex items-center justify-center gap-1">
@@ -821,7 +841,7 @@ const StockCount = () => {
                                   min="0"
                                   value={item.counted_qty ?? ''}
                                   onChange={(e) => updateCountedQty(item.id, e.target.value ? parseFloat(e.target.value) : null)}
-                                  className="w-20 text-center h-8"
+                                  className="w-16 sm:w-20 text-center h-8"
                                   placeholder="-"
                                 />
                                 <Button
@@ -836,15 +856,15 @@ const StockCount = () => {
                             </TableCell>
                             <TableCell className={`text-center font-bold ${
                               item.difference > 0 ? 'text-green-600' : 
-                              item.difference < 0 ? 'text-red-600' : ''
+                              item.difference < 0 ? 'text-red-600' : 'text-muted-foreground'
                             }`}>
                               {item.counted_qty !== null ? (
                                 item.difference > 0 ? `+${item.difference}` : item.difference
                               ) : '-'}
                             </TableCell>
-                            <TableCell className={`text-left text-sm font-medium ${
+                            <TableCell className={`text-left text-sm font-medium hidden sm:table-cell ${
                               item.cost_impact > 0 ? 'text-green-600' : 
-                              item.cost_impact < 0 ? 'text-red-600' : ''
+                              item.cost_impact < 0 ? 'text-red-600' : 'text-muted-foreground'
                             }`}>
                               {item.counted_qty !== null ? (
                                 `${item.cost_impact > 0 ? '+' : ''}${item.cost_impact.toFixed(2)}`
@@ -852,13 +872,13 @@ const StockCount = () => {
                             </TableCell>
                             <TableCell className="text-center">
                               {item.adjustment_type === 'increase' && (
-                                <Badge className="bg-green-500 text-xs">زيادة</Badge>
+                                <Badge className="bg-green-500 text-xs px-1.5">زيادة</Badge>
                               )}
                               {item.adjustment_type === 'decrease' && (
-                                <Badge variant="destructive" className="text-xs">نقص</Badge>
+                                <Badge variant="destructive" className="text-xs px-1.5">نقص</Badge>
                               )}
                               {item.adjustment_type === 'no_change' && item.counted_qty !== null && (
-                                <Badge variant="secondary" className="text-xs">متطابق</Badge>
+                                <Badge variant="secondary" className="text-xs px-1.5">✓</Badge>
                               )}
                             </TableCell>
                           </TableRow>
@@ -881,41 +901,43 @@ const StockCount = () => {
               <CardContent className="py-4">
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                   {/* Summary Stats */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-1">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-1 w-full lg:w-auto">
                     <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
                       <Calculator className="w-5 h-5 text-muted-foreground" />
                       <div>
-                        <div className="text-xs text-muted-foreground">عدد التغييرات</div>
+                        <div className="text-xs text-muted-foreground">التغييرات</div>
                         <div className="font-bold">{itemsWithDifference.length}</div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                    <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
                       <TrendingUp className="w-5 h-5 text-green-600" />
                       <div>
-                        <div className="text-xs text-muted-foreground">إجمالي الزيادة</div>
-                        <div className="font-bold text-green-600">{totalIncrease.toFixed(2)}</div>
+                        <div className="text-xs text-muted-foreground">الزيادة</div>
+                        <div className="font-bold text-green-600">{summaryStats.totalIncrease.toFixed(2)}</div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-950/20 rounded-lg">
+                    <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-950/30 rounded-lg">
                       <TrendingDown className="w-5 h-5 text-red-600" />
                       <div>
-                        <div className="text-xs text-muted-foreground">إجمالي النقص</div>
-                        <div className="font-bold text-red-600">{totalDecrease.toFixed(2)}</div>
+                        <div className="text-xs text-muted-foreground">النقص</div>
+                        <div className="font-bold text-red-600">{summaryStats.totalDecrease.toFixed(2)}</div>
                       </div>
                     </div>
-                    <div className={`flex items-center gap-2 p-3 rounded-lg ${netImpact >= 0 ? 'bg-green-50 dark:bg-green-950/20' : 'bg-red-50 dark:bg-red-950/20'}`}>
-                      <AlertCircle className={`w-5 h-5 ${netImpact >= 0 ? 'text-green-600' : 'text-red-600'}`} />
+                    <div className={`flex items-center gap-2 p-3 rounded-lg ${
+                      summaryStats.netImpact >= 0 ? 'bg-green-50 dark:bg-green-950/30' : 'bg-red-50 dark:bg-red-950/30'
+                    }`}>
+                      <AlertCircle className={`w-5 h-5 ${summaryStats.netImpact >= 0 ? 'text-green-600' : 'text-red-600'}`} />
                       <div>
                         <div className="text-xs text-muted-foreground">الصافي</div>
-                        <div className={`font-bold ${netImpact >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {netImpact >= 0 ? '+' : ''}{netImpact.toFixed(2)}
+                        <div className={`font-bold ${summaryStats.netImpact >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {summaryStats.netImpact >= 0 ? '+' : ''}{summaryStats.netImpact.toFixed(2)}
                         </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Actions */}
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 w-full lg:w-auto justify-end">
                     <Button
                       variant="outline"
                       onClick={handleSaveDraft}
@@ -923,7 +945,7 @@ const StockCount = () => {
                       className="gap-2"
                     >
                       {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                      {saving ? 'جارٍ الحفظ...' : 'حفظ كمسودة'}
+                      <span className="hidden sm:inline">{saving ? 'جارٍ الحفظ...' : 'حفظ كمسودة'}</span>
                     </Button>
                     <Button
                       onClick={() => itemsWithDifference.length > 0 && setCurrentStep('review')}
@@ -948,33 +970,35 @@ const StockCount = () => {
                 <ClipboardCheck className="w-5 h-5" />
                 مراجعة واعتماد الجرد
               </CardTitle>
-              <CardDescription>راجع الفروقات قبل الاعتماد النهائي</CardDescription>
+              <CardDescription>راجع الفروقات قبل الاعتماد النهائي وإنشاء القيود المحاسبية</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Summary Cards */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <Card className="bg-muted/50">
                   <CardContent className="p-4 text-center">
-                    <div className="text-2xl font-bold">{warehouseName}</div>
+                    <div className="text-xl sm:text-2xl font-bold truncate">{warehouseName}</div>
                     <div className="text-sm text-muted-foreground">المستودع</div>
                   </CardContent>
                 </Card>
                 <Card className="bg-muted/50">
                   <CardContent className="p-4 text-center">
-                    <div className="text-2xl font-bold">{countDate}</div>
+                    <div className="text-xl sm:text-2xl font-bold">{countDate}</div>
                     <div className="text-sm text-muted-foreground">تاريخ الجرد</div>
                   </CardContent>
                 </Card>
                 <Card className="bg-muted/50">
                   <CardContent className="p-4 text-center">
-                    <div className="text-2xl font-bold">{itemsWithDifference.length}</div>
+                    <div className="text-xl sm:text-2xl font-bold">{itemsWithDifference.length}</div>
                     <div className="text-sm text-muted-foreground">منتجات بفروقات</div>
                   </CardContent>
                 </Card>
                 <Card className="bg-muted/50">
                   <CardContent className="p-4 text-center">
-                    <div className={`text-2xl font-bold ${netImpact >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {netImpact >= 0 ? '+' : ''}{netImpact.toFixed(2)}
+                    <div className={`text-xl sm:text-2xl font-bold ${
+                      summaryStats.netImpact >= 0 ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {summaryStats.netImpact >= 0 ? '+' : ''}{summaryStats.netImpact.toFixed(2)}
                     </div>
                     <div className="text-sm text-muted-foreground">صافي التأثير</div>
                   </CardContent>
@@ -983,27 +1007,23 @@ const StockCount = () => {
 
               {/* Cost Impact Summary */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card className="bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
+                <Card className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
                   <CardContent className="p-4 flex items-center gap-4">
-                    <TrendingUp className="w-10 h-10 text-green-600" />
+                    <TrendingUp className="w-8 sm:w-10 h-8 sm:h-10 text-green-600" />
                     <div>
                       <div className="text-sm text-muted-foreground">إجمالي الزيادة في المخزون</div>
-                      <div className="text-2xl font-bold text-green-600">+{totalIncrease.toFixed(2)}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {countItems.filter(i => i.adjustment_type === 'increase').length} منتج
-                      </div>
+                      <div className="text-xl sm:text-2xl font-bold text-green-600">+{summaryStats.totalIncrease.toFixed(2)}</div>
+                      <div className="text-xs text-muted-foreground">{summaryStats.increaseCount} منتج</div>
                     </div>
                   </CardContent>
                 </Card>
-                <Card className="bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800">
+                <Card className="bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800">
                   <CardContent className="p-4 flex items-center gap-4">
-                    <TrendingDown className="w-10 h-10 text-red-600" />
+                    <TrendingDown className="w-8 sm:w-10 h-8 sm:h-10 text-red-600" />
                     <div>
                       <div className="text-sm text-muted-foreground">إجمالي النقص في المخزون</div>
-                      <div className="text-2xl font-bold text-red-600">-{totalDecrease.toFixed(2)}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {countItems.filter(i => i.adjustment_type === 'decrease').length} منتج
-                      </div>
+                      <div className="text-xl sm:text-2xl font-bold text-red-600">-{summaryStats.totalDecrease.toFixed(2)}</div>
+                      <div className="text-xs text-muted-foreground">{summaryStats.decreaseCount} منتج</div>
                     </div>
                   </CardContent>
                 </Card>
@@ -1012,15 +1032,15 @@ const StockCount = () => {
               {/* Items with differences */}
               <div>
                 <h3 className="font-semibold mb-3">المنتجات التي بها فروقات ({itemsWithDifference.length})</h3>
-                <ScrollArea className="h-[250px] border rounded-md">
+                <ScrollArea className="h-[200px] sm:h-[250px] border rounded-md">
                   <Table>
                     <TableHeader className="sticky top-0 bg-background">
                       <TableRow>
                         <TableHead className="text-right">المنتج</TableHead>
-                        <TableHead className="text-center">كمية النظام</TableHead>
-                        <TableHead className="text-center">الكمية الفعلية</TableHead>
+                        <TableHead className="text-center">النظام</TableHead>
+                        <TableHead className="text-center">الفعلية</TableHead>
                         <TableHead className="text-center">الفرق</TableHead>
-                        <TableHead className="text-left">أثر التكلفة</TableHead>
+                        <TableHead className="text-left hidden sm:table-cell">التكلفة</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1032,7 +1052,7 @@ const StockCount = () => {
                           <TableCell className={`text-center font-bold ${item.difference > 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {item.difference > 0 ? `+${item.difference}` : item.difference}
                           </TableCell>
-                          <TableCell className={`text-left font-medium ${item.cost_impact > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          <TableCell className={`text-left font-medium hidden sm:table-cell ${item.cost_impact > 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {item.cost_impact > 0 ? '+' : ''}{item.cost_impact.toFixed(2)}
                           </TableCell>
                         </TableRow>
@@ -1052,12 +1072,12 @@ const StockCount = () => {
               <Separator />
 
               {/* Actions */}
-              <div className="flex justify-between">
+              <div className="flex flex-col sm:flex-row justify-between gap-3">
                 <Button variant="outline" onClick={() => setCurrentStep('count')} className="gap-2">
                   <ArrowLeft className="w-4 h-4 rotate-180" />
                   العودة للتعديل
                 </Button>
-                <div className="flex gap-2">
+                <div className="flex gap-2 justify-end">
                   <Button
                     variant="outline"
                     onClick={handleSaveDraft}
@@ -1100,31 +1120,35 @@ const StockCount = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-muted p-3 rounded-lg">
                     <div className="text-xs text-muted-foreground">رقم التسوية</div>
-                    <div className="font-bold">{postResult.adjustment_number}</div>
+                    <div className="font-bold text-sm">{postResult.adjustment_number}</div>
                   </div>
                   <div className="bg-muted p-3 rounded-lg">
                     <div className="text-xs text-muted-foreground">عدد المنتجات</div>
                     <div className="font-bold">{postResult.items_count}</div>
                   </div>
-                  <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded-lg">
+                  <div className="bg-green-50 dark:bg-green-950/30 p-3 rounded-lg">
                     <div className="text-xs text-muted-foreground">إجمالي الزيادة</div>
                     <div className="font-bold text-green-600">+{postResult.total_increase?.toFixed(2)}</div>
                   </div>
-                  <div className="bg-red-50 dark:bg-red-950/20 p-3 rounded-lg">
+                  <div className="bg-red-50 dark:bg-red-950/30 p-3 rounded-lg">
                     <div className="text-xs text-muted-foreground">إجمالي النقص</div>
                     <div className="font-bold text-red-600">-{postResult.total_decrease?.toFixed(2)}</div>
                   </div>
                 </div>
                 
-                <div className={`p-3 rounded-lg ${postResult.net_impact >= 0 ? 'bg-green-50 dark:bg-green-950/20' : 'bg-red-50 dark:bg-red-950/20'}`}>
+                <div className={`p-3 rounded-lg ${
+                  (postResult.net_impact ?? 0) >= 0 ? 'bg-green-50 dark:bg-green-950/30' : 'bg-red-50 dark:bg-red-950/30'
+                }`}>
                   <div className="text-xs text-muted-foreground">صافي التأثير</div>
-                  <div className={`font-bold text-lg ${postResult.net_impact >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {postResult.net_impact >= 0 ? '+' : ''}{postResult.net_impact?.toFixed(2)}
+                  <div className={`font-bold text-lg ${
+                    (postResult.net_impact ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {(postResult.net_impact ?? 0) >= 0 ? '+' : ''}{postResult.net_impact?.toFixed(2)}
                   </div>
                 </div>
                 
                 {postResult.journal_entry_number && (
-                  <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg">
+                  <div className="bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg">
                     <div className="text-xs text-muted-foreground">القيد المحاسبي</div>
                     <div className="font-bold">{postResult.journal_entry_number}</div>
                   </div>

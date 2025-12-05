@@ -966,6 +966,41 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_access_log: {
+        Row: {
+          accessed_at: string | null
+          action: string
+          customer_id: string | null
+          id: string
+          ip_address: string | null
+          user_id: string | null
+        }
+        Insert: {
+          accessed_at?: string | null
+          action: string
+          customer_id?: string | null
+          id?: string
+          ip_address?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          accessed_at?: string | null
+          action?: string
+          customer_id?: string | null
+          id?: string
+          ip_address?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_access_log_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_analytics: {
         Row: {
           average_purchase_value: number | null
@@ -7843,6 +7878,29 @@ export type Database = {
           customer_id: string
           customer_name: string
           total_outstanding: number
+        }[]
+      }
+      get_customer_safe_view: {
+        Args: never
+        Returns: {
+          address: string
+          balance: number
+          created_at: string
+          credit_limit: number
+          currency_code: string
+          email: string
+          id: string
+          is_active: boolean
+          last_transaction_date: string
+          loyalty_points: number
+          name: string
+          payment_terms: string
+          phone: string
+          price_list_id: string
+          segment: string
+          tax_number: string
+          updated_at: string
+          user_id: string
         }[]
       }
       get_exchange_rate: {

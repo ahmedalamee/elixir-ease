@@ -27,6 +27,9 @@ interface ReceiptProps {
     tax_number?: string;
     address?: string;
     phone?: string;
+    email?: string;
+    logo_url?: string;
+    footer_note?: string;
   };
 }
 
@@ -78,6 +81,13 @@ export const POSReceipt = forwardRef<HTMLDivElement, ReceiptProps>(
 
         {/* Company Header */}
         <div className="text-center mb-4 border-b-2 border-black pb-4">
+          {companyInfo?.logo_url && (
+            <img 
+              src={companyInfo.logo_url} 
+              alt="Logo" 
+              className="h-12 mx-auto mb-2"
+            />
+          )}
           <h1 className="text-xl font-bold">{companyInfo?.name || "اسم الشركة"}</h1>
           {companyInfo?.name_en && (
             <p className="text-sm">{companyInfo.name_en}</p>
@@ -87,6 +97,9 @@ export const POSReceipt = forwardRef<HTMLDivElement, ReceiptProps>(
           )}
           {companyInfo?.phone && (
             <p className="text-xs">هاتف: {companyInfo.phone}</p>
+          )}
+          {companyInfo?.address && (
+            <p className="text-xs">{companyInfo.address}</p>
           )}
         </div>
 
@@ -172,7 +185,11 @@ export const POSReceipt = forwardRef<HTMLDivElement, ReceiptProps>(
 
         {/* Footer */}
         <div className="text-center mt-6 text-xs border-t-2 border-black pt-4">
-          <p className="font-bold mb-2">شكراً لزيارتكم</p>
+          {companyInfo?.footer_note ? (
+            <p className="font-bold mb-2">{companyInfo.footer_note}</p>
+          ) : (
+            <p className="font-bold mb-2">شكراً لزيارتكم</p>
+          )}
           <p>فاتورة ضريبية مبسطة</p>
           <p className="mt-2">Simplified Tax Invoice</p>
         </div>

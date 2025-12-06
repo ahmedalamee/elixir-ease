@@ -988,6 +988,69 @@ export type Database = {
         }
         Relationships: []
       }
+      company_branding: {
+        Row: {
+          commercial_register: string | null
+          company_address: string | null
+          company_address_en: string | null
+          company_email: string | null
+          company_logo_url: string | null
+          company_name: string
+          company_name_en: string | null
+          company_phone: string | null
+          company_phone_2: string | null
+          created_at: string | null
+          id: string
+          invoice_footer_note: string | null
+          invoice_footer_note_en: string | null
+          tax_number: string | null
+          theme_color: string | null
+          updated_at: string | null
+          updated_by: string | null
+          website: string | null
+        }
+        Insert: {
+          commercial_register?: string | null
+          company_address?: string | null
+          company_address_en?: string | null
+          company_email?: string | null
+          company_logo_url?: string | null
+          company_name?: string
+          company_name_en?: string | null
+          company_phone?: string | null
+          company_phone_2?: string | null
+          created_at?: string | null
+          id?: string
+          invoice_footer_note?: string | null
+          invoice_footer_note_en?: string | null
+          tax_number?: string | null
+          theme_color?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          website?: string | null
+        }
+        Update: {
+          commercial_register?: string | null
+          company_address?: string | null
+          company_address_en?: string | null
+          company_email?: string | null
+          company_logo_url?: string | null
+          company_name?: string
+          company_name_en?: string | null
+          company_phone?: string | null
+          company_phone_2?: string | null
+          created_at?: string | null
+          id?: string
+          invoice_footer_note?: string | null
+          invoice_footer_note_en?: string | null
+          tax_number?: string | null
+          theme_color?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
       cost_centers: {
         Row: {
           actual_amount: number | null

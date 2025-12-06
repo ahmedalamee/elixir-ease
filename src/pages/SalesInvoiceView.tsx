@@ -51,11 +51,11 @@ const SalesInvoiceView = () => {
     enabled: !!id,
   });
 
-  const { data: companyProfile } = useQuery({
-    queryKey: ["company-profile"],
+  const { data: companyBranding } = useQuery({
+    queryKey: ["company-branding"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("company_profile")
+      const { data, error } = await supabase
+        .from("company_branding")
         .select("*")
         .limit(1)
         .maybeSingle();
@@ -97,7 +97,7 @@ const SalesInvoiceView = () => {
   };
 
   useEffect(() => {
-    if (shouldPrint && invoice && companyProfile && handlePrint) {
+    if (shouldPrint && invoice && companyBranding && handlePrint) {
       // Auto-print when the page loads with print=true parameter
       setTimeout(() => {
         if (handlePrint) {
@@ -105,7 +105,7 @@ const SalesInvoiceView = () => {
         }
       }, 500);
     }
-  }, [shouldPrint, invoice, companyProfile]);
+  }, [shouldPrint, invoice, companyBranding]);
 
   if (isLoading) {
     return (
@@ -170,22 +170,30 @@ const SalesInvoiceView = () => {
         <div className="border-b-2 pb-6 mb-6">
           <div className="flex justify-between items-start">
             <div>
-              {companyProfile?.logo_url && (
+              {companyBranding?.company_logo_url && (
                 <img 
-                  src={companyProfile.logo_url} 
+                  src={companyBranding.company_logo_url} 
                   alt="Company Logo" 
                   className="h-16 mb-4"
                 />
               )}
               <h1 className="text-3xl font-bold mb-2">
-                {companyProfile?.company_name || "اسم الشركة"}
+                {companyBranding?.company_name || "اسم الشركة"}
               </h1>
-              <p className="text-muted-foreground">{companyProfile?.address}</p>
-              <p className="text-muted-foreground">{companyProfile?.phone}</p>
-              <p className="text-muted-foreground">{companyProfile?.email}</p>
-              {companyProfile?.tax_number && (
+              {companyBranding?.company_name_en && (
+                <p className="text-lg text-muted-foreground">{companyBranding.company_name_en}</p>
+              )}
+              <p className="text-muted-foreground">{companyBranding?.company_address}</p>
+              <p className="text-muted-foreground">{companyBranding?.company_phone}</p>
+              <p className="text-muted-foreground">{companyBranding?.company_email}</p>
+              {companyBranding?.tax_number && (
                 <p className="text-muted-foreground">
-                  الرقم الضريبي: {companyProfile.tax_number}
+                  الرقم الضريبي: {companyBranding.tax_number}
+                </p>
+              )}
+              {companyBranding?.commercial_register && (
+                <p className="text-muted-foreground">
+                  السجل التجاري: {companyBranding.commercial_register}
                 </p>
               )}
             </div>
@@ -344,6 +352,16 @@ const SalesInvoiceView = () => {
           </div>
         )}
 
+        {/* تذييل الفاتورة */}
+        {companyBranding?.invoice_footer_note && (
+          <div className="mt-6 text-center text-muted-foreground">
+            <p>{companyBranding.invoice_footer_note}</p>
+            {companyBranding?.invoice_footer_note_en && (
+              <p className="text-sm mt-1">{companyBranding.invoice_footer_note_en}</p>
+            )}
+          </div>
+        )}
+
         {/* التوقيع */}
         <div className="mt-12 grid grid-cols-2 gap-8">
           <div className="text-center">
@@ -352,35 +370,11 @@ const SalesInvoiceView = () => {
             </div>
           </div>
           <div className="text-center">
-            {companyProfile?.authorized_signature_url ? (
-              <div>
-                <img 
-                  src={companyProfile.authorized_signature_url} 
-                  alt="Signature" 
-                  className="h-16 mx-auto"
-                />
-                <div className="border-t-2 border-foreground pt-2">
-                  <p className="font-medium">توقيع المعتمد</p>
-                </div>
-              </div>
-            ) : (
-              <div className="border-t-2 border-foreground pt-2 mt-16">
-                <p className="font-medium">توقيع المعتمد</p>
-              </div>
-            )}
+            <div className="border-t-2 border-foreground pt-2 mt-16">
+              <p className="font-medium">توقيع المعتمد</p>
+            </div>
           </div>
         </div>
-
-        {/* الختم */}
-        {companyProfile?.company_stamp_url && (
-          <div className="mt-8 text-center">
-            <img 
-              src={companyProfile.company_stamp_url} 
-              alt="Company Stamp" 
-              className="h-24 mx-auto opacity-50"
-            />
-          </div>
-        )}
       </div>
     </div>
   );

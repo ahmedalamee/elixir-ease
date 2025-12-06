@@ -301,12 +301,12 @@ export default function ExchangeRates() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <Label>العملة</Label>
-                <Select value={filterCurrency} onValueChange={setFilterCurrency}>
+                <Select value={filterCurrency || "all"} onValueChange={(v) => setFilterCurrency(v === "all" ? "" : v)}>
                   <SelectTrigger>
                     <SelectValue placeholder="جميع العملات" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">جميع العملات</SelectItem>
+                    <SelectItem value="all">جميع العملات</SelectItem>
                     {foreignCurrencies.map((c) => (
                       <SelectItem key={c.code} value={c.code}>
                         {c.name} ({c.code})

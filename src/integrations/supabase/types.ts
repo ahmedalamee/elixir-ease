@@ -476,6 +476,109 @@ export type Database = {
           },
         ]
       }
+      cash_box_exchanges: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          exchange_date: string
+          exchange_number: string
+          exchange_rate: number
+          from_amount: number
+          from_cash_box_id: string
+          from_currency: string
+          id: string
+          journal_entry_id: string | null
+          notes: string | null
+          posted_at: string | null
+          posted_by: string | null
+          status: string | null
+          to_amount: number
+          to_cash_box_id: string
+          to_currency: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          exchange_date?: string
+          exchange_number: string
+          exchange_rate: number
+          from_amount: number
+          from_cash_box_id: string
+          from_currency: string
+          id?: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
+          status?: string | null
+          to_amount: number
+          to_cash_box_id: string
+          to_currency: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          exchange_date?: string
+          exchange_number?: string
+          exchange_rate?: number
+          from_amount?: number
+          from_cash_box_id?: string
+          from_currency?: string
+          id?: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
+          status?: string | null
+          to_amount?: number
+          to_cash_box_id?: string
+          to_currency?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_box_exchanges_from_cash_box_id_fkey"
+            columns: ["from_cash_box_id"]
+            isOneToOne: false
+            referencedRelation: "cash_boxes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_box_exchanges_from_currency_fkey"
+            columns: ["from_currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "cash_box_exchanges_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "gl_journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_box_exchanges_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "vw_document_gl_links"
+            referencedColumns: ["journal_entry_id"]
+          },
+          {
+            foreignKeyName: "cash_box_exchanges_to_cash_box_id_fkey"
+            columns: ["to_cash_box_id"]
+            isOneToOne: false
+            referencedRelation: "cash_boxes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_box_exchanges_to_currency_fkey"
+            columns: ["to_currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       cash_boxes: {
         Row: {
           box_code: string
@@ -7892,11 +7995,22 @@ export type Database = {
         Returns: string
       }
       encrypt_data: { Args: { data: string; key?: string }; Returns: string }
+      execute_cash_box_exchange: {
+        Args: {
+          p_exchange_date?: string
+          p_from_amount: number
+          p_from_cash_box_id: string
+          p_notes?: string
+          p_to_cash_box_id: string
+        }
+        Returns: Json
+      }
       generate_adjustment_number: { Args: never; Returns: string }
       generate_campaign_number: { Args: never; Returns: string }
       generate_complaint_number: { Args: never; Returns: string }
       generate_doctor_code: { Args: never; Returns: string }
       generate_employee_code: { Args: never; Returns: string }
+      generate_exchange_number: { Args: never; Returns: string }
       generate_journal_entry_number: { Args: never; Returns: string }
       generate_payment_number: { Args: never; Returns: string }
       generate_pos_session_number: { Args: never; Returns: string }

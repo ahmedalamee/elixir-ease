@@ -117,6 +117,7 @@ import CustomerStatement from "./pages/CustomerStatement";
 import SupplierStatement from "./pages/SupplierStatement";
 import CashFlowStatement from "./pages/CashFlowStatement";
 import ArApGlReconciliation from "./pages/ArApGlReconciliation";
+import CashBoxExchange from "./pages/CashBoxExchange";
 
 const queryClient = new QueryClient();
 
@@ -224,6 +225,7 @@ const AppContent = () => {
           <Route path="/settings/taxes" element={<Taxes />} />
           <Route path="/settings/currencies" element={<Currencies />} />
           <Route path="/settings/exchange-rates" element={<ExchangeRates />} />
+          <Route path="/cash/exchange" element={<CashBoxExchange />} />
           <Route path="/inventory/settings" element={<InventorySettings />} />
           <Route path="/warehouse-stock" element={<WarehouseStock />} />
           <Route path="/company-profile" element={<CompanyProfile />} />

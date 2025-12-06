@@ -261,6 +261,11 @@ export const menuTree: TreeMenuItem[] = [
         route: "/finance/expenses",
       },
       {
+        id: "finance-cash-exchange",
+        label: "المصارفة بين الصناديق",
+        route: "/cash/exchange",
+      },
+      {
         id: "finance-payment-methods",
         label: "طرق الدفع",
         route: "/settings/payment-methods",

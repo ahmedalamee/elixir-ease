@@ -75,14 +75,14 @@ export default function ExchangeRates() {
       return;
     }
 
+    // Check if user has admin or pharmacist role
     const { data: roleData } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", session.user.id)
-      .eq("role", "admin")
-      .single();
+      .in("role", ["admin", "pharmacist", "inventory_manager"]);
 
-    setIsAdmin(!!roleData);
+    setIsAdmin(roleData && roleData.length > 0);
   };
 
   const loadData = async () => {
@@ -184,13 +184,88 @@ export default function ExchangeRates() {
               إدارة أسعار صرف العملات مقابل العملة الأساسية ({baseCurrency?.name || "YER"})
             </p>
           </div>
-          {isAdmin && (
-            <Button onClick={() => setDialogOpen(true)}>
-              <Plus className="ml-2 h-4 w-4" />
-              إضافة سعر صرف
-            </Button>
-          )}
+          <Button onClick={() => {
+            setNewRate({
+              from_currency: "SAR",
+              to_currency: "YER",
+              rate: 0,
+              effective_date: new Date().toISOString().split("T")[0],
+              notes: "",
+            });
+            setDialogOpen(true);
+          }}>
+            <Plus className="ml-2 h-4 w-4" />
+            إضافة سعر صرف
+          </Button>
         </div>
+
+        {/* Quick Add SAR Rate */}
+        <Card className="border-primary/20 bg-primary/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              إدخال سعر صرف اليوم (SAR/YER)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap items-end gap-4">
+              <div className="flex-1 min-w-[200px]">
+                <Label>1 ريال سعودي (SAR) =</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="مثال: 66.50"
+                    className="text-lg font-bold"
+                    id="quick-rate-input"
+                  />
+                  <span className="text-muted-foreground font-medium">ر.ي (YER)</span>
+                </div>
+              </div>
+              <div>
+                <Label>التاريخ</Label>
+                <Input
+                  type="date"
+                  defaultValue={new Date().toISOString().split("T")[0]}
+                  className="mt-1"
+                  id="quick-date-input"
+                />
+              </div>
+              <Button 
+                onClick={async () => {
+                  const rateInput = document.getElementById("quick-rate-input") as HTMLInputElement;
+                  const dateInput = document.getElementById("quick-date-input") as HTMLInputElement;
+                  const rate = parseFloat(rateInput?.value || "0");
+                  const date = dateInput?.value || new Date().toISOString().split("T")[0];
+                  
+                  if (!rate || rate <= 0) {
+                    toast.error("الرجاء إدخال سعر صرف صحيح");
+                    return;
+                  }
+                  
+                  try {
+                    await createExchangeRate({
+                      from_currency: "SAR",
+                      to_currency: "YER",
+                      rate,
+                      effective_date: date,
+                      notes: "سعر يومي",
+                    });
+                    toast.success("تم إضافة سعر صرف SAR/YER بنجاح");
+                    if (rateInput) rateInput.value = "";
+                    loadData();
+                  } catch (error: any) {
+                    toast.error(error.message || "فشل إضافة سعر الصرف");
+                  }
+                }}
+                className="h-10"
+              >
+                <Plus className="ml-2 h-4 w-4" />
+                حفظ سعر اليوم
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Latest Rates Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

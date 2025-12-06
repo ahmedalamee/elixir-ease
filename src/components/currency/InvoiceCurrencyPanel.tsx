@@ -48,9 +48,11 @@ export function InvoiceCurrencyPanel({
   };
 
   const fetchRate = async () => {
-    if (currencyCode === baseCurrency) {
+    // YER to YER is always 1:1, no need to fetch
+    if (currencyCode === baseCurrency || currencyCode === "YER") {
       setExchangeRate(1);
       setRateError(null);
+      onCurrencyChange(currencyCode, 1);
       return;
     }
 
@@ -70,8 +72,10 @@ export function InvoiceCurrencyPanel({
   };
 
   const handleCurrencyChange = (currency: string, rate: number) => {
-    setExchangeRate(rate);
-    onCurrencyChange(currency, rate);
+    // Force rate = 1 for YER
+    const effectiveRate = currency === "YER" ? 1 : rate;
+    setExchangeRate(effectiveRate);
+    onCurrencyChange(currency, effectiveRate);
   };
 
   const showCurrencyMismatchWarning = customerCurrency && customerCurrency !== currencyCode;
@@ -90,7 +94,8 @@ export function InvoiceCurrencyPanel({
           />
         </div>
 
-        {currencyCode !== baseCurrency && (
+        {/* Only show exchange rate display for non-YER currencies */}
+        {currencyCode !== baseCurrency && currencyCode !== "YER" && (
           <ExchangeRateDisplay
             fromCurrency={currencyCode}
             toCurrency={baseCurrency}

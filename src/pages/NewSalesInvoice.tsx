@@ -310,9 +310,24 @@ const NewSalesInvoice = () => {
       // Get current user
       const { data: userData } = await supabase.auth.getUser();
 
-      // Create invoice object with currency support
-      // total_amount is in invoice currency (FC), base_currency_total is in YER (BC)
-      const baseCurrencyTotal = totalAmount * exchangeRate;
+      // Create invoice object with full dual-currency support
+      // For YER invoices: FC = BC, exchange_rate = 1
+      // For foreign currency: FC = transaction currency, BC = FC * exchange_rate (in YER)
+      const effectiveRate = currencyCode === "YER" ? 1 : exchangeRate;
+      const subtotalNet = subtotal - totalDiscount;
+      
+      // Calculate all amounts in both FC and BC
+      const subtotalFC = subtotalNet;
+      const subtotalBC = currencyCode === "YER" ? subtotalNet : subtotalNet * effectiveRate;
+      const discountFC = totalDiscount;
+      const discountBC = currencyCode === "YER" ? totalDiscount : totalDiscount * effectiveRate;
+      const taxFC = totalTax;
+      const taxBC = currencyCode === "YER" ? totalTax : totalTax * effectiveRate;
+      const totalFC = totalAmount;
+      const totalBC = currencyCode === "YER" ? totalAmount : totalAmount * effectiveRate;
+      const paidFC = paymentAmount;
+      const paidBC = currencyCode === "YER" ? paymentAmount : paymentAmount * effectiveRate;
+
       const invoiceData: any = {
         invoice_number: invoiceNumber,
         customer_id: customerId,
@@ -320,12 +335,25 @@ const NewSalesInvoice = () => {
         due_date: dueDate || null,
         warehouse_id: warehouseId,
         currency_code: currencyCode,
-        exchange_rate: exchangeRate,
-        subtotal: subtotal - totalDiscount,
+        exchange_rate: effectiveRate,
+        // Legacy fields (kept for backward compatibility)
+        subtotal: subtotalNet,
         discount_amount: totalDiscount,
         tax_amount: totalTax,
         total_amount: totalAmount,
-        base_currency_total: baseCurrencyTotal,
+        base_currency_total: totalBC,
+        // New dual-currency fields
+        subtotal_fc: subtotalFC,
+        subtotal_bc: subtotalBC,
+        discount_amount_fc: discountFC,
+        discount_amount_bc: discountBC,
+        tax_amount_fc: taxFC,
+        tax_amount_bc: taxBC,
+        total_amount_fc: totalFC,
+        total_amount_bc: totalBC,
+        paid_amount_fc: paidFC,
+        paid_amount_bc: paidBC,
+        // Status fields
         status: "draft",
         payment_status: paymentAmount >= totalAmount ? "paid" : paymentAmount > 0 ? "partial" : "unpaid",
         paid_amount: paymentAmount,
@@ -618,22 +646,27 @@ const NewSalesInvoice = () => {
             />
           </div>
 
-          {/* Payment Summary */}
+          {/* Payment Summary - with correct currency display */}
           {paymentAmount > 0 && items.length > 0 && (
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
                 <div className="space-y-1">
                   <p>
-                    <strong>المبلغ الإجمالي:</strong> {totalAmount.toFixed(2)} ر.س
+                    <strong>المبلغ الإجمالي:</strong> {totalAmount.toFixed(2)} {currencyCode}
+                    {currencyCode !== "YER" && (
+                      <span className="text-muted-foreground mr-2">
+                        (≈ {(totalAmount * exchangeRate).toFixed(2)} YER)
+                      </span>
+                    )}
                   </p>
                   <p>
-                    <strong>المبلغ المدفوع:</strong> {paymentAmount.toFixed(2)} ر.س
+                    <strong>المبلغ المدفوع:</strong> {paymentAmount.toFixed(2)} {currencyCode}
                   </p>
                   <p>
                     <strong>المتبقي:</strong>{" "}
                     <span className={paymentAmount >= totalAmount ? "text-green-600" : "text-orange-600"}>
-                      {(totalAmount - paymentAmount).toFixed(2)} ر.س
+                      {(totalAmount - paymentAmount).toFixed(2)} {currencyCode}
                     </span>
                   </p>
                 </div>
@@ -699,7 +732,7 @@ const NewSalesInvoice = () => {
                     const availableQty = stockLevel?.qty_on_hand || 0;
                     return (
                       <SelectItem key={product.id} value={product.id}>
-                        {product.name} - {product.price.toFixed(2)} ر.س (متوفر: {availableQty})
+                        {product.name} - {product.price.toFixed(2)} {currencyCode} (متوفر: {availableQty})
                       </SelectItem>
                     );
                   })}

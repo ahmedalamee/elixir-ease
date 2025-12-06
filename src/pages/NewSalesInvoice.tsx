@@ -311,7 +311,8 @@ const NewSalesInvoice = () => {
       const { data: userData } = await supabase.auth.getUser();
 
       // Create invoice object with currency support
-      const totalAmountBC = totalAmount * exchangeRate;
+      // total_amount is in invoice currency (FC), base_currency_total is in YER (BC)
+      const baseCurrencyTotal = totalAmount * exchangeRate;
       const invoiceData: any = {
         invoice_number: invoiceNumber,
         customer_id: customerId,
@@ -324,7 +325,7 @@ const NewSalesInvoice = () => {
         discount_amount: totalDiscount,
         tax_amount: totalTax,
         total_amount: totalAmount,
-        total_amount_bc: totalAmountBC,
+        base_currency_total: baseCurrencyTotal,
         status: "draft",
         payment_status: paymentAmount >= totalAmount ? "paid" : paymentAmount > 0 ? "partial" : "unpaid",
         paid_amount: paymentAmount,

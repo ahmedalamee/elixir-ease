@@ -81,37 +81,44 @@ export function InvoiceTotalsSummary({
   const taxBC = taxFC * exchangeRate;
   const totalBC = totalFC * exchangeRate;
 
-  const isSameCurrency = currencyFC === currencyBC;
+  // Don't show dual columns if currency is YER (base currency)
+  const isSameCurrency = currencyFC === currencyBC || currencyFC === "YER";
+
+  // Format number helper
+  const formatNumber = (num: number) => num.toLocaleString("ar-SA", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
   return (
     <div className={cn("space-y-3 p-4 bg-muted/30 rounded-lg", className)}>
-      <div className="grid grid-cols-2 gap-4">
-        {/* FC Column */}
+      <div className={isSameCurrency ? "" : "grid grid-cols-2 gap-4"}>
+        {/* FC Column (or single column for YER) */}
         <div className="space-y-2">
           <h4 className="font-medium text-sm border-b pb-1">
-            بعملة الفاتورة ({currencyFC})
+            {isSameCurrency ? `الإجماليات (${currencyFC})` : `بعملة الفاتورة (${currencyFC})`}
           </h4>
           <div className="flex justify-between text-sm">
             <span>المجموع الفرعي:</span>
-            <span>{subtotalFC.toFixed(2)}</span>
+            <span>{formatNumber(subtotalFC)}</span>
           </div>
           {discountFC > 0 && (
             <div className="flex justify-between text-sm text-destructive">
               <span>الخصم:</span>
-              <span>-{discountFC.toFixed(2)}</span>
+              <span>-{formatNumber(discountFC)}</span>
             </div>
           )}
           <div className="flex justify-between text-sm">
             <span>الضريبة:</span>
-            <span>{taxFC.toFixed(2)}</span>
+            <span>{formatNumber(taxFC)}</span>
           </div>
           <div className="flex justify-between font-bold border-t pt-2">
             <span>الإجمالي:</span>
-            <span>{totalFC.toFixed(2)} {currencyFC}</span>
+            <span>{formatNumber(totalFC)} {currencyFC}</span>
           </div>
         </div>
 
-        {/* BC Column */}
+        {/* BC Column - only show when currency is NOT YER */}
         {!isSameCurrency && (
           <div className="space-y-2 border-r pr-4">
             <h4 className="font-medium text-sm border-b pb-1">
@@ -119,21 +126,21 @@ export function InvoiceTotalsSummary({
             </h4>
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>المجموع الفرعي:</span>
-              <span>{subtotalBC.toFixed(2)}</span>
+              <span>{formatNumber(subtotalBC)}</span>
             </div>
             {discountBC > 0 && (
               <div className="flex justify-between text-sm text-muted-foreground">
                 <span>الخصم:</span>
-                <span>-{discountBC.toFixed(2)}</span>
+                <span>-{formatNumber(discountBC)}</span>
               </div>
             )}
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>الضريبة:</span>
-              <span>{taxBC.toFixed(2)}</span>
+              <span>{formatNumber(taxBC)}</span>
             </div>
             <div className="flex justify-between font-bold border-t pt-2 text-muted-foreground">
               <span>الإجمالي:</span>
-              <span>{totalBC.toFixed(2)} {currencyBC}</span>
+              <span>{formatNumber(totalBC)} {currencyBC}</span>
             </div>
           </div>
         )}

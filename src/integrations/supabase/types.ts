@@ -5983,6 +5983,8 @@ export type Database = {
           currency_code: string | null
           customer_id: string
           discount_amount: number
+          discount_amount_bc: number | null
+          discount_amount_fc: number | null
           due_date: string | null
           exchange_rate: number | null
           id: string
@@ -5990,6 +5992,8 @@ export type Database = {
           invoice_number: string
           notes: string | null
           paid_amount: number
+          paid_amount_bc: number | null
+          paid_amount_fc: number | null
           payment_method_id: string | null
           payment_status: string
           payment_terms: string | null
@@ -5998,8 +6002,14 @@ export type Database = {
           posted_by: string | null
           status: string
           subtotal: number
+          subtotal_bc: number | null
+          subtotal_fc: number | null
           tax_amount: number
+          tax_amount_bc: number | null
+          tax_amount_fc: number | null
           total_amount: number
+          total_amount_bc: number | null
+          total_amount_fc: number | null
           updated_at: string | null
           warehouse_id: string | null
         }
@@ -6010,6 +6020,8 @@ export type Database = {
           currency_code?: string | null
           customer_id: string
           discount_amount?: number
+          discount_amount_bc?: number | null
+          discount_amount_fc?: number | null
           due_date?: string | null
           exchange_rate?: number | null
           id?: string
@@ -6017,6 +6029,8 @@ export type Database = {
           invoice_number: string
           notes?: string | null
           paid_amount?: number
+          paid_amount_bc?: number | null
+          paid_amount_fc?: number | null
           payment_method_id?: string | null
           payment_status?: string
           payment_terms?: string | null
@@ -6025,8 +6039,14 @@ export type Database = {
           posted_by?: string | null
           status?: string
           subtotal?: number
+          subtotal_bc?: number | null
+          subtotal_fc?: number | null
           tax_amount?: number
+          tax_amount_bc?: number | null
+          tax_amount_fc?: number | null
           total_amount?: number
+          total_amount_bc?: number | null
+          total_amount_fc?: number | null
           updated_at?: string | null
           warehouse_id?: string | null
         }
@@ -6037,6 +6057,8 @@ export type Database = {
           currency_code?: string | null
           customer_id?: string
           discount_amount?: number
+          discount_amount_bc?: number | null
+          discount_amount_fc?: number | null
           due_date?: string | null
           exchange_rate?: number | null
           id?: string
@@ -6044,6 +6066,8 @@ export type Database = {
           invoice_number?: string
           notes?: string | null
           paid_amount?: number
+          paid_amount_bc?: number | null
+          paid_amount_fc?: number | null
           payment_method_id?: string | null
           payment_status?: string
           payment_terms?: string | null
@@ -6052,8 +6076,14 @@ export type Database = {
           posted_by?: string | null
           status?: string
           subtotal?: number
+          subtotal_bc?: number | null
+          subtotal_fc?: number | null
           tax_amount?: number
+          tax_amount_bc?: number | null
+          tax_amount_fc?: number | null
           total_amount?: number
+          total_amount_bc?: number | null
+          total_amount_fc?: number | null
           updated_at?: string | null
           warehouse_id?: string | null
         }

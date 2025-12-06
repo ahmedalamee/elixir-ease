@@ -491,6 +491,11 @@ export const menuTree: TreeMenuItem[] = [
     icon: Settings,
     children: [
       {
+        id: "settings-branding",
+        label: "الهوية التجارية",
+        route: "/settings/company-branding",
+      },
+      {
         id: "settings-account",
         label: "إعدادات حسابي",
         route: "/account-settings",

@@ -8122,6 +8122,15 @@ export type Database = {
         }
         Relationships: []
       }
+      public_company_info: {
+        Row: {
+          company_logo_url: string | null
+          company_name: string | null
+          company_name_en: string | null
+          theme_color: string | null
+        }
+        Relationships: []
+      }
       returns_inventory_impact: {
         Row: {
           item_condition: string | null

@@ -266,67 +266,74 @@ const SalesInvoiceView = () => {
                   </TableCell>
                   <TableCell className="text-center">{item.quantity}</TableCell>
                   <TableCell className="text-center">{item.uoms?.name || "قطعة"}</TableCell>
-                  <TableCell className="text-left">{item.unit_price.toFixed(2)}</TableCell>
-                  <TableCell className="text-left">
-                    {item.discount_amount > 0 ? (
-                      <div>
-                        <div>{item.discount_percentage}%</div>
-                        <div className="text-sm text-muted-foreground">
-                          ({item.discount_amount.toFixed(2)} ر.س)
-                        </div>
-                      </div>
-                    ) : "-"}
-                  </TableCell>
-                  <TableCell className="text-left font-medium">
-                    {itemAfterDiscount.toFixed(2)}
-                  </TableCell>
-                  <TableCell className="text-left">
-                    {item.tax_percentage}% ({item.tax_amount.toFixed(2)})
-                  </TableCell>
-                  <TableCell className="text-left font-bold">
-                    {item.line_total.toFixed(2)}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+                        <TableCell className="text-left">{item.unit_price.toFixed(2)}</TableCell>
+                        <TableCell className="text-left">
+                          {item.discount_amount > 0 ? (
+                            <div>
+                              <div>{item.discount_percentage}%</div>
+                              <div className="text-sm text-muted-foreground">
+                                ({item.discount_amount.toFixed(2)} {invoice.currency_code || "YER"})
+                              </div>
+                            </div>
+                          ) : "-"}
+                        </TableCell>
+                        <TableCell className="text-left font-medium">
+                          {itemAfterDiscount.toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-left">
+                          {item.tax_percentage}% ({item.tax_amount.toFixed(2)})
+                        </TableCell>
+                        <TableCell className="text-left font-bold">
+                          {item.line_total.toFixed(2)}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
 
-        {/* الإجماليات */}
-        <div className="mt-6 flex justify-end">
-          <div className="w-full md:w-1/3 space-y-2">
-            <div className="flex justify-between py-2">
-              <span>المجموع الفرعي:</span>
-              <span className="font-medium">{invoice.subtotal.toFixed(2)} ر.س</span>
-            </div>
-            {invoice.discount_amount > 0 && (
-              <div className="flex justify-between py-2">
-                <span>الخصم:</span>
-                <span className="font-medium text-red-600">
-                  -{invoice.discount_amount.toFixed(2)} ر.س
-                </span>
+              {/* الإجماليات - with dynamic currency */}
+              <div className="mt-6 flex justify-end">
+                <div className="w-full md:w-1/3 space-y-2">
+                  <div className="flex justify-between py-2">
+                    <span>المجموع الفرعي:</span>
+                    <span className="font-medium">{invoice.subtotal.toFixed(2)} {invoice.currency_code || "YER"}</span>
+                  </div>
+                  {invoice.discount_amount > 0 && (
+                    <div className="flex justify-between py-2">
+                      <span>الخصم:</span>
+                      <span className="font-medium text-red-600">
+                        -{invoice.discount_amount.toFixed(2)} {invoice.currency_code || "YER"}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between py-2">
+                    <span>الضريبة ({invoice.subtotal > 0 ? ((invoice.tax_amount / invoice.subtotal) * 100).toFixed(0) : "0"}%):</span>
+                    <span className="font-medium">{invoice.tax_amount.toFixed(2)} {invoice.currency_code || "YER"}</span>
+                  </div>
+                  <div className="flex justify-between py-3 border-t-2 border-foreground">
+                    <span className="text-lg font-bold">الإجمالي:</span>
+                    <span className="text-lg font-bold">{invoice.total_amount.toFixed(2)} {invoice.currency_code || "YER"}</span>
+                  </div>
+                  {/* Show base currency equivalent for non-YER invoices */}
+                  {invoice.currency_code && invoice.currency_code !== "YER" && invoice.total_amount_bc && (
+                    <div className="flex justify-between py-2 text-muted-foreground text-sm">
+                      <span>ما يعادل بالريال اليمني:</span>
+                      <span>{invoice.total_amount_bc.toFixed(2)} YER</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between py-2 text-green-600">
+                    <span>المدفوع:</span>
+                    <span className="font-medium">{invoice.paid_amount?.toFixed(2) || '0.00'} {invoice.currency_code || "YER"}</span>
+                  </div>
+                  <div className="flex justify-between py-2 text-orange-600 font-semibold">
+                    <span>المتبقي:</span>
+                    <span className="font-bold">
+                      {(invoice.total_amount - (invoice.paid_amount || 0)).toFixed(2)} {invoice.currency_code || "YER"}
+                    </span>
+                  </div>
+                </div>
               </div>
-            )}
-            <div className="flex justify-between py-2">
-              <span>الضريبة ({invoice.subtotal > 0 ? ((invoice.tax_amount / invoice.subtotal) * 100).toFixed(0) : "0"}%):</span>
-              <span className="font-medium">{invoice.tax_amount.toFixed(2)} ر.س</span>
-            </div>
-            <div className="flex justify-between py-3 border-t-2 border-foreground">
-              <span className="text-lg font-bold">الإجمالي:</span>
-              <span className="text-lg font-bold">{invoice.total_amount.toFixed(2)} ر.س</span>
-            </div>
-            <div className="flex justify-between py-2 text-green-600">
-              <span>المدفوع:</span>
-              <span className="font-medium">{invoice.paid_amount?.toFixed(2) || '0.00'} ر.س</span>
-            </div>
-            <div className="flex justify-between py-2 text-orange-600 font-semibold">
-              <span>المتبقي:</span>
-              <span className="font-bold">
-                {(invoice.total_amount - (invoice.paid_amount || 0)).toFixed(2)} ر.س
-              </span>
-            </div>
-          </div>
-        </div>
 
         {/* طريقة الدفع وشروط الدفع */}
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">

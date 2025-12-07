@@ -76,13 +76,16 @@ export function InvoiceTotalsSummary({
   currencyBC,
   className,
 }: InvoiceTotalsSummaryProps) {
-  const subtotalBC = subtotalFC * exchangeRate;
-  const discountBC = discountFC * exchangeRate;
-  const taxBC = taxFC * exchangeRate;
-  const totalBC = totalFC * exchangeRate;
+  // CRITICAL: For base currency (YER), always use rate = 1
+  const effectiveRate = currencyFC === currencyBC || currencyFC === "YER" ? 1 : exchangeRate;
+  
+  const subtotalBC = subtotalFC * effectiveRate;
+  const discountBC = discountFC * effectiveRate;
+  const taxBC = taxFC * effectiveRate;
+  const totalBC = totalFC * effectiveRate;
 
-  // Don't show dual columns if currency is YER (base currency)
-  const isSameCurrency = currencyFC === currencyBC || currencyFC === "YER";
+  // Don't show dual columns if currency is base currency (YER)
+  const isBaseCurrency = currencyFC === currencyBC || currencyFC === "YER";
 
   // Format number helper
   const formatNumber = (num: number) => num.toLocaleString("ar-SA", {
@@ -92,11 +95,11 @@ export function InvoiceTotalsSummary({
 
   return (
     <div className={cn("space-y-3 p-4 bg-muted/30 rounded-lg", className)}>
-      <div className={isSameCurrency ? "" : "grid grid-cols-2 gap-4"}>
-        {/* FC Column (or single column for YER) */}
+      <div className={isBaseCurrency ? "" : "grid grid-cols-2 gap-4"}>
+        {/* FC Column (or single column for base currency) */}
         <div className="space-y-2">
           <h4 className="font-medium text-sm border-b pb-1">
-            {isSameCurrency ? `الإجماليات (${currencyFC})` : `بعملة الفاتورة (${currencyFC})`}
+            {isBaseCurrency ? `الإجماليات (${currencyFC})` : `بعملة الفاتورة (${currencyFC})`}
           </h4>
           <div className="flex justify-between text-sm">
             <span>المجموع الفرعي:</span>
@@ -118,8 +121,8 @@ export function InvoiceTotalsSummary({
           </div>
         </div>
 
-        {/* BC Column - only show when currency is NOT YER */}
-        {!isSameCurrency && (
+        {/* BC Column - only show when currency is NOT base currency */}
+        {!isBaseCurrency && (
           <div className="space-y-2 border-r pr-4">
             <h4 className="font-medium text-sm border-b pb-1">
               بالعملة الأساسية ({currencyBC})

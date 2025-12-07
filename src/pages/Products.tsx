@@ -15,8 +15,8 @@ import {
   Trash2,
   Package,
   AlertTriangle,
-  Upload,
 } from "lucide-react";
+import { ProductImageUpload, ProductImage } from "@/components/products";
 import {
   Dialog,
   DialogContent,
@@ -409,24 +409,12 @@ const Products = () => {
                       </div>
 
                       <div className="space-y-2">
-                        <Label>الصور</Label>
-                        <div className="flex items-center gap-4">
-                          <div className="flex-1">
-                            <Input
-                              type="url"
-                              value={formData.image_url}
-                              onChange={(e) =>
-                                setFormData({ ...formData, image_url: e.target.value })
-                              }
-                              placeholder="رابط الصورة"
-                              className="input-medical"
-                            />
-                          </div>
-                          <Button type="button" variant="outline" className="gap-2">
-                            <Upload className="w-4 h-4" />
-                            رفع صورة
-                          </Button>
-                        </div>
+                        <Label>صورة المنتج</Label>
+                        <ProductImageUpload
+                          currentImageUrl={formData.image_url}
+                          onImageUploaded={(url) => setFormData({ ...formData, image_url: url })}
+                          onImageRemoved={() => setFormData({ ...formData, image_url: "" })}
+                        />
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
@@ -843,18 +831,27 @@ const Products = () => {
           {filteredProducts.map((product) => (
             <Card key={product.id} className="card-elegant">
               <div className="space-y-3">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h3 className="font-bold text-lg">{product.name}</h3>
-                    {product.name_en && (
-                      <p className="text-sm text-muted-foreground">
-                        {product.name_en}
-                      </p>
-                    )}
+                <div className="flex gap-3 items-start">
+                  <ProductImage 
+                    imageUrl={(product as any).image_url} 
+                    productName={product.name}
+                    size="md"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h3 className="font-bold text-lg truncate">{product.name}</h3>
+                        {product.name_en && (
+                          <p className="text-sm text-muted-foreground truncate">
+                            {product.name_en}
+                          </p>
+                        )}
+                      </div>
+                      {product.quantity <= product.min_quantity && (
+                        <AlertTriangle className="w-5 h-5 text-orange-500 flex-shrink-0" />
+                      )}
+                    </div>
                   </div>
-                  {product.quantity <= product.min_quantity && (
-                    <AlertTriangle className="w-5 h-5 text-orange-500" />
-                  )}
                 </div>
 
                 {product.barcode && (

@@ -16,6 +16,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CustomerCombobox } from "@/components/customers/CustomerCombobox";
 import { CustomerInfoCard } from "@/components/customers/CustomerInfoCard";
 import { InvoiceCurrencyPanel, InvoiceTotalsSummary } from "@/components/currency";
+import { BarcodeScannerInput, ProductImage } from "@/components/products";
+import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
 
 interface InvoiceItem {
   item_id: string;
@@ -34,6 +36,7 @@ interface InvoiceItem {
 const NewSalesInvoice = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { handleScanResult } = useBarcodeScanner();
 
   const [customerId, setCustomerId] = useState("");
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split("T")[0]);
@@ -171,6 +174,69 @@ const NewSalesInvoice = () => {
         p.barcode?.toLowerCase().includes(productSearch.toLowerCase())
       : true
   );
+
+  // Barcode scan handler for invoice
+  const handleBarcodeScan = (code: string) => {
+    if (!warehouseId) {
+      toast.error("الرجاء اختيار المستودع أولاً");
+      return;
+    }
+
+    handleScanResult(
+      code,
+      (product) => {
+        // Check stock availability
+        const stockLevel = stockLevels?.find((s) => s.item_id === product.id);
+        const availableQty = stockLevel?.qty_on_hand || 0;
+        
+        if (availableQty <= 0) {
+          toast.error(`المنتج "${product.name}" غير متوفر في المخزون`);
+          return;
+        }
+
+        // Get default tax
+        const defaultTax = taxes?.[0];
+        const taxRate = defaultTax?.rate || 0;
+        const taxCode = defaultTax?.tax_code || "";
+
+        // Calculate item values
+        const unitPrice = product.price;
+        const discountPercentage = product.default_discount_percentage || 0;
+        const discountAmount = (1 * unitPrice * discountPercentage) / 100;
+        const lineSubtotal = 1 * unitPrice - discountAmount;
+        const taxAmount = lineSubtotal * (taxRate / 100);
+        const lineTotal = lineSubtotal + taxAmount;
+
+        // Check if product already in items
+        const existingIndex = items.findIndex((item) => item.item_id === product.id);
+        if (existingIndex >= 0) {
+          // Increment quantity
+          handleUpdateItemQty(existingIndex, items[existingIndex].qty + 1);
+          toast.success(`تمت زيادة كمية "${product.name}"`);
+        } else {
+          // Add new item
+          const newItem: InvoiceItem = {
+            item_id: product.id,
+            item_name: product.name,
+            uom_id: product.base_uom_id || null,
+            qty: 1,
+            unit_price: unitPrice,
+            discount_percentage: discountPercentage,
+            discount_amount: discountAmount,
+            tax_code: taxCode,
+            tax_percentage: taxRate,
+            tax_amount: taxAmount,
+            line_total: lineTotal,
+          };
+          setItems([...items, newItem]);
+          toast.success(`تمت إضافة "${product.name}"`);
+        }
+      },
+      (notFoundCode) => {
+        toast.error(`لم يتم العثور على منتج بالباركود: ${notFoundCode}`);
+      }
+    );
+  };
 
   // Calculate totals
   const subtotal = items.reduce((sum, item) => sum + item.line_total, 0);
@@ -534,12 +600,19 @@ const NewSalesInvoice = () => {
 
           {/* بنود الفاتورة */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
               <h3 className="text-lg font-semibold">بنود الفاتورة</h3>
-              <Button onClick={() => setIsAddItemDialogOpen(true)}>
-                <Plus className="ml-2 h-4 w-4" />
-                إضافة بند
-              </Button>
+              <div className="flex items-center gap-3">
+                <BarcodeScannerInput
+                  onScan={handleBarcodeScan}
+                  placeholder="امسح الباركود لإضافة منتج..."
+                  className="w-64"
+                />
+                <Button onClick={() => setIsAddItemDialogOpen(true)}>
+                  <Plus className="ml-2 h-4 w-4" />
+                  إضافة بند
+                </Button>
+              </div>
             </div>
 
             {items.length > 0 ? (
@@ -564,7 +637,16 @@ const NewSalesInvoice = () => {
                     
                     return (
                       <TableRow key={index}>
-                        <TableCell>{item.item_name}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <ProductImage 
+                              imageUrl={product?.image_url} 
+                              productName={item.item_name}
+                              size="sm"
+                            />
+                            <span>{item.item_name}</span>
+                          </div>
+                        </TableCell>
                         <TableCell>
                           <Input
                             type="number"

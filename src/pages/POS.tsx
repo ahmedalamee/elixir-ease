@@ -33,6 +33,7 @@ import {
   Printer,
   BarChart3,
   X,
+  Barcode,
 } from "lucide-react";
 import {
   Select,
@@ -42,6 +43,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { BarcodeScannerInput } from "@/components/products";
+import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
 
 // Interfaces
 interface Product {
@@ -121,6 +124,7 @@ const POS = () => {
   const location = useLocation();
   const { toast } = useToast();
   const receiptRef = useRef<HTMLDivElement>(null);
+  const { handleScanResult } = useBarcodeScanner();
 
   // State
   const [products, setProducts] = useState<Product[]>([]);
@@ -318,6 +322,35 @@ const POS = () => {
     } catch (error) {
       console.error("Error fetching session stats:", error);
     }
+  };
+
+  // Barcode scan handler
+  const handleBarcodeScan = (code: string) => {
+    handleScanResult(
+      code,
+      (product) => {
+        // Add product to cart
+        addToCart({
+          id: product.id,
+          name: product.name,
+          barcode: product.barcode || "",
+          price: product.price,
+          quantity: product.quantity,
+          allow_discount: product.allow_discount,
+          max_discount_percentage: product.max_discount_percentage,
+          default_discount_percentage: product.default_discount_percentage,
+          base_uom_id: product.base_uom_id,
+          image_url: product.image_url,
+        });
+      },
+      (notFoundCode) => {
+        toast({
+          title: "منتج غير موجود",
+          description: `لم يتم العثور على منتج بالباركود: ${notFoundCode}`,
+          variant: "destructive",
+        });
+      }
+    );
   };
 
   // Filter products
@@ -750,11 +783,19 @@ const POS = () => {
         {/* Search Bar */}
         <div className="p-4 border-b border-border bg-card">
           <div className="flex gap-4">
+            {/* Barcode Scanner Input */}
+            <div className="w-64">
+              <BarcodeScannerInput
+                onScan={handleBarcodeScan}
+                placeholder="امسح الباركود..."
+                autoFocus
+              />
+            </div>
             <div className="flex-1 relative">
               <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
                 type="text"
-                placeholder="ابحث بالاسم أو الباركود..."
+                placeholder="ابحث بالاسم..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pr-10"

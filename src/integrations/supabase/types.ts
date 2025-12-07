@@ -1127,6 +1127,13 @@ export type Database = {
             foreignKeyName: "cost_centers_manager_id_fkey"
             columns: ["manager_id"]
             isOneToOne: false
+            referencedRelation: "safe_employee_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cost_centers_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
             referencedRelation: "safe_employees_summary"
             referencedColumns: ["id"]
           },
@@ -1347,6 +1354,13 @@ export type Database = {
             foreignKeyName: "customer_complaints_assigned_to_fkey"
             columns: ["assigned_to"]
             isOneToOne: false
+            referencedRelation: "safe_employee_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_complaints_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
             referencedRelation: "safe_employees_summary"
             referencedColumns: ["id"]
           },
@@ -1475,6 +1489,13 @@ export type Database = {
             columns: ["assigned_to"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_follow_ups_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "safe_employee_details"
             referencedColumns: ["id"]
           },
           {
@@ -1696,6 +1717,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_interactions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "safe_employee_details"
             referencedColumns: ["id"]
           },
           {
@@ -1988,6 +2016,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctors_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "safe_employee_details"
             referencedColumns: ["id"]
           },
           {
@@ -2391,6 +2426,13 @@ export type Database = {
             foreignKeyName: "employee_attendance_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "safe_employee_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_attendance_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "safe_employees_summary"
             referencedColumns: ["id"]
           },
@@ -2448,6 +2490,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_leaves_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "safe_employee_details"
             referencedColumns: ["id"]
           },
           {
@@ -2514,6 +2563,13 @@ export type Database = {
             foreignKeyName: "employee_performance_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "safe_employee_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_performance_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "safe_employees_summary"
             referencedColumns: ["id"]
           },
@@ -2565,6 +2621,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_tasks_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "safe_employee_details"
             referencedColumns: ["id"]
           },
           {
@@ -4686,6 +4749,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_sessions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "safe_employee_details"
             referencedColumns: ["id"]
           },
           {
@@ -8150,6 +8220,48 @@ export type Database = {
         }
         Relationships: []
       }
+      safe_employee_details: {
+        Row: {
+          department: string | null
+          email: string | null
+          full_name: string | null
+          hire_date: string | null
+          id: string | null
+          is_active: boolean | null
+          job_title: string | null
+          national_id: string | null
+          phone: string | null
+          salary: number | null
+          user_id: string | null
+        }
+        Insert: {
+          department?: string | null
+          email?: string | null
+          full_name?: string | null
+          hire_date?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          job_title?: string | null
+          national_id?: never
+          phone?: string | null
+          salary?: never
+          user_id?: string | null
+        }
+        Update: {
+          department?: string | null
+          email?: string | null
+          full_name?: string | null
+          hire_date?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          job_title?: string | null
+          national_id?: never
+          phone?: string | null
+          salary?: never
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       safe_employees_summary: {
         Row: {
           department: string | null
@@ -8564,6 +8676,18 @@ export type Database = {
           phone: string
         }[]
       }
+      get_customer_limited: {
+        Args: { p_customer_id: string }
+        Returns: {
+          balance: number
+          credit_limit: number
+          currency_code: string
+          id: string
+          is_active: boolean
+          name: string
+          phone: string
+        }[]
+      }
       get_customer_safe_view: {
         Args: never
         Returns: {
@@ -8704,6 +8828,17 @@ export type Database = {
           total_outstanding: number
         }[]
       }
+      get_supplier_for_order: {
+        Args: { p_supplier_id: string }
+        Returns: {
+          code: string
+          currency_code: string
+          id: string
+          is_active: boolean
+          name: string
+          phone: string
+        }[]
+      }
       get_user_comprehensive_permissions: {
         Args: { p_user_id: string }
         Returns: Json
@@ -8821,6 +8956,15 @@ export type Database = {
           id: string
           name: string
           phone: string
+        }[]
+      }
+      search_suppliers_limited: {
+        Args: { p_limit?: number; p_search: string }
+        Returns: {
+          code: string
+          id: string
+          is_active: boolean
+          name: string
         }[]
       }
       user_has_permission: {

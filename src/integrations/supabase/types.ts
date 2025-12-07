@@ -474,6 +474,13 @@ export type Database = {
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "campaign_customers_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "safe_customers_summary"
+            referencedColumns: ["id"]
+          },
         ]
       }
       cash_box_exchanges: {
@@ -726,6 +733,13 @@ export type Database = {
             foreignKeyName: "cash_payments_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
+            referencedRelation: "safe_suppliers_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_payments_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
             referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
@@ -808,6 +822,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_receipts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "safe_customers_summary"
             referencedColumns: ["id"]
           },
         ]
@@ -1103,6 +1124,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "cost_centers_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "safe_employees_summary"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "cost_centers_parent_id_fkey"
             columns: ["parent_id"]
             isOneToOne: false
@@ -1177,6 +1205,13 @@ export type Database = {
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "customer_access_log_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "safe_customers_summary"
+            referencedColumns: ["id"]
+          },
         ]
       }
       customer_analytics: {
@@ -1237,6 +1272,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: true
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_analytics_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: true
+            referencedRelation: "safe_customers_summary"
             referencedColumns: ["id"]
           },
         ]
@@ -1302,10 +1344,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "customer_complaints_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "safe_employees_summary"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "customer_complaints_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_complaints_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "safe_customers_summary"
             referencedColumns: ["id"]
           },
         ]
@@ -1353,6 +1409,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_events_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "safe_customers_summary"
             referencedColumns: ["id"]
           },
         ]
@@ -1415,10 +1478,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "customer_follow_ups_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "safe_employees_summary"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "customer_follow_ups_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_follow_ups_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "safe_customers_summary"
             referencedColumns: ["id"]
           },
         ]
@@ -1477,6 +1554,13 @@ export type Database = {
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "customer_health_records_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: true
+            referencedRelation: "safe_customers_summary"
+            referencedColumns: ["id"]
+          },
         ]
       }
       customer_insurance: {
@@ -1525,6 +1609,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_insurance_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "safe_customers_summary"
             referencedColumns: ["id"]
           },
           {
@@ -1594,10 +1685,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "customer_interactions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "safe_customers_summary"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "customer_interactions_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_interactions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "safe_employees_summary"
             referencedColumns: ["id"]
           },
         ]
@@ -1690,6 +1795,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_payments_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "safe_customers_summary"
             referencedColumns: ["id"]
           },
           {
@@ -1876,6 +1988,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctors_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "safe_employees_summary"
             referencedColumns: ["id"]
           },
         ]
@@ -2268,6 +2387,13 @@ export type Database = {
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "employee_attendance_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "safe_employees_summary"
+            referencedColumns: ["id"]
+          },
         ]
       }
       employee_leaves: {
@@ -2324,6 +2450,13 @@ export type Database = {
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "employee_leaves_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "safe_employees_summary"
+            referencedColumns: ["id"]
+          },
         ]
       }
       employee_performance: {
@@ -2377,6 +2510,13 @@ export type Database = {
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "employee_performance_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "safe_employees_summary"
+            referencedColumns: ["id"]
+          },
         ]
       }
       employee_tasks: {
@@ -2425,6 +2565,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_tasks_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "safe_employees_summary"
             referencedColumns: ["id"]
           },
         ]
@@ -2737,6 +2884,13 @@ export type Database = {
             foreignKeyName: "expenses_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
+            referencedRelation: "safe_suppliers_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
             referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
@@ -3011,6 +3165,13 @@ export type Database = {
             foreignKeyName: "goods_receipts_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
+            referencedRelation: "safe_suppliers_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receipts_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
             referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
@@ -3145,6 +3306,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "health_record_audit_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "safe_customers_summary"
             referencedColumns: ["id"]
           },
           {
@@ -3714,6 +3882,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "lab_tests_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "safe_customers_summary"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "lab_tests_ordered_by_fkey"
             columns: ["ordered_by"]
             isOneToOne: false
@@ -3759,6 +3934,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: true
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loyalty_accounts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: true
+            referencedRelation: "safe_customers_summary"
             referencedColumns: ["id"]
           },
         ]
@@ -3964,6 +4146,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medication_history_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "safe_customers_summary"
             referencedColumns: ["id"]
           },
           {
@@ -4500,6 +4689,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "pos_sessions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "safe_employees_summary"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "pos_sessions_journal_entry_id_fkey"
             columns: ["journal_entry_id"]
             isOneToOne: false
@@ -4763,6 +4959,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "prescriptions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "safe_customers_summary"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "prescriptions_doctor_id_fkey"
             columns: ["doctor_id"]
             isOneToOne: false
@@ -4993,6 +5196,13 @@ export type Database = {
             foreignKeyName: "products_preferred_supplier_id_fkey"
             columns: ["preferred_supplier_id"]
             isOneToOne: false
+            referencedRelation: "safe_suppliers_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_preferred_supplier_id_fkey"
+            columns: ["preferred_supplier_id"]
+            isOneToOne: false
             referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
@@ -5203,6 +5413,13 @@ export type Database = {
             foreignKeyName: "purchase_invoices_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
+            referencedRelation: "safe_suppliers_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_invoices_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
             referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
@@ -5308,6 +5525,13 @@ export type Database = {
           warehouse_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "purchase_orders_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "safe_suppliers_summary"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "purchase_orders_supplier_id_fkey"
             columns: ["supplier_id"]
@@ -5487,6 +5711,13 @@ export type Database = {
             foreignKeyName: "purchase_returns_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
+            referencedRelation: "safe_suppliers_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_returns_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
             referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
@@ -5557,6 +5788,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "stock_alerts"
             referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "reorder_rules_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "safe_suppliers_summary"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "reorder_rules_supplier_id_fkey"
@@ -5928,6 +6166,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "sales_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "safe_customers_summary"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "sales_warehouse_id_fkey"
             columns: ["warehouse_id"]
             isOneToOne: false
@@ -6154,6 +6399,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "sales_invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "safe_customers_summary"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "sales_invoices_payment_method_id_fkey"
             columns: ["payment_method_id"]
             isOneToOne: false
@@ -6244,6 +6496,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "safe_customers_summary"
             referencedColumns: ["id"]
           },
           {
@@ -6441,6 +6700,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_returns_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "safe_customers_summary"
             referencedColumns: ["id"]
           },
           {
@@ -7394,6 +7660,13 @@ export type Database = {
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "vaccinations_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "safe_customers_summary"
+            referencedColumns: ["id"]
+          },
         ]
       }
       vat_returns: {
@@ -7853,6 +8126,75 @@ export type Database = {
         }
         Relationships: []
       }
+      safe_customers_summary: {
+        Row: {
+          balance: number | null
+          credit_limit: number | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+        }
+        Insert: {
+          balance?: number | null
+          credit_limit?: number | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+        }
+        Update: {
+          balance?: number | null
+          credit_limit?: number | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+        }
+        Relationships: []
+      }
+      safe_employees_summary: {
+        Row: {
+          department: string | null
+          full_name: string | null
+          id: string | null
+          is_active: boolean | null
+          job_title: string | null
+        }
+        Insert: {
+          department?: string | null
+          full_name?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          job_title?: string | null
+        }
+        Update: {
+          department?: string | null
+          full_name?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          job_title?: string | null
+        }
+        Relationships: []
+      }
+      safe_suppliers_summary: {
+        Row: {
+          code: string | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+        }
+        Insert: {
+          code?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+        }
+        Update: {
+          code?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+        }
+        Relationships: []
+      }
       sales_by_currency: {
         Row: {
           avg_exchange_rate: number | null
@@ -8211,6 +8553,17 @@ export type Database = {
           total_outstanding: number
         }[]
       }
+      get_customer_for_transaction: {
+        Args: { p_customer_id: string }
+        Returns: {
+          balance: number
+          credit_limit: number
+          id: string
+          is_active: boolean
+          name: string
+          phone: string
+        }[]
+      }
       get_customer_safe_view: {
         Args: never
         Returns: {
@@ -8460,6 +8813,16 @@ export type Database = {
       refresh_inventory_summary: { Args: never; Returns: undefined }
       refresh_sales_summary: { Args: never; Returns: undefined }
       reopen_accounting_period: { Args: { p_period_id: string }; Returns: Json }
+      search_customers_for_pos: {
+        Args: { p_limit?: number; p_search: string }
+        Returns: {
+          balance: number
+          credit_limit: number
+          id: string
+          name: string
+          phone: string
+        }[]
+      }
       user_has_permission: {
         Args: { _permission_key: string; _user_id: string }
         Returns: boolean

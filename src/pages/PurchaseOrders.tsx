@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Navbar } from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Plus, FileText, Eye, Trash2, Check, X, Search, Filter } from 'lucide-react';
 import { format } from 'date-fns';
+import { InvoiceCurrencyPanel, InvoiceTotalsSummary } from '@/components/currency';
+import { getExchangeRate, getBaseCurrencyCode } from '@/lib/currency';
 
 interface PurchaseOrder {
   id: string;
@@ -23,9 +25,11 @@ interface PurchaseOrder {
   subtotal: number;
   tax_amount: number;
   total_amount: number;
+  currency_code?: string;
+  exchange_rate?: number;
   notes?: string;
   created_at: string;
-  suppliers?: { name: string };
+  suppliers?: { name: string; currency_code?: string };
   warehouses?: { name: string };
 }
 
@@ -67,6 +71,11 @@ export default function PurchaseOrders() {
   const [notes, setNotes] = useState('');
   const [paymentTerms, setPaymentTerms] = useState('');
   const [items, setItems] = useState<POItem[]>([]);
+  
+  // Multi-currency state
+  const [currencyCode, setCurrencyCode] = useState<string>('YER');
+  const [exchangeRate, setExchangeRate] = useState<number>(1);
+  const [baseCurrency, setBaseCurrency] = useState<string>('YER');
 
   useEffect(() => {
     fetchOrders();
@@ -76,7 +85,48 @@ export default function PurchaseOrders() {
     fetchUOMs();
     fetchTaxes();
     loadDefaultWarehouse();
+    loadBaseCurrency();
   }, []);
+  
+  const loadBaseCurrency = async () => {
+    try {
+      const base = await getBaseCurrencyCode();
+      setBaseCurrency(base);
+    } catch (error) {
+      console.error('Error loading base currency:', error);
+    }
+  };
+  
+  // Handle currency change
+  const handleCurrencyChange = useCallback((currency: string, rate: number) => {
+    const effectiveRate = currency === baseCurrency ? 1 : rate;
+    setCurrencyCode(currency);
+    setExchangeRate(effectiveRate);
+  }, [baseCurrency]);
+  
+  // Update currency when supplier changes
+  useEffect(() => {
+    const loadSupplierCurrency = async () => {
+      if (supplierId) {
+        const supplier = suppliers.find(s => s.id === supplierId);
+        if (supplier?.currency_code && supplier.currency_code !== baseCurrency) {
+          try {
+            const rate = await getExchangeRate(supplier.currency_code, baseCurrency);
+            setCurrencyCode(supplier.currency_code);
+            setExchangeRate(rate);
+          } catch (error) {
+            console.error('Error fetching exchange rate:', error);
+            setCurrencyCode(baseCurrency);
+            setExchangeRate(1);
+          }
+        } else {
+          setCurrencyCode(supplier?.currency_code || baseCurrency);
+          setExchangeRate(1);
+        }
+      }
+    };
+    loadSupplierCurrency();
+  }, [supplierId, suppliers, baseCurrency]);
 
   const loadDefaultWarehouse = async () => {
     const { data } = await supabase
@@ -139,7 +189,7 @@ export default function PurchaseOrders() {
   const fetchSuppliers = async () => {
     const { data } = await supabase
       .from('suppliers')
-      .select('id, name, code, phone, email, contact_person, payment_terms')
+      .select('id, name, code, phone, email, contact_person, payment_terms, currency_code')
       .eq('is_active', true)
       .order('name');
     setSuppliers(data || []);
@@ -282,6 +332,12 @@ export default function PurchaseOrders() {
 
     const { data: user } = await supabase.auth.getUser();
 
+    // Calculate FC/BC amounts
+    const effectiveRate = currencyCode === baseCurrency ? 1 : exchangeRate;
+    const subtotalBC = subtotal * effectiveRate;
+    const taxAmountBC = taxAmount * effectiveRate;
+    const totalBC = total * effectiveRate;
+
     const { data: po, error: poError } = await supabase
       .from('purchase_orders')
       .insert({
@@ -291,9 +347,17 @@ export default function PurchaseOrders() {
         expected_date: expectedDate || null,
         payment_terms: paymentTerms || null,
         notes,
+        currency_code: currencyCode,
+        exchange_rate: effectiveRate,
         subtotal,
+        subtotal_fc: subtotal,
+        subtotal_bc: subtotalBC,
         tax_amount: taxAmount,
+        tax_amount_fc: taxAmount,
+        tax_amount_bc: taxAmountBC,
         total_amount: total,
+        total_amount_fc: total,
+        total_amount_bc: totalBC,
         status: 'draft',
         created_by: user?.user?.id,
       })
@@ -401,6 +465,8 @@ export default function PurchaseOrders() {
     setPaymentTerms('');
     setNotes('');
     setItems([]);
+    setCurrencyCode(baseCurrency);
+    setExchangeRate(1);
   };
 
   const selectedSupplier = suppliers.find(s => s.id === supplierId);
@@ -625,6 +691,17 @@ export default function PurchaseOrders() {
                   />
                 </div>
               </div>
+              
+              {/* Currency Selection */}
+              <div>
+                <InvoiceCurrencyPanel
+                  currencyCode={currencyCode}
+                  onCurrencyChange={handleCurrencyChange}
+                  invoiceDate={expectedDate || format(new Date(), 'yyyy-MM-dd')}
+                  isLocked={false}
+                />
+              </div>
+              
               <div>
                 <Label>ملاحظات</Label>
                 <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />

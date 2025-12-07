@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -45,6 +45,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { BarcodeScannerInput } from "@/components/products";
 import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
+import { InvoiceCurrencyPanel, InvoiceTotalsSummary } from "@/components/currency";
+import { getExchangeRate, getBaseCurrencyCode } from "@/lib/currency";
 
 // Interfaces
 interface Product {
@@ -83,6 +85,7 @@ interface Customer {
   balance: number;
   credit_limit: number;
   loyalty_points: number;
+  currency_code?: string;
 }
 
 interface Category {
@@ -143,6 +146,12 @@ const POS = () => {
   const [lastInvoiceNumber, setLastInvoiceNumber] = useState("");
   const [sessionStats, setSessionStats] = useState<{ total_sales: number; invoice_count: number } | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+  
+  // Multi-currency state
+  const [currencyCode, setCurrencyCode] = useState<string>("YER");
+  const [exchangeRate, setExchangeRate] = useState<number>(1);
+  const [baseCurrency, setBaseCurrency] = useState<string>("YER");
+  
   const [receiptData, setReceiptData] = useState<{
     invoiceNumber: string;
     items: {
@@ -161,6 +170,7 @@ const POS = () => {
     customerName: string;
     paidAmount: number;
     changeAmount: number;
+    currencyCode: string;
   } | null>(null);
 
   const TAX_RATE = 15;
@@ -244,7 +254,7 @@ const POS = () => {
     try {
       const { data, error } = await supabase
         .from("customers")
-        .select("id, name, phone, balance, credit_limit, loyalty_points")
+        .select("id, name, phone, balance, credit_limit, loyalty_points, currency_code")
         .eq("is_active", true)
         .order("name")
         .limit(100);
@@ -255,6 +265,51 @@ const POS = () => {
       console.error("Error fetching customers:", error);
     }
   };
+  
+  // Load base currency
+  useEffect(() => {
+    const loadBaseCurrency = async () => {
+      try {
+        const base = await getBaseCurrencyCode();
+        setBaseCurrency(base);
+      } catch (error) {
+        console.error("Error loading base currency:", error);
+      }
+    };
+    loadBaseCurrency();
+  }, []);
+  
+  // Handle currency change
+  const handleCurrencyChange = useCallback((currency: string, rate: number) => {
+    // Force rate = 1 for base currency
+    const effectiveRate = currency === baseCurrency ? 1 : rate;
+    setCurrencyCode(currency);
+    setExchangeRate(effectiveRate);
+  }, [baseCurrency]);
+  
+  // Update currency when customer changes
+  useEffect(() => {
+    if (selectedCustomer?.currency_code) {
+      const loadCustomerCurrency = async () => {
+        const customerCurrency = selectedCustomer.currency_code || baseCurrency;
+        if (customerCurrency === baseCurrency) {
+          setCurrencyCode(customerCurrency);
+          setExchangeRate(1);
+        } else {
+          try {
+            const rate = await getExchangeRate(customerCurrency, baseCurrency);
+            setCurrencyCode(customerCurrency);
+            setExchangeRate(rate);
+          } catch (error) {
+            console.error("Error fetching exchange rate:", error);
+            setCurrencyCode(baseCurrency);
+            setExchangeRate(1);
+          }
+        }
+      };
+      loadCustomerCurrency();
+    }
+  }, [selectedCustomer, baseCurrency]);
 
   const fetchPaymentMethods = async () => {
     try {
@@ -554,23 +609,48 @@ const POS = () => {
         data: { user },
       } = await supabase.auth.getUser();
 
-      // Create sales invoice linked to POS session
+      // Calculate FC/BC amounts - CRITICAL: Force rate = 1 for base currency
+      const effectiveRate = currencyCode === baseCurrency ? 1 : exchangeRate;
+      const subtotalFC = subtotal;
+      const subtotalBC = subtotal * effectiveRate;
+      const discountFC = totalDiscount;
+      const discountBC = totalDiscount * effectiveRate;
+      const taxFC = tax;
+      const taxBC = tax * effectiveRate;
+      const totalFC = grandTotal;
+      const totalBC = grandTotal * effectiveRate;
+      const paidFC = grandTotal;
+      const paidBC = grandTotal * effectiveRate;
+
+      // Create sales invoice linked to POS session with multi-currency
       const { data: invoice, error: invoiceError } = await supabase
         .from("sales_invoices")
         .insert({
           invoice_number: invoiceNumber,
           customer_id: customerId,
           invoice_date: new Date().toISOString().split("T")[0],
+          currency_code: currencyCode,
+          exchange_rate: effectiveRate,
           subtotal: subtotal,
+          subtotal_fc: subtotalFC,
+          subtotal_bc: subtotalBC,
           discount_amount: totalDiscount,
+          discount_amount_fc: discountFC,
+          discount_amount_bc: discountBC,
           tax_amount: tax,
+          tax_amount_fc: taxFC,
+          tax_amount_bc: taxBC,
           total_amount: grandTotal,
+          total_amount_fc: totalFC,
+          total_amount_bc: totalBC,
           paid_amount: grandTotal,
+          paid_amount_fc: paidFC,
+          paid_amount_bc: paidBC,
           payment_status: "paid",
           status: "posted",
           payment_method_id: selectedPaymentMethod,
           warehouse_id: currentSession.warehouse_id,
-          pos_session_id: currentSession.id, // Link to POS session for GL posting
+          pos_session_id: currentSession.id,
           created_by: user?.id,
           posted_by: user?.id,
           posted_at: new Date().toISOString(),
@@ -619,6 +699,7 @@ const POS = () => {
         customerName: selectedCustomer?.name || "عميل عابر",
         paidAmount: parseFloat(paidAmount) || grandTotal,
         changeAmount: changeAmount > 0 ? changeAmount : 0,
+        currencyCode: currencyCode,
       });
 
       toast({

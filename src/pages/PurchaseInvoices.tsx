@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Navbar } from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { Plus, FileText, Eye, Check, Search, Filter } from 'lucide-react';
 import { format } from 'date-fns';
+import { InvoiceCurrencyPanel, InvoiceTotalsSummary } from '@/components/currency';
+import { getExchangeRate, getBaseCurrencyCode } from '@/lib/currency';
 
 export default function PurchaseInvoices() {
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -40,6 +42,11 @@ export default function PurchaseInvoices() {
   const [supplierInvoiceNo, setSupplierInvoiceNo] = useState('');
   const [selectedTaxId, setSelectedTaxId] = useState('');
   const [items, setItems] = useState<any[]>([]);
+  
+  // Multi-currency state
+  const [currencyCode, setCurrencyCode] = useState<string>('YER');
+  const [exchangeRate, setExchangeRate] = useState<number>(1);
+  const [baseCurrency, setBaseCurrency] = useState<string>('YER');
 
   useEffect(() => {
     fetchInvoices();
@@ -48,7 +55,48 @@ export default function PurchaseInvoices() {
     fetchSuppliers();
     fetchWarehouses();
     fetchTaxes();
+    loadBaseCurrency();
   }, []);
+  
+  const loadBaseCurrency = async () => {
+    try {
+      const base = await getBaseCurrencyCode();
+      setBaseCurrency(base);
+    } catch (error) {
+      console.error('Error loading base currency:', error);
+    }
+  };
+  
+  // Handle currency change
+  const handleCurrencyChange = useCallback((currency: string, rate: number) => {
+    const effectiveRate = currency === baseCurrency ? 1 : rate;
+    setCurrencyCode(currency);
+    setExchangeRate(effectiveRate);
+  }, [baseCurrency]);
+  
+  // Update currency when supplier changes
+  useEffect(() => {
+    const loadSupplierCurrency = async () => {
+      if (supplierId) {
+        const supplier = suppliers.find(s => s.id === supplierId);
+        if (supplier?.currency_code && supplier.currency_code !== baseCurrency) {
+          try {
+            const rate = await getExchangeRate(supplier.currency_code, baseCurrency, invoiceDate);
+            setCurrencyCode(supplier.currency_code);
+            setExchangeRate(rate);
+          } catch (error) {
+            console.error('Error fetching exchange rate:', error);
+            setCurrencyCode(baseCurrency);
+            setExchangeRate(1);
+          }
+        } else {
+          setCurrencyCode(supplier?.currency_code || baseCurrency);
+          setExchangeRate(1);
+        }
+      }
+    };
+    loadSupplierCurrency();
+  }, [supplierId, suppliers, baseCurrency, invoiceDate]);
 
   const fetchTaxes = async () => {
     const { data } = await supabase.from('taxes').select('*').eq('is_active', true);
@@ -94,7 +142,7 @@ export default function PurchaseInvoices() {
   const fetchSuppliers = async () => {
     const { data } = await supabase
       .from('suppliers')
-      .select('id, name, code, phone, email')
+      .select('id, name, code, phone, email, currency_code')
       .eq('is_active', true)
       .order('name');
     setSuppliers(data || []);
@@ -196,6 +244,15 @@ export default function PurchaseInvoices() {
     const taxAmount = subtotal * 0.15;
     const totalAmount = subtotal + taxAmount;
     
+    // Calculate FC/BC amounts - CRITICAL: Force rate = 1 for base currency
+    const effectiveRate = currencyCode === baseCurrency ? 1 : exchangeRate;
+    const subtotalFC = subtotal;
+    const subtotalBC = subtotal * effectiveRate;
+    const taxAmountFC = taxAmount;
+    const taxAmountBC = taxAmount * effectiveRate;
+    const totalAmountFC = totalAmount;
+    const totalAmountBC = totalAmount * effectiveRate;
+    
     const { count } = await supabase.from('purchase_invoices').select('*', { count: 'exact', head: true });
     const piNumber = `PI-${String((count || 0) + 1).padStart(6, '0')}`;
 
@@ -209,9 +266,17 @@ export default function PurchaseInvoices() {
         supplier_id: finalSupplierId,
         warehouse_id: warehouseId || null,
         invoice_date: invoiceDate,
+        currency_code: currencyCode,
+        exchange_rate: effectiveRate,
         subtotal,
+        subtotal_fc: subtotalFC,
+        subtotal_bc: subtotalBC,
         tax_amount: taxAmount || 0,
+        tax_amount_fc: taxAmountFC,
+        tax_amount_bc: taxAmountBC,
         total_amount: totalAmount,
+        total_amount_fc: totalAmountFC,
+        total_amount_bc: totalAmountBC,
         status: 'draft',
         source_type: invoiceSource,
         created_by: user?.user?.id,
@@ -275,6 +340,8 @@ export default function PurchaseInvoices() {
     setInvoiceDate(format(new Date(), 'yyyy-MM-dd'));
     setItems([]);
     setInvoiceSource('grn');
+    setCurrencyCode(baseCurrency);
+    setExchangeRate(1);
   };
 
   const filteredInvoices = invoices.filter(invoice => {
@@ -569,14 +636,27 @@ export default function PurchaseInvoices() {
                   </Select>
                 </div>
               </div>
+              
+              {/* Currency Selection */}
+              <div className="mt-4">
+                <InvoiceCurrencyPanel
+                  currencyCode={currencyCode}
+                  onCurrencyChange={handleCurrencyChange}
+                  invoiceDate={invoiceDate}
+                  isLocked={false}
+                />
+              </div>
 
               {items.length > 0 && (
-                <div className="border rounded-lg p-4 bg-muted/30">
-                  <h4 className="font-medium mb-2">البنود المحملة: {items.length}</h4>
-                  <div className="text-sm text-muted-foreground">
-                    الإجمالي الفرعي: {items.reduce((sum, item) => sum + item.line_total, 0).toFixed(2)} ر.س
-                  </div>
-                </div>
+                <InvoiceTotalsSummary
+                  subtotalFC={items.reduce((sum, item) => sum + item.line_total, 0)}
+                  discountFC={0}
+                  taxFC={items.reduce((sum, item) => sum + item.line_total, 0) * 0.15}
+                  totalFC={items.reduce((sum, item) => sum + item.line_total, 0) * 1.15}
+                  exchangeRate={exchangeRate}
+                  currencyFC={currencyCode}
+                  currencyBC={baseCurrency}
+                />
               )}
             </div>
 

@@ -5065,6 +5065,8 @@ export type Database = {
           currency: string | null
           currency_code: string | null
           discount_amount: number | null
+          discount_amount_bc: number | null
+          discount_amount_fc: number | null
           due_date: string | null
           exchange_rate: number | null
           grn_id: string | null
@@ -5073,6 +5075,8 @@ export type Database = {
           invoice_type: string | null
           notes: string | null
           paid_amount: number | null
+          paid_amount_bc: number | null
+          paid_amount_fc: number | null
           payment_status: string | null
           pi_number: string
           po_id: string | null
@@ -5080,10 +5084,16 @@ export type Database = {
           posted_by: string | null
           status: string | null
           subtotal: number | null
+          subtotal_bc: number | null
+          subtotal_fc: number | null
           supplier_id: string | null
           supplier_invoice_no: string
           tax_amount: number | null
+          tax_amount_bc: number | null
+          tax_amount_fc: number | null
           total_amount: number | null
+          total_amount_bc: number | null
+          total_amount_fc: number | null
           updated_at: string | null
           warehouse_id: string | null
         }
@@ -5095,6 +5105,8 @@ export type Database = {
           currency?: string | null
           currency_code?: string | null
           discount_amount?: number | null
+          discount_amount_bc?: number | null
+          discount_amount_fc?: number | null
           due_date?: string | null
           exchange_rate?: number | null
           grn_id?: string | null
@@ -5103,6 +5115,8 @@ export type Database = {
           invoice_type?: string | null
           notes?: string | null
           paid_amount?: number | null
+          paid_amount_bc?: number | null
+          paid_amount_fc?: number | null
           payment_status?: string | null
           pi_number: string
           po_id?: string | null
@@ -5110,10 +5124,16 @@ export type Database = {
           posted_by?: string | null
           status?: string | null
           subtotal?: number | null
+          subtotal_bc?: number | null
+          subtotal_fc?: number | null
           supplier_id?: string | null
           supplier_invoice_no: string
           tax_amount?: number | null
+          tax_amount_bc?: number | null
+          tax_amount_fc?: number | null
           total_amount?: number | null
+          total_amount_bc?: number | null
+          total_amount_fc?: number | null
           updated_at?: string | null
           warehouse_id?: string | null
         }
@@ -5125,6 +5145,8 @@ export type Database = {
           currency?: string | null
           currency_code?: string | null
           discount_amount?: number | null
+          discount_amount_bc?: number | null
+          discount_amount_fc?: number | null
           due_date?: string | null
           exchange_rate?: number | null
           grn_id?: string | null
@@ -5133,6 +5155,8 @@ export type Database = {
           invoice_type?: string | null
           notes?: string | null
           paid_amount?: number | null
+          paid_amount_bc?: number | null
+          paid_amount_fc?: number | null
           payment_status?: string | null
           pi_number?: string
           po_id?: string | null
@@ -5140,10 +5164,16 @@ export type Database = {
           posted_by?: string | null
           status?: string | null
           subtotal?: number | null
+          subtotal_bc?: number | null
+          subtotal_fc?: number | null
           supplier_id?: string | null
           supplier_invoice_no?: string
           tax_amount?: number | null
+          tax_amount_bc?: number | null
+          tax_amount_fc?: number | null
           total_amount?: number | null
+          total_amount_bc?: number | null
+          total_amount_fc?: number | null
           updated_at?: string | null
           warehouse_id?: string | null
         }
@@ -5200,6 +5230,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           currency: string | null
+          currency_code: string | null
           exchange_rate: number | null
           expected_date: string | null
           id: string
@@ -5208,9 +5239,15 @@ export type Database = {
           po_number: string
           status: string | null
           subtotal: number | null
+          subtotal_bc: number | null
+          subtotal_fc: number | null
           supplier_id: string | null
           tax_amount: number | null
+          tax_amount_bc: number | null
+          tax_amount_fc: number | null
           total_amount: number | null
+          total_amount_bc: number | null
+          total_amount_fc: number | null
           updated_at: string | null
           warehouse_id: string | null
         }
@@ -5221,6 +5258,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           currency?: string | null
+          currency_code?: string | null
           exchange_rate?: number | null
           expected_date?: string | null
           id?: string
@@ -5229,9 +5267,15 @@ export type Database = {
           po_number: string
           status?: string | null
           subtotal?: number | null
+          subtotal_bc?: number | null
+          subtotal_fc?: number | null
           supplier_id?: string | null
           tax_amount?: number | null
+          tax_amount_bc?: number | null
+          tax_amount_fc?: number | null
           total_amount?: number | null
+          total_amount_bc?: number | null
+          total_amount_fc?: number | null
           updated_at?: string | null
           warehouse_id?: string | null
         }
@@ -5242,6 +5286,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           currency?: string | null
+          currency_code?: string | null
           exchange_rate?: number | null
           expected_date?: string | null
           id?: string
@@ -5250,9 +5295,15 @@ export type Database = {
           po_number?: string
           status?: string | null
           subtotal?: number | null
+          subtotal_bc?: number | null
+          subtotal_fc?: number | null
           supplier_id?: string | null
           tax_amount?: number | null
+          tax_amount_bc?: number | null
+          tax_amount_fc?: number | null
           total_amount?: number | null
+          total_amount_bc?: number | null
+          total_amount_fc?: number | null
           updated_at?: string | null
           warehouse_id?: string | null
         }
@@ -6875,6 +6926,7 @@ export type Database = {
           contact_person: string | null
           created_at: string | null
           credit_limit: number | null
+          currency_code: string | null
           email: string | null
           id: string
           is_active: boolean | null
@@ -6893,6 +6945,7 @@ export type Database = {
           contact_person?: string | null
           created_at?: string | null
           credit_limit?: number | null
+          currency_code?: string | null
           email?: string | null
           id?: string
           is_active?: boolean | null
@@ -6911,6 +6964,7 @@ export type Database = {
           contact_person?: string | null
           created_at?: string | null
           credit_limit?: number | null
+          currency_code?: string | null
           email?: string | null
           id?: string
           is_active?: boolean | null

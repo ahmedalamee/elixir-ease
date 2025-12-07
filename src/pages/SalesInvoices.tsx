@@ -203,14 +203,14 @@ const SalesInvoices = () => {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}{" "}
-                      ر.س
+                      {invoice.currency_code || "YER"}
                     </TableCell>
                     <TableCell>
                       {invoice.paid_amount.toLocaleString("ar-SA", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}{" "}
-                      ر.س
+                      {invoice.currency_code || "YER"}
                     </TableCell>
                     <TableCell>{getStatusBadge(invoice.status)}</TableCell>
                     <TableCell>{getPaymentStatusBadge(invoice.payment_status)}</TableCell>

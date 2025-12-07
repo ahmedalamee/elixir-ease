@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
@@ -33,7 +33,7 @@ export function InvoiceCurrencyPanel({
   }, []);
 
   useEffect(() => {
-    if (currencyCode) {
+    if (currencyCode && baseCurrency) {
       fetchRate();
     }
   }, [currencyCode, invoiceDate, baseCurrency]);
@@ -44,12 +44,14 @@ export function InvoiceCurrencyPanel({
       setBaseCurrency(base);
     } catch (error) {
       console.error("Error loading base currency:", error);
+      // Default to YER if error
+      setBaseCurrency("YER");
     }
   };
 
-  const fetchRate = async () => {
-    // YER to YER is always 1:1, no need to fetch
-    if (currencyCode === baseCurrency || currencyCode === "YER") {
+  const fetchRate = useCallback(async () => {
+    // Base currency (YER) always has rate = 1
+    if (currencyCode === baseCurrency) {
       setExchangeRate(1);
       setRateError(null);
       onCurrencyChange(currencyCode, 1);
@@ -69,16 +71,17 @@ export function InvoiceCurrencyPanel({
     } finally {
       setIsLoadingRate(false);
     }
-  };
+  }, [currencyCode, baseCurrency, invoiceDate, onCurrencyChange]);
 
   const handleCurrencyChange = (currency: string, rate: number) => {
-    // Force rate = 1 for YER
-    const effectiveRate = currency === "YER" ? 1 : rate;
+    // Force rate = 1 for base currency
+    const effectiveRate = currency === baseCurrency ? 1 : rate;
     setExchangeRate(effectiveRate);
     onCurrencyChange(currency, effectiveRate);
   };
 
   const showCurrencyMismatchWarning = customerCurrency && customerCurrency !== currencyCode;
+  const isBaseCurrency = currencyCode === baseCurrency;
 
   return (
     <div className={className}>
@@ -94,8 +97,8 @@ export function InvoiceCurrencyPanel({
           />
         </div>
 
-        {/* Only show exchange rate display for non-YER currencies */}
-        {currencyCode !== baseCurrency && currencyCode !== "YER" && (
+        {/* Only show exchange rate display for non-base currencies */}
+        {!isBaseCurrency && (
           <ExchangeRateDisplay
             fromCurrency={currencyCode}
             toCurrency={baseCurrency}

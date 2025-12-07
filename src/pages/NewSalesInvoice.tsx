@@ -145,16 +145,23 @@ const NewSalesInvoice = () => {
     enabled: !!customerId && customerId !== "walk-in",
   });
 
-  // Set currency from customer when selected
+  // Set currency from customer when selected (only if user hasn't manually changed it)
+  // This provides a default suggestion but doesn't override manual selection
   useEffect(() => {
-    if (selectedCustomer?.currency_code) {
+    if (selectedCustomer?.currency_code && currencyCode === "YER" && items.length === 0) {
+      // Only auto-set customer currency if:
+      // 1. Customer has a currency preference
+      // 2. Current currency is still the default (YER)
+      // 3. No items have been added yet (to prevent mid-invoice changes)
       setCurrencyCode(selectedCustomer.currency_code);
     }
-  }, [selectedCustomer]);
+  }, [selectedCustomer?.currency_code]);
 
   const handleCurrencyChange = (currency: string, rate: number) => {
+    // CRITICAL: Force rate = 1 for YER regardless of what's passed
+    const effectiveRate = currency === "YER" ? 1 : rate;
     setCurrencyCode(currency);
-    setExchangeRate(rate);
+    setExchangeRate(effectiveRate);
   };
 
   // Filter products by search

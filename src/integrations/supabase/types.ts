@@ -4454,8 +4454,12 @@ export type Database = {
           id: string
           item_id: string | null
           line_total: number | null
+          line_total_bc: number | null
+          line_total_fc: number | null
           pi_id: string | null
           price: number
+          price_bc: number | null
+          price_fc: number | null
           qty: number
           tax_code: string | null
           uom_id: string | null
@@ -4467,8 +4471,12 @@ export type Database = {
           id?: string
           item_id?: string | null
           line_total?: number | null
+          line_total_bc?: number | null
+          line_total_fc?: number | null
           pi_id?: string | null
           price: number
+          price_bc?: number | null
+          price_fc?: number | null
           qty: number
           tax_code?: string | null
           uom_id?: string | null
@@ -4480,8 +4488,12 @@ export type Database = {
           id?: string
           item_id?: string | null
           line_total?: number | null
+          line_total_bc?: number | null
+          line_total_fc?: number | null
           pi_id?: string | null
           price?: number
+          price_bc?: number | null
+          price_fc?: number | null
           qty?: number
           tax_code?: string | null
           uom_id?: string | null
@@ -4540,9 +4552,13 @@ export type Database = {
           item_id: string
           line_no: number
           net_amount: number | null
+          net_amount_bc: number | null
+          net_amount_fc: number | null
           notes: string | null
           po_id: string | null
           price: number
+          price_bc: number | null
+          price_fc: number | null
           qty_ordered: number
           qty_received: number | null
           tax_code: string | null
@@ -4556,9 +4572,13 @@ export type Database = {
           item_id: string
           line_no: number
           net_amount?: number | null
+          net_amount_bc?: number | null
+          net_amount_fc?: number | null
           notes?: string | null
           po_id?: string | null
           price: number
+          price_bc?: number | null
+          price_fc?: number | null
           qty_ordered: number
           qty_received?: number | null
           tax_code?: string | null
@@ -4572,9 +4592,13 @@ export type Database = {
           item_id?: string
           line_no?: number
           net_amount?: number | null
+          net_amount_bc?: number | null
+          net_amount_fc?: number | null
           notes?: string | null
           po_id?: string | null
           price?: number
+          price_bc?: number | null
+          price_fc?: number | null
           qty_ordered?: number
           qty_received?: number | null
           tax_code?: string | null
@@ -8389,6 +8413,31 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_current_exchange_rates: {
+        Row: {
+          effective_date: string | null
+          from_currency: string | null
+          id: string | null
+          rate: number | null
+          to_currency: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exchange_rates_from_currency_fkey"
+            columns: ["from_currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "exchange_rates_to_currency_fkey"
+            columns: ["to_currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       vw_document_gl_links: {
         Row: {
           document_amount: number | null
@@ -8769,6 +8818,14 @@ export type Database = {
           warehouse_id: string
           warehouse_name: string
         }[]
+      }
+      get_latest_exchange_rate: {
+        Args: {
+          p_date?: string
+          p_from_currency: string
+          p_to_currency: string
+        }
+        Returns: number
       }
       get_open_accounting_period: {
         Args: { p_date: string }

@@ -7326,6 +7326,157 @@ export type Database = {
           },
         ]
       }
+      supplier_payment_allocations: {
+        Row: {
+          allocated_amount_bc: number
+          allocated_amount_fc: number
+          created_at: string | null
+          id: string
+          invoice_id: string
+          payment_id: string
+        }
+        Insert: {
+          allocated_amount_bc?: number
+          allocated_amount_fc?: number
+          created_at?: string | null
+          id?: string
+          invoice_id: string
+          payment_id: string
+        }
+        Update: {
+          allocated_amount_bc?: number
+          allocated_amount_fc?: number
+          created_at?: string | null
+          id?: string
+          invoice_id?: string
+          payment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_payment_allocations_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_payment_allocations_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier_payments: {
+        Row: {
+          amount_bc: number
+          amount_fc: number
+          bank_account_id: string | null
+          cash_box_id: string | null
+          created_at: string | null
+          created_by: string | null
+          currency_code: string | null
+          exchange_rate: number | null
+          id: string
+          journal_entry_id: string | null
+          notes: string | null
+          payment_date: string
+          payment_method: string | null
+          payment_number: string
+          posted_at: string | null
+          posted_by: string | null
+          reference_number: string | null
+          status: string | null
+          supplier_id: string
+        }
+        Insert: {
+          amount_bc?: number
+          amount_fc?: number
+          bank_account_id?: string | null
+          cash_box_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          currency_code?: string | null
+          exchange_rate?: number | null
+          id?: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string | null
+          payment_number: string
+          posted_at?: string | null
+          posted_by?: string | null
+          reference_number?: string | null
+          status?: string | null
+          supplier_id: string
+        }
+        Update: {
+          amount_bc?: number
+          amount_fc?: number
+          bank_account_id?: string | null
+          cash_box_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          currency_code?: string | null
+          exchange_rate?: number | null
+          id?: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string | null
+          payment_number?: string
+          posted_at?: string | null
+          posted_by?: string | null
+          reference_number?: string | null
+          status?: string | null
+          supplier_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_payments_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_payments_cash_box_id_fkey"
+            columns: ["cash_box_id"]
+            isOneToOne: false
+            referencedRelation: "cash_boxes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_payments_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "gl_journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_payments_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "vw_document_gl_links"
+            referencedColumns: ["journal_entry_id"]
+          },
+          {
+            foreignKeyName: "supplier_payments_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "safe_suppliers_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_payments_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppliers: {
         Row: {
           address: string | null
@@ -8756,6 +8907,7 @@ export type Database = {
       generate_sales_return_number: { Args: never; Returns: string }
       generate_si_number: { Args: never; Returns: string }
       generate_supplier_code: { Args: never; Returns: string }
+      generate_supplier_payment_number: { Args: never; Returns: string }
       generate_transfer_number: { Args: never; Returns: string }
       generate_vat_report: {
         Args: { p_end_date: string; p_start_date: string }

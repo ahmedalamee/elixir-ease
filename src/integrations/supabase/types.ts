@@ -3476,6 +3476,8 @@ export type Database = {
           batch_number: string | null
           created_at: string | null
           created_by: string | null
+          currency_code: string | null
+          exchange_rate_at_receipt: number | null
           expiry_date: string | null
           id: string
           product_id: string
@@ -3486,12 +3488,15 @@ export type Database = {
           source_document_number: string | null
           source_document_type: string
           unit_cost: number
+          unit_cost_fc: number | null
           warehouse_id: string
         }
         Insert: {
           batch_number?: string | null
           created_at?: string | null
           created_by?: string | null
+          currency_code?: string | null
+          exchange_rate_at_receipt?: number | null
           expiry_date?: string | null
           id?: string
           product_id: string
@@ -3502,12 +3507,15 @@ export type Database = {
           source_document_number?: string | null
           source_document_type: string
           unit_cost?: number
+          unit_cost_fc?: number | null
           warehouse_id: string
         }
         Update: {
           batch_number?: string | null
           created_at?: string | null
           created_by?: string | null
+          currency_code?: string | null
+          exchange_rate_at_receipt?: number | null
           expiry_date?: string | null
           id?: string
           product_id?: string
@@ -3518,6 +3526,7 @@ export type Database = {
           source_document_number?: string | null
           source_document_type?: string
           unit_cost?: number
+          unit_cost_fc?: number | null
           warehouse_id?: string
         }
         Relationships: [
@@ -4461,7 +4470,9 @@ export type Database = {
           price_bc: number | null
           price_fc: number | null
           qty: number
+          tax_amount: number | null
           tax_code: string | null
+          tax_rate: number | null
           uom_id: string | null
         }
         Insert: {
@@ -4478,7 +4489,9 @@ export type Database = {
           price_bc?: number | null
           price_fc?: number | null
           qty: number
+          tax_amount?: number | null
           tax_code?: string | null
+          tax_rate?: number | null
           uom_id?: string | null
         }
         Update: {
@@ -4495,7 +4508,9 @@ export type Database = {
           price_bc?: number | null
           price_fc?: number | null
           qty?: number
+          tax_amount?: number | null
           tax_code?: string | null
+          tax_rate?: number | null
           uom_id?: string | null
         }
         Relationships: [
@@ -4551,6 +4566,7 @@ export type Database = {
           id: string
           item_id: string
           line_no: number
+          line_total: number | null
           net_amount: number | null
           net_amount_bc: number | null
           net_amount_fc: number | null
@@ -4561,7 +4577,9 @@ export type Database = {
           price_fc: number | null
           qty_ordered: number
           qty_received: number | null
+          tax_amount: number | null
           tax_code: string | null
+          tax_rate: number | null
           uom_id: string
         }
         Insert: {
@@ -4571,6 +4589,7 @@ export type Database = {
           id?: string
           item_id: string
           line_no: number
+          line_total?: number | null
           net_amount?: number | null
           net_amount_bc?: number | null
           net_amount_fc?: number | null
@@ -4581,7 +4600,9 @@ export type Database = {
           price_fc?: number | null
           qty_ordered: number
           qty_received?: number | null
+          tax_amount?: number | null
           tax_code?: string | null
+          tax_rate?: number | null
           uom_id: string
         }
         Update: {
@@ -4591,6 +4612,7 @@ export type Database = {
           id?: string
           item_id?: string
           line_no?: number
+          line_total?: number | null
           net_amount?: number | null
           net_amount_bc?: number | null
           net_amount_fc?: number | null
@@ -4601,7 +4623,9 @@ export type Database = {
           price_fc?: number | null
           qty_ordered?: number
           qty_received?: number | null
+          tax_amount?: number | null
           tax_code?: string | null
+          tax_rate?: number | null
           uom_id?: string
         }
         Relationships: [
@@ -8597,6 +8621,22 @@ export type Database = {
         }
         Returns: number
       }
+      calculate_po_item_amounts: {
+        Args: {
+          p_discount_pct?: number
+          p_exchange_rate?: number
+          p_price: number
+          p_qty: number
+          p_tax_rate?: number
+        }
+        Returns: {
+          line_total: number
+          net_amount: number
+          net_amount_bc: number
+          net_amount_fc: number
+          tax_amount: number
+        }[]
+      }
       check_credit_limit: {
         Args: { p_amount: number; p_customer_id: string }
         Returns: Json
@@ -8624,6 +8664,19 @@ export type Database = {
           p_warehouse_id: string
         }
         Returns: number
+      }
+      consume_fifo_layers_enhanced: {
+        Args: {
+          p_product_id: string
+          p_quantity: number
+          p_reference_id: string
+          p_reference_type: string
+          p_warehouse_id: string
+        }
+        Returns: {
+          layers_consumed: Json
+          total_cost: number
+        }[]
       }
       convert_currency: {
         Args: {

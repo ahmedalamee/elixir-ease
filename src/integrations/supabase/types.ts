@@ -3171,7 +3171,9 @@ export type Database = {
         Row: {
           created_at: string | null
           created_by: string | null
+          currency_code: string | null
           documents: Json | null
+          exchange_rate: number | null
           grn_number: string
           id: string
           notes: string | null
@@ -3181,13 +3183,17 @@ export type Database = {
           received_at: string | null
           status: string | null
           supplier_id: string | null
+          total_amount_bc: number | null
+          total_amount_fc: number | null
           updated_at: string | null
           warehouse_id: string | null
         }
         Insert: {
           created_at?: string | null
           created_by?: string | null
+          currency_code?: string | null
           documents?: Json | null
+          exchange_rate?: number | null
           grn_number: string
           id?: string
           notes?: string | null
@@ -3197,13 +3203,17 @@ export type Database = {
           received_at?: string | null
           status?: string | null
           supplier_id?: string | null
+          total_amount_bc?: number | null
+          total_amount_fc?: number | null
           updated_at?: string | null
           warehouse_id?: string | null
         }
         Update: {
           created_at?: string | null
           created_by?: string | null
+          currency_code?: string | null
           documents?: Json | null
+          exchange_rate?: number | null
           grn_number?: string
           id?: string
           notes?: string | null
@@ -3213,6 +3223,8 @@ export type Database = {
           received_at?: string | null
           status?: string | null
           supplier_id?: string | null
+          total_amount_bc?: number | null
+          total_amount_fc?: number | null
           updated_at?: string | null
           warehouse_id?: string | null
         }
@@ -3261,11 +3273,15 @@ export type Database = {
           grn_id: string | null
           id: string
           item_id: string | null
+          line_total_bc: number | null
+          line_total_fc: number | null
           lot_no: string
           notes: string | null
           po_item_id: string | null
           qty_received: number
           unit_cost: number | null
+          unit_cost_bc: number | null
+          unit_cost_fc: number | null
           uom_id: string | null
         }
         Insert: {
@@ -3274,11 +3290,15 @@ export type Database = {
           grn_id?: string | null
           id?: string
           item_id?: string | null
+          line_total_bc?: number | null
+          line_total_fc?: number | null
           lot_no: string
           notes?: string | null
           po_item_id?: string | null
           qty_received: number
           unit_cost?: number | null
+          unit_cost_bc?: number | null
+          unit_cost_fc?: number | null
           uom_id?: string | null
         }
         Update: {
@@ -3287,11 +3307,15 @@ export type Database = {
           grn_id?: string | null
           id?: string
           item_id?: string | null
+          line_total_bc?: number | null
+          line_total_fc?: number | null
           lot_no?: string
           notes?: string | null
           po_item_id?: string | null
           qty_received?: number
           unit_cost?: number | null
+          unit_cost_bc?: number | null
+          unit_cost_fc?: number | null
           uom_id?: string | null
         }
         Relationships: [
@@ -8981,6 +9005,10 @@ export type Database = {
         Returns: boolean
       }
       validate_admin_action: { Args: never; Returns: boolean }
+      validate_po_status_transition: {
+        Args: { p_current_status: string; p_new_status: string }
+        Returns: boolean
+      }
       validate_posting_period: { Args: { p_date: string }; Returns: boolean }
       validate_posting_period_strict: {
         Args: { p_date: string }

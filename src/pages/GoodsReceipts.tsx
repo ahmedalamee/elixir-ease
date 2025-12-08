@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Navbar } from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Plus, Package, Eye, Check } from 'lucide-react';
 import { format } from 'date-fns';
+import { InvoiceCurrencyPanel } from '@/components/currency';
+import { getExchangeRate, getBaseCurrencyCode } from '@/lib/currency';
 
 interface GoodsReceipt {
   id: string;
@@ -22,8 +24,12 @@ interface GoodsReceipt {
   received_at: string;
   status: string;
   notes?: string;
+  currency_code?: string;
+  exchange_rate?: number;
+  total_amount_fc?: number;
+  total_amount_bc?: number;
   created_at: string;
-  suppliers?: { name: string };
+  suppliers?: { name: string; currency_code?: string };
   warehouses?: { name: string };
   purchase_orders?: { po_number: string };
 }
@@ -36,6 +42,10 @@ interface GRNItem {
   uom_id: string;
   qty_received: number;
   unit_cost: number;
+  unit_cost_fc?: number;
+  unit_cost_bc?: number;
+  line_total_fc?: number;
+  line_total_bc?: number;
   lot_no: string;
   expiry_date: string;
   notes?: string;
@@ -55,11 +65,33 @@ export default function GoodsReceipts() {
   const [notes, setNotes] = useState('');
   const [items, setItems] = useState<GRNItem[]>([]);
   const [selectedPO, setSelectedPO] = useState<any>(null);
+  
+  // Multi-currency state
+  const [currencyCode, setCurrencyCode] = useState<string>('YER');
+  const [exchangeRate, setExchangeRate] = useState<number>(1);
+  const [baseCurrency, setBaseCurrency] = useState<string>('YER');
 
   useEffect(() => {
     fetchReceipts();
     fetchApprovedPOs();
+    loadBaseCurrency();
   }, []);
+  
+  const loadBaseCurrency = async () => {
+    try {
+      const base = await getBaseCurrencyCode();
+      setBaseCurrency(base);
+    } catch (error) {
+      console.error('Error loading base currency:', error);
+    }
+  };
+  
+  // Handle currency change
+  const handleCurrencyChange = useCallback((currency: string, rate: number) => {
+    const effectiveRate = currency === baseCurrency ? 1 : rate;
+    setCurrencyCode(currency);
+    setExchangeRate(effectiveRate);
+  }, [baseCurrency]);
 
   const fetchReceipts = async () => {
     const { data, error } = await supabase
@@ -98,13 +130,31 @@ export default function GoodsReceipts() {
       .from('purchase_orders')
       .select(`
         *,
-        suppliers(name),
+        suppliers(name, currency_code),
         warehouses(name)
       `)
       .eq('id', poId)
       .single();
 
     setSelectedPO(po);
+    
+    // Set currency from PO or supplier
+    if (po) {
+      const poCurrency = po.currency_code || po.suppliers?.currency_code || baseCurrency;
+      setCurrencyCode(poCurrency);
+      
+      if (poCurrency !== baseCurrency) {
+        try {
+          const rate = await getExchangeRate(poCurrency, baseCurrency, receivedAt);
+          setExchangeRate(rate);
+        } catch (error) {
+          console.error('Error fetching exchange rate:', error);
+          setExchangeRate(po.exchange_rate || 1);
+        }
+      } else {
+        setExchangeRate(1);
+      }
+    }
 
     const { data: poItems } = await supabase
       .from('po_items')
@@ -117,12 +167,15 @@ export default function GoodsReceipts() {
       .order('line_no');
 
     if (poItems) {
+      const effectiveRate = currencyCode === baseCurrency ? 1 : exchangeRate;
       const grnItems: GRNItem[] = poItems.map((item) => ({
         po_item_id: item.id,
         item_id: item.item_id,
         uom_id: item.uom_id,
         qty_received: item.qty_ordered - (item.qty_received || 0), // Remaining quantity
         unit_cost: item.price,
+        unit_cost_fc: item.price,
+        unit_cost_bc: item.price * effectiveRate,
         lot_no: '',
         expiry_date: '',
         notes: '',
@@ -177,6 +230,13 @@ export default function GoodsReceipts() {
     const grnNumber = `GRN-${String((count || 0) + 1).padStart(6, '0')}`;
 
     const { data: user } = await supabase.auth.getUser();
+    
+    // Calculate effective rate
+    const effectiveRate = currencyCode === baseCurrency ? 1 : exchangeRate;
+    
+    // Calculate totals
+    const totalFC = items.reduce((sum, item) => sum + (item.qty_received * item.unit_cost), 0);
+    const totalBC = totalFC * effectiveRate;
 
     const { data: grn, error: grnError } = await supabase
       .from('goods_receipts')
@@ -188,6 +248,10 @@ export default function GoodsReceipts() {
         received_at: receivedAt,
         notes,
         status: 'draft',
+        currency_code: currencyCode,
+        exchange_rate: effectiveRate,
+        total_amount_fc: totalFC,
+        total_amount_bc: totalBC,
         created_by: user?.user?.id,
       })
       .select()
@@ -199,10 +263,22 @@ export default function GoodsReceipts() {
       return;
     }
 
-    // Insert items
+    // Insert items with FC/BC values
+    const effectiveRateForItems = currencyCode === baseCurrency ? 1 : exchangeRate;
     const itemsWithGRN = items.map((item) => ({
       grn_id: grn.id,
-      ...item,
+      po_item_id: item.po_item_id,
+      item_id: item.item_id,
+      uom_id: item.uom_id,
+      qty_received: item.qty_received,
+      unit_cost: item.unit_cost,
+      unit_cost_fc: item.unit_cost,
+      unit_cost_bc: item.unit_cost * effectiveRateForItems,
+      line_total_fc: item.qty_received * item.unit_cost,
+      line_total_bc: item.qty_received * item.unit_cost * effectiveRateForItems,
+      lot_no: item.lot_no,
+      expiry_date: item.expiry_date,
+      notes: item.notes,
     }));
 
     const { error: itemsError } = await supabase
@@ -268,7 +344,19 @@ export default function GoodsReceipts() {
     setNotes('');
     setItems([]);
     setSelectedPO(null);
+    setCurrencyCode(baseCurrency);
+    setExchangeRate(1);
   };
+  
+  // Calculate totals
+  const calculateTotals = () => {
+    const effectiveRate = currencyCode === baseCurrency ? 1 : exchangeRate;
+    const totalFC = items.reduce((sum, item) => sum + (item.qty_received * item.unit_cost), 0);
+    const totalBC = totalFC * effectiveRate;
+    return { totalFC, totalBC };
+  };
+  
+  const { totalFC, totalBC } = calculateTotals();
 
   return (
     <div className="min-h-screen bg-background">
@@ -384,6 +472,15 @@ export default function GoodsReceipts() {
                 </div>
               )}
 
+              {/* Currency Panel */}
+              {selectedPO && (
+                <InvoiceCurrencyPanel
+                  currencyCode={currencyCode}
+                  onCurrencyChange={handleCurrencyChange}
+                  invoiceDate={receivedAt}
+                />
+              )}
+              
               <div>
                 <Label>ملاحظات</Label>
                 <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
@@ -448,6 +545,22 @@ export default function GoodsReceipts() {
               {items.length === 0 && poId && (
                 <div className="text-center py-8 text-muted-foreground text-sm">
                   لا توجد بنود متاحة للاستلام في أمر الشراء المحدد
+                </div>
+              )}
+              
+              {/* Totals Summary */}
+              {items.length > 0 && (
+                <div className="border-t pt-4 mt-4 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>الإجمالي ({currencyCode}):</span>
+                    <span className="font-medium">{totalFC.toFixed(2)}</span>
+                  </div>
+                  {currencyCode !== baseCurrency && (
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                      <span>الإجمالي ({baseCurrency}):</span>
+                      <span>{totalBC.toFixed(2)}</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

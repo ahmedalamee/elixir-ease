@@ -248,6 +248,11 @@ export const menuTree: TreeMenuItem[] = [
         label: "إيصالات استلام البضاعة",
         route: "/goods-receipts",
       },
+      {
+        id: "purchases-supplier-payments",
+        label: "مدفوعات الموردين",
+        route: "/purchases/supplier-payments",
+      },
     ],
   },
   {

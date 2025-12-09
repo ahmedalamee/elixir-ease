@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
@@ -144,7 +144,16 @@ const PurchaseReturns = () => {
       if (invoiceError) throw invoiceError;
 
       const subtotal = returnItems.reduce((sum, item) => sum + (item.unit_cost * item.return_quantity), 0);
-      const taxAmount = subtotal * 0.15; // VAT 15%
+      
+      // Get tax rate dynamically
+      const { data: taxData } = await supabase
+        .from('taxes')
+        .select('rate')
+        .eq('is_active', true)
+        .eq('tax_code', 'VAT15')
+        .single();
+      const taxRateVal = taxData ? Number(taxData.rate) / 100 : 0.15;
+      const taxAmount = subtotal * taxRateVal;
       const totalAmount = subtotal + taxAmount;
 
       // توليد رقم المرتجع
@@ -281,8 +290,31 @@ const PurchaseReturns = () => {
     return returnItems.reduce((sum, item) => sum + (item.unit_cost * item.return_quantity), 0);
   };
 
+  // Use state for tax rate with default
+  const [displayTaxRate, setDisplayTaxRate] = useState<number>(0.15);
+  
+  // Load tax rate for display calculations
+  useEffect(() => {
+    const loadTaxRate = async () => {
+      try {
+        const { data } = await supabase
+          .from('taxes')
+          .select('rate')
+          .eq('is_active', true)
+          .eq('tax_code', 'VAT15')
+          .single();
+        if (data) {
+          setDisplayTaxRate(Number(data.rate) / 100);
+        }
+      } catch (error) {
+        console.error('Error loading tax rate:', error);
+      }
+    };
+    loadTaxRate();
+  }, []);
+
   const calculateTax = () => {
-    return calculateTotal() * 0.15;
+    return calculateTotal() * displayTaxRate;
   };
 
   const calculateGrandTotal = () => {

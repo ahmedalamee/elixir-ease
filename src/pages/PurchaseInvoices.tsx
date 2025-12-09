@@ -47,6 +47,7 @@ export default function PurchaseInvoices() {
   const [currencyCode, setCurrencyCode] = useState<string>('YER');
   const [exchangeRate, setExchangeRate] = useState<number>(1);
   const [baseCurrency, setBaseCurrency] = useState<string>('YER');
+  const [taxRate, setTaxRate] = useState<number>(0.15);
 
   useEffect(() => {
     fetchInvoices();
@@ -101,7 +102,14 @@ export default function PurchaseInvoices() {
   const fetchTaxes = async () => {
     const { data } = await supabase.from('taxes').select('*').eq('is_active', true);
     setTaxes(data || []);
-    if (data && data.length > 0) setSelectedTaxId(data[0].tax_code);
+    if (data && data.length > 0) {
+      setSelectedTaxId(data[0].tax_code);
+      // Set tax rate from fetched data
+      const vatTax = data.find(t => t.tax_code === 'VAT15');
+      if (vatTax) {
+        setTaxRate(Number(vatTax.rate) / 100);
+      }
+    }
   };
 
   const fetchInvoices = async () => {
@@ -240,8 +248,22 @@ export default function PurchaseInvoices() {
       return;
     }
 
+    // Check for duplicate supplier invoice number
+    const { data: existingInvoice } = await supabase
+      .from('purchase_invoices')
+      .select('id, pi_number')
+      .eq('supplier_id', finalSupplierId)
+      .eq('supplier_invoice_no', supplierInvoiceNo)
+      .maybeSingle();
+
+    if (existingInvoice) {
+      toast.error(`رقم فاتورة المورد مكرر - الفاتورة ${existingInvoice.pi_number} موجودة بالفعل`);
+      return;
+    }
+
+    // Get tax rate from taxes table (loaded in state)
     const subtotal = items.reduce((sum, item) => sum + item.line_total, 0);
-    const taxAmount = subtotal * 0.15;
+    const taxAmount = subtotal * taxRate;
     const totalAmount = subtotal + taxAmount;
     
     // Calculate FC/BC amounts - CRITICAL: Force rate = 1 for base currency

@@ -5778,7 +5778,9 @@ export type Database = {
         Row: {
           created_at: string | null
           created_by: string | null
+          debit_note_number: string | null
           id: string
+          journal_entry_id: string | null
           notes: string | null
           posted_at: string | null
           posted_by: string | null
@@ -5794,13 +5796,16 @@ export type Database = {
           supplier_id: string
           tax_amount: number
           total_amount: number
+          total_cost_reversed: number | null
           updated_at: string | null
           warehouse_id: string | null
         }
         Insert: {
           created_at?: string | null
           created_by?: string | null
+          debit_note_number?: string | null
           id?: string
+          journal_entry_id?: string | null
           notes?: string | null
           posted_at?: string | null
           posted_by?: string | null
@@ -5816,13 +5821,16 @@ export type Database = {
           supplier_id: string
           tax_amount?: number
           total_amount?: number
+          total_cost_reversed?: number | null
           updated_at?: string | null
           warehouse_id?: string | null
         }
         Update: {
           created_at?: string | null
           created_by?: string | null
+          debit_note_number?: string | null
           id?: string
+          journal_entry_id?: string | null
           notes?: string | null
           posted_at?: string | null
           posted_by?: string | null
@@ -5838,10 +5846,25 @@ export type Database = {
           supplier_id?: string
           tax_amount?: number
           total_amount?: number
+          total_cost_reversed?: number | null
           updated_at?: string | null
           warehouse_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "purchase_returns_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "gl_journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_returns_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "vw_document_gl_links"
+            referencedColumns: ["journal_entry_id"]
+          },
           {
             foreignKeyName: "purchase_returns_purchase_invoice_id_fkey"
             columns: ["purchase_invoice_id"]
@@ -8792,6 +8815,14 @@ export type Database = {
         Args: { p_amount: number; p_customer_id: string }
         Returns: Json
       }
+      check_duplicate_supplier_invoice: {
+        Args: {
+          p_exclude_id?: string
+          p_supplier_id: string
+          p_supplier_invoice_no: string
+        }
+        Returns: boolean
+      }
       check_reorder_levels: {
         Args: never
         Returns: {
@@ -8998,6 +9029,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_default_tax_rate: { Args: never; Returns: number }
       get_exchange_rate: {
         Args: {
           p_date?: string

@@ -289,9 +289,31 @@ export default function PurchaseOrders() {
     setItems(newItems);
   };
 
+  const [taxRate, setTaxRate] = useState<number>(0.15);
+  
+  // Load tax rate on mount
+  useEffect(() => {
+    const loadTaxRate = async () => {
+      try {
+        const { data } = await supabase
+          .from('taxes')
+          .select('rate')
+          .eq('is_active', true)
+          .eq('tax_code', 'VAT15')
+          .single();
+        if (data) {
+          setTaxRate(Number(data.rate) / 100);
+        }
+      } catch (error) {
+        console.error('Error loading tax rate:', error);
+      }
+    };
+    loadTaxRate();
+  }, []);
+
   const calculateTotals = () => {
     const subtotal = items.reduce((sum, item) => sum + item.net_amount, 0);
-    const taxAmount = subtotal * 0.15; // 15% VAT
+    const taxAmount = subtotal * taxRate;
     const total = subtotal + taxAmount;
     return { subtotal, taxAmount, total };
   };

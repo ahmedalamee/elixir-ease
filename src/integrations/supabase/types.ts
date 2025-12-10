@@ -65,6 +65,13 @@ export type Database = {
             referencedRelation: "journal_entries"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "accounting_integration_log_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "vw_document_gl_links"
+            referencedColumns: ["journal_entry_id"]
+          },
         ]
       }
       accounting_periods: {
@@ -562,13 +569,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gl_journal_entries"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cash_box_exchanges_journal_entry_id_fkey"
-            columns: ["journal_entry_id"]
-            isOneToOne: false
-            referencedRelation: "vw_document_gl_links"
-            referencedColumns: ["journal_entry_id"]
           },
           {
             foreignKeyName: "cash_box_exchanges_to_cash_box_id_fkey"
@@ -2079,6 +2079,13 @@ export type Database = {
             referencedRelation: "journal_entries"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "document_gl_entries_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "vw_document_gl_links"
+            referencedColumns: ["journal_entry_id"]
+          },
         ]
       }
       document_numbering_rules: {
@@ -2174,6 +2181,13 @@ export type Database = {
             foreignKeyName: "dosage_guidelines_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "dosage_guidelines_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
@@ -2231,6 +2245,13 @@ export type Database = {
             foreignKeyName: "drug_interactions_drug1_id_fkey"
             columns: ["drug1_id"]
             isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "drug_interactions_drug1_id_fkey"
+            columns: ["drug1_id"]
+            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
@@ -2239,6 +2260,13 @@ export type Database = {
             columns: ["drug1_id"]
             isOneToOne: false
             referencedRelation: "stock_alerts"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "drug_interactions_drug2_id_fkey"
+            columns: ["drug2_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
             referencedColumns: ["product_id"]
           },
           {
@@ -2298,6 +2326,13 @@ export type Database = {
           warning_type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "drug_warnings_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
+          },
           {
             foreignKeyName: "drug_warnings_product_id_fkey"
             columns: ["product_id"]
@@ -2961,6 +2996,13 @@ export type Database = {
             foreignKeyName: "expenses_warehouse_id_fkey"
             columns: ["warehouse_id"]
             isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "expenses_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
             referencedRelation: "stock_alerts"
             referencedColumns: ["warehouse_id"]
           },
@@ -3158,13 +3200,6 @@ export type Database = {
             referencedRelation: "gl_journal_entries"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "gl_journal_lines_journal_id_fkey"
-            columns: ["journal_id"]
-            isOneToOne: false
-            referencedRelation: "vw_document_gl_links"
-            referencedColumns: ["journal_entry_id"]
-          },
         ]
       }
       goods_receipts: {
@@ -3254,6 +3289,13 @@ export type Database = {
             foreignKeyName: "goods_receipts_warehouse_id_fkey"
             columns: ["warehouse_id"]
             isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "goods_receipts_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
             referencedRelation: "stock_alerts"
             referencedColumns: ["warehouse_id"]
           },
@@ -3325,6 +3367,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "goods_receipts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grn_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "grn_items_item_id_fkey"
@@ -3534,6 +3583,13 @@ export type Database = {
             foreignKeyName: "inventory_cost_layers_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "inventory_cost_layers_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
@@ -3543,6 +3599,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "stock_alerts"
             referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "inventory_cost_layers_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["warehouse_id"]
           },
           {
             foreignKeyName: "inventory_cost_layers_warehouse_id_fkey"
@@ -3626,6 +3689,13 @@ export type Database = {
             foreignKeyName: "item_barcodes_item_id_fkey"
             columns: ["item_id"]
             isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "item_barcodes_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
@@ -3687,6 +3757,13 @@ export type Database = {
             foreignKeyName: "item_prices_item_id_fkey"
             columns: ["item_id"]
             isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "item_prices_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
@@ -3740,6 +3817,13 @@ export type Database = {
             foreignKeyName: "item_substitutions_alt_item_id_fkey"
             columns: ["alt_item_id"]
             isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "item_substitutions_alt_item_id_fkey"
+            columns: ["alt_item_id"]
+            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
@@ -3748,6 +3832,13 @@ export type Database = {
             columns: ["alt_item_id"]
             isOneToOne: false
             referencedRelation: "stock_alerts"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "item_substitutions_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
             referencedColumns: ["product_id"]
           },
           {
@@ -3795,6 +3886,13 @@ export type Database = {
           uom_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "item_uoms_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
+          },
           {
             foreignKeyName: "item_uoms_item_id_fkey"
             columns: ["item_id"]
@@ -3920,6 +4018,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "journal_entries"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_entry_lines_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "vw_document_gl_links"
+            referencedColumns: ["journal_entry_id"]
           },
         ]
       }
@@ -4262,6 +4367,13 @@ export type Database = {
             foreignKeyName: "medication_history_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "medication_history_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
@@ -4525,6 +4637,13 @@ export type Database = {
             foreignKeyName: "pi_items_item_id_fkey"
             columns: ["item_id"]
             isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "pi_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
@@ -4629,6 +4748,13 @@ export type Database = {
           uom_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "po_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
+          },
           {
             foreignKeyName: "po_items_item_id_fkey"
             columns: ["item_id"]
@@ -4845,18 +4971,18 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "pos_sessions_journal_entry_id_fkey"
-            columns: ["journal_entry_id"]
-            isOneToOne: false
-            referencedRelation: "vw_document_gl_links"
-            referencedColumns: ["journal_entry_id"]
-          },
-          {
             foreignKeyName: "pos_sessions_shift_id_fkey"
             columns: ["shift_id"]
             isOneToOne: false
             referencedRelation: "pos_shifts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_sessions_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["warehouse_id"]
           },
           {
             foreignKeyName: "pos_sessions_warehouse_id_fkey"
@@ -5034,6 +5160,13 @@ export type Database = {
             foreignKeyName: "prescription_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "prescription_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
@@ -5193,6 +5326,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "product_batches_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
+          },
           {
             foreignKeyName: "product_batches_product_id_fkey"
             columns: ["product_id"]
@@ -5569,6 +5709,13 @@ export type Database = {
             foreignKeyName: "purchase_invoices_warehouse_id_fkey"
             columns: ["warehouse_id"]
             isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "purchase_invoices_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
             referencedRelation: "stock_alerts"
             referencedColumns: ["warehouse_id"]
           },
@@ -5685,6 +5832,13 @@ export type Database = {
             foreignKeyName: "purchase_orders_warehouse_id_fkey"
             columns: ["warehouse_id"]
             isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
             referencedRelation: "stock_alerts"
             referencedColumns: ["warehouse_id"]
           },
@@ -5750,6 +5904,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "pi_items"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_return_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "purchase_return_items_item_id_fkey"
@@ -5859,13 +6020,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "purchase_returns_journal_entry_id_fkey"
-            columns: ["journal_entry_id"]
-            isOneToOne: false
-            referencedRelation: "vw_document_gl_links"
-            referencedColumns: ["journal_entry_id"]
-          },
-          {
             foreignKeyName: "purchase_returns_purchase_invoice_id_fkey"
             columns: ["purchase_invoice_id"]
             isOneToOne: false
@@ -5885,6 +6039,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "suppliers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_returns_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["warehouse_id"]
           },
           {
             foreignKeyName: "purchase_returns_warehouse_id_fkey"
@@ -5944,6 +6105,13 @@ export type Database = {
             foreignKeyName: "reorder_rules_item_id_fkey"
             columns: ["item_id"]
             isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "reorder_rules_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
@@ -5967,6 +6135,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "suppliers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reorder_rules_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["warehouse_id"]
           },
           {
             foreignKeyName: "reorder_rules_warehouse_id_fkey"
@@ -6028,6 +6203,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "warehouse_batches"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "return_items_item_id_fkey"
@@ -6118,6 +6300,13 @@ export type Database = {
           warehouse_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "returns_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["warehouse_id"]
+          },
           {
             foreignKeyName: "returns_warehouse_id_fkey"
             columns: ["warehouse_id"]
@@ -6248,6 +6437,13 @@ export type Database = {
             foreignKeyName: "sale_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "sale_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
@@ -6341,6 +6537,13 @@ export type Database = {
             foreignKeyName: "sales_warehouse_id_fkey"
             columns: ["warehouse_id"]
             isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "sales_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
             referencedRelation: "stock_alerts"
             referencedColumns: ["warehouse_id"]
           },
@@ -6412,6 +6615,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sales_invoices"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_invoice_items_product_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "sales_invoice_items_product_id_fkey"
@@ -6588,6 +6798,13 @@ export type Database = {
             foreignKeyName: "sales_invoices_warehouse_id_fkey"
             columns: ["warehouse_id"]
             isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "sales_invoices_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
             referencedRelation: "stock_alerts"
             referencedColumns: ["warehouse_id"]
           },
@@ -6674,6 +6891,13 @@ export type Database = {
             foreignKeyName: "sales_orders_warehouse_id_fkey"
             columns: ["warehouse_id"]
             isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "sales_orders_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
             referencedRelation: "stock_alerts"
             referencedColumns: ["warehouse_id"]
           },
@@ -6751,6 +6975,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sales_invoice_items"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_return_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "sales_return_items_item_id_fkey"
@@ -6892,6 +7123,13 @@ export type Database = {
             foreignKeyName: "sales_returns_warehouse_id_fkey"
             columns: ["warehouse_id"]
             isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "sales_returns_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
             referencedRelation: "stock_alerts"
             referencedColumns: ["warehouse_id"]
           },
@@ -6903,6 +7141,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      security_audit_log: {
+        Row: {
+          action: string
+          changed_at: string
+          changed_by: string | null
+          id: string
+          ip_address: string | null
+          new_data: Json | null
+          old_data: Json | null
+          record_id: string | null
+          table_name: string
+        }
+        Insert: {
+          action: string
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          ip_address?: string | null
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          table_name: string
+        }
+        Update: {
+          action?: string
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          ip_address?: string | null
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          table_name?: string
+        }
+        Relationships: []
       }
       so_items: {
         Row: {
@@ -6948,6 +7222,13 @@ export type Database = {
           uom_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "so_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
+          },
           {
             foreignKeyName: "so_items_item_id_fkey"
             columns: ["item_id"]
@@ -7040,6 +7321,13 @@ export type Database = {
             foreignKeyName: "stock_adjustment_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "stock_adjustment_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
@@ -7116,11 +7404,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "stock_adjustments_journal_entry_id_fkey"
-            columns: ["journal_entry_id"]
+            foreignKeyName: "stock_adjustments_warehouse_id_fkey"
+            columns: ["warehouse_id"]
             isOneToOne: false
-            referencedRelation: "vw_document_gl_links"
-            referencedColumns: ["journal_entry_id"]
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["warehouse_id"]
           },
           {
             foreignKeyName: "stock_adjustments_warehouse_id_fkey"
@@ -7192,6 +7480,13 @@ export type Database = {
             foreignKeyName: "stock_integration_log_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "stock_integration_log_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
@@ -7201,6 +7496,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "stock_alerts"
             referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "stock_integration_log_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["warehouse_id"]
           },
           {
             foreignKeyName: "stock_integration_log_warehouse_id_fkey"
@@ -7302,6 +7604,13 @@ export type Database = {
             foreignKeyName: "fk_stock_ledger_product"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "fk_stock_ledger_product"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
@@ -7313,11 +7622,11 @@ export type Database = {
             referencedColumns: ["product_id"]
           },
           {
-            foreignKeyName: "stock_ledger_batch_id_fkey"
-            columns: ["batch_id"]
+            foreignKeyName: "stock_ledger_item_id_fkey"
+            columns: ["item_id"]
             isOneToOne: false
-            referencedRelation: "warehouse_batches"
-            referencedColumns: ["id"]
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "stock_ledger_item_id_fkey"
@@ -7332,6 +7641,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "stock_alerts"
             referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "stock_ledger_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["warehouse_id"]
           },
           {
             foreignKeyName: "stock_ledger_warehouse_id_fkey"
@@ -7476,13 +7792,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gl_journal_entries"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "supplier_payments_journal_entry_id_fkey"
-            columns: ["journal_entry_id"]
-            isOneToOne: false
-            referencedRelation: "vw_document_gl_links"
-            referencedColumns: ["journal_entry_id"]
           },
           {
             foreignKeyName: "supplier_payments_supplier_id_fkey"
@@ -8122,6 +8431,13 @@ export type Database = {
             foreignKeyName: "warehouse_batches_item_id_fkey"
             columns: ["item_id"]
             isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "warehouse_batches_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
@@ -8131,6 +8447,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "stock_alerts"
             referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "warehouse_batches_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["warehouse_id"]
           },
           {
             foreignKeyName: "warehouse_batches_warehouse_id_fkey"
@@ -8174,6 +8497,13 @@ export type Database = {
           warehouse_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "warehouse_bins_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["warehouse_id"]
+          },
           {
             foreignKeyName: "warehouse_bins_warehouse_id_fkey"
             columns: ["warehouse_id"]
@@ -8226,6 +8556,13 @@ export type Database = {
             foreignKeyName: "warehouse_stock_item_id_fkey"
             columns: ["item_id"]
             isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "warehouse_stock_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
@@ -8242,6 +8579,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "uoms"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_stock_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["warehouse_id"]
           },
           {
             foreignKeyName: "warehouse_stock_warehouse_id_fkey"
@@ -8325,6 +8669,13 @@ export type Database = {
             foreignKeyName: "warehouses_parent_warehouse_id_fkey"
             columns: ["parent_warehouse_id"]
             isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "warehouses_parent_warehouse_id_fkey"
+            columns: ["parent_warehouse_id"]
+            isOneToOne: false
             referencedRelation: "stock_alerts"
             referencedColumns: ["warehouse_id"]
           },
@@ -8341,30 +8692,27 @@ export type Database = {
     Views: {
       inventory_summary_view: {
         Row: {
-          category_id: string | null
+          barcode: string | null
           cost_price: number | null
-          id: string | null
-          name: string | null
-          price: number | null
-          total_cost_value: number | null
-          total_reserved: number | null
-          total_retail_value: number | null
-          total_stock: number | null
+          product_id: string | null
+          product_name: string | null
+          qty_on_hand: number | null
+          sale_price: number | null
+          sku: string | null
+          total_value: number | null
+          warehouse_id: string | null
+          warehouse_name: string | null
         }
         Relationships: []
       }
       posted_documents_audit: {
         Row: {
-          document_date: string | null
-          document_number: string | null
-          document_type: string | null
+          amount: number | null
+          doc_number: string | null
+          doc_type: string | null
           id: string | null
-          party_id: string | null
           posted_at: string | null
           posted_by: string | null
-          status: string | null
-          total_amount: number | null
-          warehouse_id: string | null
         }
         Relationships: []
       }
@@ -8379,31 +8727,44 @@ export type Database = {
       }
       returns_inventory_impact: {
         Row: {
-          item_condition: string | null
-          item_id: string | null
+          posted_at: string | null
+          product_id: string | null
           product_name: string | null
-          return_date: string | null
+          quantity: number | null
           return_id: string | null
           return_number: string | null
-          returned_quantity: number | null
-          status: string | null
+          return_type: string | null
           warehouse_id: string | null
           warehouse_name: string | null
         }
         Relationships: [
           {
             foreignKeyName: "sales_return_items_item_id_fkey"
-            columns: ["item_id"]
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "sales_return_items_item_id_fkey"
+            columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "sales_return_items_item_id_fkey"
-            columns: ["item_id"]
+            columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "stock_alerts"
             referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "sales_returns_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["warehouse_id"]
           },
           {
             foreignKeyName: "sales_returns_warehouse_id_fkey"
@@ -8424,30 +8785,20 @@ export type Database = {
       returns_processing_monitor: {
         Row: {
           created_at: string | null
-          created_by_name: string | null
-          customer_name: string | null
           id: string | null
-          items_count: number | null
-          original_invoice: string | null
           posted_at: string | null
-          refund_amount: number | null
-          return_date: string | null
+          posted_by_name: string | null
           return_number: string | null
           status: string | null
           total_amount: number | null
-          warehouse_name: string | null
         }
         Relationships: []
       }
       returns_statistics: {
         Row: {
-          avg_return_amount: number | null
-          customers_with_returns: number | null
-          draft_returns: number | null
-          posted_returns: number | null
-          total_items_returned: number | null
-          total_refunded_amount: number | null
-          total_returns: number | null
+          return_count: number | null
+          return_type: string | null
+          total_value: number | null
         }
         Relationships: []
       }
@@ -8455,65 +8806,88 @@ export type Database = {
         Row: {
           balance: number | null
           credit_limit: number | null
+          currency_code: string | null
+          email: string | null
           id: string | null
           is_active: boolean | null
+          loyalty_points: number | null
           name: string | null
+          phone: string | null
         }
         Insert: {
           balance?: number | null
           credit_limit?: number | null
+          currency_code?: string | null
+          email?: string | null
           id?: string | null
           is_active?: boolean | null
+          loyalty_points?: number | null
           name?: string | null
+          phone?: string | null
         }
         Update: {
           balance?: number | null
           credit_limit?: number | null
+          currency_code?: string | null
+          email?: string | null
           id?: string | null
           is_active?: boolean | null
+          loyalty_points?: number | null
           name?: string | null
+          phone?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "customers_currency_code_fkey"
+            columns: ["currency_code"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       safe_employee_details: {
         Row: {
+          created_at: string | null
           department: string | null
           email: string | null
+          employee_code: string | null
           full_name: string | null
+          full_name_en: string | null
           hire_date: string | null
           id: string | null
           is_active: boolean | null
           job_title: string | null
-          national_id: string | null
           phone: string | null
           salary: number | null
-          user_id: string | null
         }
         Insert: {
+          created_at?: string | null
           department?: string | null
           email?: string | null
+          employee_code?: string | null
           full_name?: string | null
+          full_name_en?: string | null
           hire_date?: string | null
           id?: string | null
           is_active?: boolean | null
           job_title?: string | null
-          national_id?: never
           phone?: string | null
           salary?: never
-          user_id?: string | null
         }
         Update: {
+          created_at?: string | null
           department?: string | null
           email?: string | null
+          employee_code?: string | null
           full_name?: string | null
+          full_name_en?: string | null
           hire_date?: string | null
           id?: string | null
           is_active?: boolean | null
           job_title?: string | null
-          national_id?: never
           phone?: string | null
           salary?: never
-          user_id?: string | null
         }
         Relationships: []
       }
@@ -8543,36 +8917,43 @@ export type Database = {
       }
       safe_suppliers_summary: {
         Row: {
+          balance: number | null
           code: string | null
+          currency_code: string | null
+          email: string | null
           id: string | null
           is_active: boolean | null
           name: string | null
+          phone: string | null
         }
         Insert: {
+          balance?: number | null
           code?: string | null
+          currency_code?: string | null
+          email?: string | null
           id?: string | null
           is_active?: boolean | null
           name?: string | null
+          phone?: string | null
         }
         Update: {
+          balance?: number | null
           code?: string | null
+          currency_code?: string | null
+          email?: string | null
           id?: string | null
           is_active?: boolean | null
           name?: string | null
+          phone?: string | null
         }
         Relationships: []
       }
       sales_by_currency: {
         Row: {
-          avg_exchange_rate: number | null
           currency_code: string | null
-          currency_name: string | null
-          currency_symbol: string | null
-          first_invoice_date: string | null
           invoice_count: number | null
-          last_invoice_date: string | null
-          total_in_base_currency: number | null
-          total_in_currency: number | null
+          total_bc: number | null
+          total_fc: number | null
         }
         Relationships: [
           {
@@ -8586,11 +8967,10 @@ export type Database = {
       }
       sales_summary_view: {
         Row: {
-          customer_id: string | null
           invoice_count: number | null
           sale_date: string | null
+          total_amount: number | null
           total_discount: number | null
-          total_sales: number | null
           total_subtotal: number | null
           total_tax: number | null
         }
@@ -8598,13 +8978,11 @@ export type Database = {
       }
       stock_alerts: {
         Row: {
-          alert_level: string | null
-          current_quantity: number | null
-          min_qty: number | null
+          current_qty: number | null
           product_id: string | null
           product_name: string | null
-          reorder_point: number | null
-          reorder_qty: number | null
+          reorder_level: number | null
+          shortage: number | null
           sku: string | null
           warehouse_id: string | null
           warehouse_name: string | null
@@ -8638,33 +9016,41 @@ export type Database = {
       }
       vw_document_gl_links: {
         Row: {
-          document_amount: number | null
           document_id: string | null
-          document_number: string | null
           document_type: string | null
           entry_date: string | null
-          error_message: string | null
-          id: string | null
-          is_posted: boolean | null
-          is_reversed: boolean | null
-          journal_description: string | null
+          entry_number: string | null
           journal_entry_id: string | null
-          journal_entry_number: string | null
-          link_status: string | null
-          linked_at: string | null
-          posting_date: string | null
-          source_module: string | null
+          status: string | null
           total_credit: number | null
           total_debit: number | null
+        }
+        Insert: {
+          document_id?: string | null
+          document_type?: string | null
+          entry_date?: string | null
+          entry_number?: string | null
+          journal_entry_id?: string | null
+          status?: string | null
+          total_credit?: number | null
+          total_debit?: number | null
+        }
+        Update: {
+          document_id?: string | null
+          document_type?: string | null
+          entry_date?: string | null
+          entry_number?: string | null
+          journal_entry_id?: string | null
+          status?: string | null
+          total_credit?: number | null
+          total_debit?: number | null
         }
         Relationships: []
       }
       vw_latest_exchange_rates: {
         Row: {
-          created_at: string | null
           effective_date: string | null
           from_currency: string | null
-          id: string | null
           rate: number | null
           to_currency: string | null
         }

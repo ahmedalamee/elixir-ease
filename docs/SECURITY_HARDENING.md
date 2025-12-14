@@ -8,25 +8,49 @@
 
 ## ✅ التحسينات المطبقة
 
-### 1. تحويل العروض (Views) إلى SECURITY INVOKER
+### 1. تحويل العروض (Views) إلى SECURITY INVOKER وتقييد الوصول
 
-جميع العروض التالية تم تحويلها لتستخدم `SECURITY INVOKER` مما يعني أنها تحترم سياسات RLS الخاصة بالمستخدم المتصل:
+جميع العروض التالية تم تحويلها لتستخدم `SECURITY INVOKER` وتحتوي على فلترة مبنية على الأدوار مما يعني:
+- **لا يمكن للمستخدم المجهول (anon) الوصول لأي عرض**
+- **يجب المصادقة والحصول على دور مناسب للوصول للبيانات**
 
-| العرض | الوصول المسموح |
-|-------|---------------|
-| `safe_employee_details` | جميع المستخدمين المصادق عليهم (الراتب للمدير فقط) |
-| `safe_customers_summary` | admin, pharmacist, cashier |
-| `safe_suppliers_summary` | admin, pharmacist, inventory_manager |
-| `sales_by_currency` | admin, pharmacist |
-| `sales_summary_view` | admin, pharmacist |
-| `inventory_summary_view` | admin, pharmacist, inventory_manager |
-| `stock_alerts` | admin, pharmacist, inventory_manager |
-| `returns_statistics` | admin فقط |
-| `returns_inventory_impact` | admin, inventory_manager |
-| `posted_documents_audit` | admin فقط |
-| `returns_processing_monitor` | admin فقط |
-| `vw_latest_exchange_rates` | جميع المستخدمين المصادق عليهم |
-| `vw_document_gl_links` | admin, pharmacist |
+| العرض | الوصول المسموح | التحقق من الدور |
+|-------|---------------|-----------------|
+| `safe_employee_details` | admin, pharmacist, inventory_manager, cashier | ✅ الراتب للمدير فقط |
+| `safe_employees_summary` | admin, pharmacist, inventory_manager, cashier | ✅ |
+| `safe_customers_summary` | admin, pharmacist, cashier | ✅ |
+| `safe_suppliers_summary` | admin, pharmacist, inventory_manager | ✅ |
+| `sales_by_currency` | admin, pharmacist | ✅ |
+| `sales_summary_view` | admin, pharmacist | ✅ |
+| `inventory_summary_view` | admin, pharmacist, inventory_manager | ✅ |
+| `stock_alerts` | admin, pharmacist, inventory_manager | ✅ |
+| `returns_statistics` | admin فقط | ✅ |
+| `returns_inventory_impact` | admin, inventory_manager | ✅ |
+| `posted_documents_audit` | admin فقط | ✅ |
+| `returns_processing_monitor` | admin فقط | ✅ |
+| `vw_latest_exchange_rates` | المستخدمين المصادق عليهم | ✅ |
+| `vw_current_exchange_rates` | المستخدمين المصادق عليهم | ✅ |
+| `vw_document_gl_links` | admin, pharmacist | ✅ |
+| `public_company_info` | المستخدمين المصادق عليهم | ✅ |
+
+### 2. إلغاء صلاحيات الوصول المجهول
+
+تم تنفيذ الأوامر التالية لمنع الوصول المجهول:
+
+```sql
+REVOKE ALL ON <view_name> FROM anon, public;
+GRANT SELECT ON <view_name> TO authenticated;
+```
+
+### 3. فرض RLS على الجداول الأساسية
+
+تم تفعيل FORCE ROW LEVEL SECURITY على جميع الجداول الحساسة:
+
+- `employees`, `customers`, `suppliers`
+- `products`, `warehouse_stock`, `inventory_cost_layers`
+- `sales_invoices`, `purchase_invoices`
+- `sales_returns`, `purchase_returns`
+- `stock_ledger`, `exchange_rates`, `company_branding`
 
 ### 2. نظام سجل التدقيق (Audit Logging)
 

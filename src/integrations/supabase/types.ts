@@ -3468,6 +3468,36 @@ export type Database = {
           },
         ]
       }
+      health_record_access_log: {
+        Row: {
+          access_type: string
+          accessed_at: string | null
+          accessed_by: string
+          customer_id: string
+          id: string
+          ip_address: string | null
+          prescription_id: string | null
+        }
+        Insert: {
+          access_type: string
+          accessed_at?: string | null
+          accessed_by: string
+          customer_id: string
+          id?: string
+          ip_address?: string | null
+          prescription_id?: string | null
+        }
+        Update: {
+          access_type?: string
+          accessed_at?: string | null
+          accessed_by?: string
+          customer_id?: string
+          id?: string
+          ip_address?: string | null
+          prescription_id?: string | null
+        }
+        Relationships: []
+      }
       health_record_audit: {
         Row: {
           accessed_at: string

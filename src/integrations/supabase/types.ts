@@ -1127,6 +1127,13 @@ export type Database = {
             foreignKeyName: "cost_centers_manager_id_fkey"
             columns: ["manager_id"]
             isOneToOne: false
+            referencedRelation: "safe_employee_basic"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cost_centers_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
             referencedRelation: "safe_employee_details"
             referencedColumns: ["id"]
           },
@@ -1354,6 +1361,13 @@ export type Database = {
             foreignKeyName: "customer_complaints_assigned_to_fkey"
             columns: ["assigned_to"]
             isOneToOne: false
+            referencedRelation: "safe_employee_basic"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_complaints_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
             referencedRelation: "safe_employee_details"
             referencedColumns: ["id"]
           },
@@ -1489,6 +1503,13 @@ export type Database = {
             columns: ["assigned_to"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_follow_ups_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "safe_employee_basic"
             referencedColumns: ["id"]
           },
           {
@@ -1717,6 +1738,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_interactions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "safe_employee_basic"
             referencedColumns: ["id"]
           },
           {
@@ -2016,6 +2044,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctors_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "safe_employee_basic"
             referencedColumns: ["id"]
           },
           {
@@ -2461,6 +2496,13 @@ export type Database = {
             foreignKeyName: "employee_attendance_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "safe_employee_basic"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_attendance_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "safe_employee_details"
             referencedColumns: ["id"]
           },
@@ -2525,6 +2567,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_leaves_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "safe_employee_basic"
             referencedColumns: ["id"]
           },
           {
@@ -2598,6 +2647,13 @@ export type Database = {
             foreignKeyName: "employee_performance_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "safe_employee_basic"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_performance_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "safe_employee_details"
             referencedColumns: ["id"]
           },
@@ -2656,6 +2712,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_tasks_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "safe_employee_basic"
             referencedColumns: ["id"]
           },
           {
@@ -3449,6 +3512,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "safe_customers_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "health_record_audit_prescription_id_fkey"
+            columns: ["prescription_id"]
+            isOneToOne: false
+            referencedRelation: "cashier_prescription_view"
             referencedColumns: ["id"]
           },
           {
@@ -4360,6 +4430,13 @@ export type Database = {
             foreignKeyName: "medication_history_prescription_id_fkey"
             columns: ["prescription_id"]
             isOneToOne: false
+            referencedRelation: "cashier_prescription_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medication_history_prescription_id_fkey"
+            columns: ["prescription_id"]
+            isOneToOne: false
             referencedRelation: "prescriptions"
             referencedColumns: ["id"]
           },
@@ -4953,6 +5030,13 @@ export type Database = {
             foreignKeyName: "pos_sessions_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "safe_employee_basic"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_sessions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "safe_employee_details"
             referencedColumns: ["id"]
           },
@@ -5149,6 +5233,13 @@ export type Database = {
           quantity?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "prescription_items_prescription_id_fkey"
+            columns: ["prescription_id"]
+            isOneToOne: false
+            referencedRelation: "cashier_prescription_view"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "prescription_items_prescription_id_fkey"
             columns: ["prescription_id"]
@@ -8690,6 +8781,42 @@ export type Database = {
       }
     }
     Views: {
+      cashier_prescription_view: {
+        Row: {
+          customer_id: string | null
+          id: string | null
+          prescription_number: string | null
+          status: string | null
+        }
+        Insert: {
+          customer_id?: string | null
+          id?: string | null
+          prescription_number?: string | null
+          status?: string | null
+        }
+        Update: {
+          customer_id?: string | null
+          id?: string | null
+          prescription_number?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prescriptions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prescriptions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "safe_customers_summary"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_summary_view: {
         Row: {
           barcode: string | null
@@ -8845,6 +8972,57 @@ export type Database = {
             referencedColumns: ["code"]
           },
         ]
+      }
+      safe_employee_basic: {
+        Row: {
+          created_at: string | null
+          department: string | null
+          email: string | null
+          employee_code: string | null
+          full_name: string | null
+          full_name_en: string | null
+          hire_date: string | null
+          id: string | null
+          is_active: boolean | null
+          job_title: string | null
+          notes: string | null
+          phone: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          department?: string | null
+          email?: string | null
+          employee_code?: string | null
+          full_name?: string | null
+          full_name_en?: string | null
+          hire_date?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          job_title?: string | null
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          department?: string | null
+          email?: string | null
+          employee_code?: string | null
+          full_name?: string | null
+          full_name_en?: string | null
+          hire_date?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          job_title?: string | null
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       safe_employee_details: {
         Row: {

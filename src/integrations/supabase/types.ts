@@ -8927,24 +8927,24 @@ export type Database = {
           phone: string | null
         }
         Insert: {
-          balance?: number | null
+          balance?: never
           code?: string | null
           currency_code?: string | null
-          email?: string | null
+          email?: never
           id?: string | null
           is_active?: boolean | null
           name?: string | null
-          phone?: string | null
+          phone?: never
         }
         Update: {
-          balance?: number | null
+          balance?: never
           code?: string | null
           currency_code?: string | null
-          email?: string | null
+          email?: never
           id?: string | null
           is_active?: boolean | null
           name?: string | null
-          phone?: string | null
+          phone?: never
         }
         Relationships: []
       }

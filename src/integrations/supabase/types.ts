@@ -492,6 +492,20 @@ export type Database = {
             foreignKeyName: "campaign_customers_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customers_full_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_customers_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_customers_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customers_pos_view"
             referencedColumns: ["id"]
           },
@@ -843,6 +857,20 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers_admin_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_receipts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_full_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_receipts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_masked"
             referencedColumns: ["id"]
           },
           {
@@ -1265,6 +1293,20 @@ export type Database = {
             foreignKeyName: "customer_access_log_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customers_full_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_access_log_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_access_log_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customers_pos_view"
             referencedColumns: ["id"]
           },
@@ -1342,6 +1384,20 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: true
             referencedRelation: "customers_admin_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_analytics_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: true
+            referencedRelation: "customers_full_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_analytics_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: true
+            referencedRelation: "customers_masked"
             referencedColumns: ["id"]
           },
           {
@@ -1466,6 +1522,20 @@ export type Database = {
             foreignKeyName: "customer_complaints_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customers_full_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_complaints_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_complaints_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customers_pos_view"
             referencedColumns: ["id"]
           },
@@ -1528,6 +1598,20 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers_admin_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_events_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_full_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_events_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_masked"
             referencedColumns: ["id"]
           },
           {
@@ -1649,6 +1733,20 @@ export type Database = {
             foreignKeyName: "customer_follow_ups_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customers_full_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_follow_ups_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_follow_ups_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customers_pos_view"
             referencedColumns: ["id"]
           },
@@ -1726,6 +1824,20 @@ export type Database = {
             foreignKeyName: "customer_health_records_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: true
+            referencedRelation: "customers_full_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_health_records_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: true
+            referencedRelation: "customers_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_health_records_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: true
             referencedRelation: "customers_pos_view"
             referencedColumns: ["id"]
           },
@@ -1791,6 +1903,20 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers_admin_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_insurance_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_full_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_insurance_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_masked"
             referencedColumns: ["id"]
           },
           {
@@ -1878,6 +2004,20 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers_admin_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_interactions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_full_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_interactions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_masked"
             referencedColumns: ["id"]
           },
           {
@@ -2026,6 +2166,20 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers_admin_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_payments_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_full_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_payments_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_masked"
             referencedColumns: ["id"]
           },
           {
@@ -2880,21 +3034,21 @@ export type Database = {
         Row: {
           created_at: string | null
           employee_id: string
-          national_id: string | null
+          national_id_enc: string | null
           salary: number
           updated_at: string | null
         }
         Insert: {
           created_at?: string | null
           employee_id: string
-          national_id?: string | null
+          national_id_enc?: string | null
           salary?: number
           updated_at?: string | null
         }
         Update: {
           created_at?: string | null
           employee_id?: string
-          national_id?: string | null
+          national_id_enc?: string | null
           salary?: number
           updated_at?: string | null
         }
@@ -3819,6 +3973,20 @@ export type Database = {
             foreignKeyName: "health_record_audit_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customers_full_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "health_record_audit_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "health_record_audit_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customers_pos_view"
             referencedColumns: ["id"]
           },
@@ -4478,6 +4646,20 @@ export type Database = {
             foreignKeyName: "lab_tests_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customers_full_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lab_tests_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lab_tests_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customers_pos_view"
             referencedColumns: ["id"]
           },
@@ -4541,6 +4723,20 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: true
             referencedRelation: "customers_admin_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loyalty_accounts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: true
+            referencedRelation: "customers_full_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loyalty_accounts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: true
+            referencedRelation: "customers_masked"
             referencedColumns: ["id"]
           },
           {
@@ -4767,6 +4963,20 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers_admin_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medication_history_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_full_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medication_history_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_masked"
             referencedColumns: ["id"]
           },
           {
@@ -5693,6 +5903,20 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers_admin_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prescriptions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_full_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prescriptions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_masked"
             referencedColumns: ["id"]
           },
           {
@@ -7006,6 +7230,20 @@ export type Database = {
             foreignKeyName: "sales_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customers_full_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customers_pos_view"
             referencedColumns: ["id"]
           },
@@ -7267,6 +7505,20 @@ export type Database = {
             foreignKeyName: "sales_invoices_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customers_full_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customers_pos_view"
             referencedColumns: ["id"]
           },
@@ -7382,6 +7634,20 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers_admin_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_full_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_masked"
             referencedColumns: ["id"]
           },
           {
@@ -7614,6 +7880,20 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers_admin_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_returns_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_full_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_returns_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_masked"
             referencedColumns: ["id"]
           },
           {
@@ -8821,6 +9101,20 @@ export type Database = {
             foreignKeyName: "vaccinations_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customers_full_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vaccinations_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vaccinations_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customers_pos_view"
             referencedColumns: ["id"]
           },
@@ -9267,6 +9561,20 @@ export type Database = {
             foreignKeyName: "prescriptions_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customers_full_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prescriptions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prescriptions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customers_pos_view"
             referencedColumns: ["id"]
           },
@@ -9357,6 +9665,153 @@ export type Database = {
           },
         ]
       }
+      customers_full_secure: {
+        Row: {
+          address: string | null
+          balance: number | null
+          created_at: string | null
+          credit_limit: number | null
+          currency_code: string | null
+          email: string | null
+          id: string | null
+          is_active: boolean | null
+          last_transaction_date: string | null
+          loyalty_points: number | null
+          name: string | null
+          payment_terms: string | null
+          phone: string | null
+          price_list_id: string | null
+          segment: string | null
+          tax_number: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          address?: string | null
+          balance?: number | null
+          created_at?: string | null
+          credit_limit?: number | null
+          currency_code?: string | null
+          email?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          last_transaction_date?: string | null
+          loyalty_points?: number | null
+          name?: string | null
+          payment_terms?: string | null
+          phone?: string | null
+          price_list_id?: string | null
+          segment?: string | null
+          tax_number?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          address?: string | null
+          balance?: number | null
+          created_at?: string | null
+          credit_limit?: number | null
+          currency_code?: string | null
+          email?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          last_transaction_date?: string | null
+          loyalty_points?: number | null
+          name?: string | null
+          payment_terms?: string | null
+          phone?: string | null
+          price_list_id?: string | null
+          segment?: string | null
+          tax_number?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_currency_code_fkey"
+            columns: ["currency_code"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "customers_price_list_id_fkey"
+            columns: ["price_list_id"]
+            isOneToOne: false
+            referencedRelation: "price_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers_masked: {
+        Row: {
+          address: string | null
+          balance: number | null
+          credit_limit: number | null
+          currency_code: string | null
+          email: string | null
+          id: string | null
+          is_active: boolean | null
+          last_transaction_date: string | null
+          loyalty_points: number | null
+          name: string | null
+          payment_terms: string | null
+          phone: string | null
+          price_list_id: string | null
+          segment: string | null
+          tax_number: string | null
+        }
+        Insert: {
+          address?: never
+          balance?: number | null
+          credit_limit?: number | null
+          currency_code?: string | null
+          email?: never
+          id?: string | null
+          is_active?: boolean | null
+          last_transaction_date?: string | null
+          loyalty_points?: number | null
+          name?: string | null
+          payment_terms?: string | null
+          phone?: never
+          price_list_id?: string | null
+          segment?: string | null
+          tax_number?: never
+        }
+        Update: {
+          address?: never
+          balance?: number | null
+          credit_limit?: number | null
+          currency_code?: string | null
+          email?: never
+          id?: string | null
+          is_active?: boolean | null
+          last_transaction_date?: string | null
+          loyalty_points?: number | null
+          name?: string | null
+          payment_terms?: string | null
+          phone?: never
+          price_list_id?: string | null
+          segment?: string | null
+          tax_number?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_currency_code_fkey"
+            columns: ["currency_code"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "customers_price_list_id_fkey"
+            columns: ["price_list_id"]
+            isOneToOne: false
+            referencedRelation: "price_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers_pos_view: {
         Row: {
           id: string | null
@@ -9377,6 +9832,54 @@ export type Database = {
           phone_masked?: never
         }
         Relationships: []
+      }
+      employee_salaries_secure: {
+        Row: {
+          created_at: string | null
+          employee_code: string | null
+          employee_id: string | null
+          employee_name: string | null
+          national_id_status: string | null
+          salary: number | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_salaries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_salaries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "employees_safe_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_salaries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "safe_employee_basic"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_salaries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "safe_employee_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_salaries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "safe_employees_summary"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       employees_safe_view: {
         Row: {
@@ -10064,6 +10567,7 @@ export type Database = {
         Args: { encrypted: string; key?: string }
         Returns: string
       }
+      decrypt_national_id: { Args: { p_employee_id: string }; Returns: string }
       encrypt_data: { Args: { data: string; key?: string }; Returns: string }
       execute_cash_box_exchange: {
         Args: {
@@ -10181,7 +10685,21 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_customer_with_audit: {
+        Args: { p_customer_id: string }
+        Returns: {
+          balance: number
+          credit_limit: number
+          email: string
+          id: string
+          is_active: boolean
+          loyalty_points: number
+          name: string
+          phone: string
+        }[]
+      }
       get_default_tax_rate: { Args: never; Returns: number }
+      get_encryption_key: { Args: never; Returns: string }
       get_exchange_rate: {
         Args: {
           p_date?: string

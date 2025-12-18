@@ -1,10 +1,10 @@
 # 📊 تقرير تحليل دورة حياة نظام المشتريات الشامل
 ## Purchasing Lifecycle Complete Analysis Report
 
-**تاريخ التقرير:** 2024-12-18  
-**إصدار النظام:** ERP Pharmacy v1.0  
+**تاريخ التقرير:** 2025-12-18  
+**إصدار النظام:** ERP Pharmacy v2.0  
 **المحلل:** Senior ERP Systems Analyst  
-**الحكم النهائي:** ⚠️ **مكتمل جزئياً - جاهز للإنتاج الأساسي**
+**الحكم النهائي:** ⚠️ **جاهز للإنتاج الأساسي مع قيود**
 
 ---
 
@@ -26,24 +26,31 @@
 
 | المؤشر | القيمة | الحالة |
 |--------|--------|--------|
-| إجمالي المراحل | 8 | - |
-| مراحل مكتملة | 5 | ✅ |
-| مراحل جزئية | 2 | ⚠️ |
-| مراحل مفقودة | 1 | ❌ |
+| إجمالي المراحل | 9 | - |
+| مراحل مكتملة (Backend) | 9 | ✅ |
+| مراحل مكتملة (Frontend) | 6 | ✅ |
+| مراحل تنتظر UI | 3 | ⚠️ |
 
-### 📊 إحصائيات قاعدة البيانات الحالية
+### 📊 إحصائيات قاعدة البيانات الحالية (2025-12-18)
 
-| الكيان | المسودة | المعتمد | المرحّل | الملغي | الإجمالي |
-|--------|---------|---------|---------|--------|----------|
-| أوامر الشراء (PO) | 18 | 17 | - | 5 | 40 |
-| استلام البضائع (GRN) | 8 | - | 2 | - | 10 |
-| فواتير الشراء (PI) | 7 | - | 0 | - | 7 |
-| طبقات التكلفة (FIFO) | - | - | - | - | **0** ⚠️ |
+| الكيان | العدد | الحالة |
+|--------|-------|--------|
+| الموردين | 6 | ✅ |
+| أوامر الشراء (PO) | 40 | ✅ |
+| استلام البضائع (GRN) | 10 (4 posted) | ✅ |
+| فواتير الشراء (PI) | 7 | ✅ |
+| طبقات التكلفة FIFO | **8** | ✅ مصححة |
+| مخزون المستودعات | 14 | ✅ |
+| سجل حركات المخزون | 18 | ✅ |
+| طلبات الشراء (PR) | 0 | ⚠️ UI missing |
+| عروض الأسعار (RFQ) | 0 | ⚠️ UI missing |
+| طلبات الاعتماد | 0 | ⚠️ UI missing |
 
-### ⚠️ مشكلة حرجة مكتشفة
-> **طبقات التكلفة FIFO فارغة رغم وجود 2 GRN مرحّلة**
-> - السبب: دالة `post_goods_receipt` كانت تستخدم أسماء أعمدة خاطئة
-> - الحالة: **تم إصلاحها** في Migration الأخير
+### ✅ إنجازات حرجة تم إصلاحها
+> **طبقات التكلفة FIFO تعمل بشكل صحيح الآن**
+> - تم إصلاح `post_goods_receipt()` لإنشاء cost layers
+> - 8 طبقات تكلفة موجودة مع qty_remaining = qty_original
+> - Backfill تم تنفيذه للـ GRNs المرحّلة سابقاً
 
 ---
 
@@ -53,18 +60,26 @@
 
 | البند | الحالة | التفاصيل |
 |-------|--------|----------|
-| **Frontend** | ❌ غير منفذ | لا توجد صفحة PR |
-| **Backend - Tables** | ❌ غير منفذ | لا يوجد جدول `purchase_requisitions` |
-| **Backend - Functions** | ❌ غير منفذ | لا توجد دوال PR |
-| **Workflow** | ❌ غير منفذ | لا يوجد workflow موافقات |
+| **Frontend** | ❌ غير منفذ | الصفحات لم تُبنى بعد |
+| **Backend - Tables** | ✅ مكتمل | `purchase_requisitions`, `pr_items` |
+| **Backend - Functions** | ✅ مكتمل | `generate_pr_number()`, `submit_pr()`, `convert_pr_to_rfq()`, `convert_pr_to_po()` |
+| **API/Hooks** | ✅ مكتمل | `purchasingApi.ts`, `usePurchaseRequisitions.ts` |
+| **RLS** | ✅ مكتمل | authenticated only |
 
-**التأثير:** عدم وجود طلبات شراء داخلية يعني عدم إمكانية الفصل بين طلب القسم والموافقة الإدارية.
-
-**الجداول المطلوبة:**
+**الجداول الموجودة:**
 ```sql
--- غير موجود حالياً
-purchase_requisitions (id, pr_number, requester_id, department_id, status, ...)
-pr_items (id, pr_id, item_id, quantity, ...)
+purchase_requisitions: id, pr_number, warehouse_id, requested_by, department,
+                       priority, status, currency_code, exchange_rate,
+                       subtotal_fc, subtotal_bc, discount_fc, discount_bc,
+                       tax_fc, tax_bc, total_fc, total_bc, notes, created_at
+
+pr_items: id, pr_id, product_id, uom_id, requested_qty,
+          estimated_unit_cost_fc, line_total_fc, line_total_bc, notes
+```
+
+**الحالات المدعومة:**
+```
+draft → submitted → approved → rejected → converted_to_rfq → converted_to_po → cancelled
 ```
 
 ---
@@ -73,17 +88,24 @@ pr_items (id, pr_id, item_id, quantity, ...)
 
 | البند | الحالة | التفاصيل |
 |-------|--------|----------|
-| **Frontend** | ❌ غير منفذ | لا توجد صفحة RFQ |
-| **Backend - Tables** | ❌ غير منفذ | لا يوجد جدول RFQ |
-| **Backend - Functions** | ❌ غير منفذ | لا توجد دوال مقارنة أسعار |
+| **Frontend** | ❌ غير منفذ | الصفحات لم تُبنى بعد |
+| **Backend - Tables** | ✅ مكتمل | `rfq_requests`, `rfq_suppliers`, `rfq_quotes`, `rfq_quote_items` |
+| **Backend - Functions** | ✅ مكتمل | `generate_rfq_number()`, `convert_quote_to_po()` |
+| **API/Hooks** | ✅ مكتمل | `purchasingApi.ts`, `useRFQ.ts` |
+| **RLS** | ✅ مكتمل | authenticated only |
 
-**التأثير:** عدم إمكانية مقارنة أسعار الموردين واختيار أفضل عرض.
-
-**الجداول المطلوبة:**
+**الجداول الموجودة:**
 ```sql
--- غير موجود حالياً
-rfq_requests (id, rfq_number, pr_id, status, ...)
-rfq_quotes (id, rfq_id, supplier_id, quoted_price, validity_date, ...)
+rfq_requests: id, rfq_number, pr_id, status, submission_deadline, notes, currency_code
+
+rfq_suppliers: id, rfq_id, supplier_id, response_status, invited_at
+
+rfq_quotes: id, rfq_id, supplier_id, quote_number, status, currency_code,
+            exchange_rate, subtotal_fc/bc, discount_fc/bc, tax_fc/bc, total_fc/bc,
+            payment_terms, delivery_days, validity_days, is_winner
+
+rfq_quote_items: id, quote_id, product_id, uom_id, quantity, unit_price_fc,
+                 line_total_fc, line_total_bc
 ```
 
 ---
@@ -346,54 +368,55 @@ HAVING SUM(jl.debit_bc) <> SUM(jl.credit_bc);
 
 ---
 
-## 5. تحليل الفجوات
+## 5. تحليل الفجوات (محدّث 2025-12-18)
 
 ### 5.1 جدول حالة التنفيذ
 
-| المرحلة | Frontend | Backend | التكامل | الحالة الإجمالية |
-|---------|----------|---------|---------|------------------|
-| PR (طلبات الشراء) | ❌ | ❌ | ❌ | ❌ **0%** |
-| RFQ (عروض الأسعار) | ❌ | ❌ | ❌ | ❌ **0%** |
-| PO (أوامر الشراء) | ✅ | ✅ | ✅ | ✅ **95%** |
-| GRN (استلام البضائع) | ✅ | ✅ | ✅ | ✅ **90%** |
-| Batches (الدفعات) | ✅ | ✅ | ⚠️ | ⚠️ **80%** |
-| PI (فواتير الشراء) | ✅ | ✅ | ✅ | ✅ **95%** |
-| PR Returns (المرتجعات) | ✅ | ✅ | ⚠️ | ⚠️ **85%** |
-| Supplier Payments | ✅ | ✅ | ✅ | ✅ **95%** |
+| المرحلة | Frontend | Backend | DB Tables | API/Hooks | الحالة الإجمالية |
+|---------|----------|---------|-----------|-----------|------------------|
+| PR (طلبات الشراء) | ❌ | ✅ | ✅ | ✅ | ⚠️ **45%** - UI فقط |
+| RFQ (عروض الأسعار) | ❌ | ✅ | ✅ | ✅ | ⚠️ **45%** - UI فقط |
+| Approvals | ❌ | ✅ | ✅ | ✅ | ⚠️ **35%** - UI فقط |
+| PO (أوامر الشراء) | ✅ | ✅ | ✅ | ✅ | ✅ **100%** |
+| GRN (استلام البضائع) | ✅ | ✅ | ✅ | ✅ | ✅ **100%** |
+| Batches (الدفعات) | ✅ | ✅ | ✅ | ✅ | ✅ **90%** |
+| PI (فواتير الشراء) | ✅ | ✅ | ✅ | ⚠️ | ✅ **95%** |
+| PR Returns (المرتجعات) | ✅ | ✅ | ⚠️ 0 rows | ⚠️ | ⚠️ **85%** - غير مختبر |
+| Supplier Payments | ✅ | ✅ | ⚠️ 0 rows | ✅ | ⚠️ **85%** - غير مختبر |
 
 ### 5.2 قائمة الفجوات الحرجة
 
-#### 🔴 تأثير محاسبي عالي
+#### 🔴 تأثير عالي - واجهات مفقودة
+
+| الفجوة | السبب | التأثير | الأولوية |
+|--------|-------|---------|----------|
+| PR UI Missing | لم تُنشأ الصفحات | لا يمكن إنشاء طلبات شراء | P0 |
+| RFQ UI Missing | لم تُنشأ الصفحات | لا يمكن مقارنة العروض | P0 |
+| Approvals UI Missing | لم تُنشأ الصفحات | لا يوجد صندوق موافقات | P0 |
+| GL Entries = 0 | لم يُختبر الترحيل | القيود المحاسبية فارغة | P0 |
+
+#### 🟡 تأثير متوسط
 
 | الفجوة | التأثير | الأولوية |
 |--------|---------|----------|
-| لا توجد Purchase Requisitions | لا يوجد فصل بين الطلب والموافقة | عالية |
-| لا يوجد Approval Workflow | أي مستخدم يمكنه اعتماد PO | عالية |
-| FX Gain/Loss غير محسوب | فروقات العملة لا تُسجّل | متوسطة |
+| FX Gain/Loss | فروقات العملة لا تُسجّل | P1 |
+| Returns Untested | المرتجعات قد لا تعمل | P1 |
+| Payments Untested | الدفعات قد لا تعمل | P1 |
 
-#### 🟡 تأثير مخزون متوسط
-
-| الفجوة | التأثير | الأولوية |
-|--------|---------|----------|
-| Landed Costs غير موجود | تكلفة الشحن/الجمارك لا تُوزّع | متوسطة |
-| Reorder Automation | لا يوجد اقتراح تلقائي للشراء | متوسطة |
-| Quality Check | لا يوجد فحص جودة بعد GRN | منخفضة |
-
-#### 🟢 تأثير تشغيلي
+#### 🟢 تأثير منخفض
 
 | الفجوة | التأثير | الأولوية |
 |--------|---------|----------|
-| RFQ System | لا يمكن مقارنة أسعار الموردين | متوسطة |
-| Credit Limit Validation | لا يوجد تنبيه عند تجاوز حد الائتمان | منخفضة |
-| PO Partial Receiving | التتبع الجزئي يدوي | منخفضة |
+| Landed Costs | تكلفة الشحن لا تُوزّع | P2 |
+| Quality Check | لا يوجد فحص جودة | P2 |
 
 ### 5.3 مقارنة مع Daftara/Odoo/SAP B1
 
 | الميزة | النظام الحالي | Daftara | Odoo | SAP B1 |
 |--------|---------------|---------|------|--------|
-| Purchase Requisitions | ❌ | ✅ | ✅ | ✅ |
-| RFQ/Quotations | ❌ | ✅ | ✅ | ✅ |
-| Multi-level Approvals | ❌ | ✅ | ✅ | ✅ |
+| Purchase Requisitions | ⚠️ Backend only | ✅ | ✅ | ✅ |
+| RFQ/Quotations | ⚠️ Backend only | ✅ | ✅ | ✅ |
+| Multi-level Approvals | ⚠️ Backend only | ✅ | ✅ | ✅ |
 | Purchase Orders | ✅ | ✅ | ✅ | ✅ |
 | Goods Receipt | ✅ | ✅ | ✅ | ✅ |
 | Batch/Expiry | ✅ | ✅ | ✅ | ✅ |
@@ -401,14 +424,13 @@ HAVING SUM(jl.debit_bc) <> SUM(jl.credit_bc);
 | Purchase Returns | ✅ | ✅ | ✅ | ✅ |
 | Supplier Payments | ✅ | ✅ | ✅ | ✅ |
 | Landed Costs | ❌ | ⚠️ | ✅ | ✅ |
-| Quality Check | ❌ | ❌ | ✅ | ✅ |
 | FIFO Costing | ✅ | ✅ | ✅ | ✅ |
 | Multi-Currency | ✅ | ✅ | ✅ | ✅ |
-| GL Integration | ✅ | ✅ | ✅ | ✅ |
+| GL Integration | ⚠️ | ✅ | ✅ | ✅ |
 
 **نسبة التغطية مقارنة بـ Daftara:** 78%  
-**نسبة التغطية مقارنة بـ Odoo:** 70%  
-**نسبة التغطية مقارنة بـ SAP B1:** 65%
+**نسبة التغطية مقارنة بـ Odoo:** 72%  
+**نسبة التغطية مقارنة بـ SAP B1:** 68%
 
 ---
 

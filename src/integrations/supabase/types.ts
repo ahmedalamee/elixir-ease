@@ -9005,52 +9005,28 @@ export type Database = {
       }
       safe_employee_basic: {
         Row: {
-          created_at: string | null
           department: string | null
-          email: string | null
           employee_code: string | null
           full_name: string | null
-          full_name_en: string | null
-          hire_date: string | null
           id: string | null
           is_active: boolean | null
           job_title: string | null
-          notes: string | null
-          phone: string | null
-          updated_at: string | null
-          user_id: string | null
         }
         Insert: {
-          created_at?: string | null
           department?: string | null
-          email?: string | null
           employee_code?: string | null
           full_name?: string | null
-          full_name_en?: string | null
-          hire_date?: string | null
           id?: string | null
           is_active?: boolean | null
           job_title?: string | null
-          notes?: string | null
-          phone?: string | null
-          updated_at?: string | null
-          user_id?: string | null
         }
         Update: {
-          created_at?: string | null
           department?: string | null
-          email?: string | null
           employee_code?: string | null
           full_name?: string | null
-          full_name_en?: string | null
-          hire_date?: string | null
           id?: string | null
           is_active?: boolean | null
           job_title?: string | null
-          notes?: string | null
-          phone?: string | null
-          updated_at?: string | null
-          user_id?: string | null
         }
         Relationships: []
       }
@@ -9066,8 +9042,8 @@ export type Database = {
           id: string | null
           is_active: boolean | null
           job_title: string | null
+          notes: string | null
           phone: string | null
-          salary: number | null
         }
         Insert: {
           created_at?: string | null
@@ -9080,8 +9056,8 @@ export type Database = {
           id?: string | null
           is_active?: boolean | null
           job_title?: string | null
+          notes?: string | null
           phone?: string | null
-          salary?: never
         }
         Update: {
           created_at?: string | null
@@ -9094,32 +9070,44 @@ export type Database = {
           id?: string | null
           is_active?: boolean | null
           job_title?: string | null
+          notes?: string | null
           phone?: string | null
-          salary?: never
         }
         Relationships: []
       }
       safe_employees_summary: {
         Row: {
           department: string | null
+          employee_code: string | null
           full_name: string | null
+          full_name_en: string | null
+          hire_date: string | null
           id: string | null
           is_active: boolean | null
           job_title: string | null
+          phone: string | null
         }
         Insert: {
           department?: string | null
+          employee_code?: string | null
           full_name?: string | null
+          full_name_en?: string | null
+          hire_date?: string | null
           id?: string | null
           is_active?: boolean | null
           job_title?: string | null
+          phone?: string | null
         }
         Update: {
           department?: string | null
+          employee_code?: string | null
           full_name?: string | null
+          full_name_en?: string | null
+          hire_date?: string | null
           id?: string | null
           is_active?: boolean | null
           job_title?: string | null
+          phone?: string | null
         }
         Relationships: []
       }

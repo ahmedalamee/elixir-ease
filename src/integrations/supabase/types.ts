@@ -116,6 +116,220 @@ export type Database = {
         }
         Relationships: []
       }
+      approval_history: {
+        Row: {
+          action: string
+          action_at: string | null
+          action_by: string | null
+          comments: string | null
+          created_at: string | null
+          id: string
+          request_id: string
+          step_id: string | null
+          step_order: number | null
+        }
+        Insert: {
+          action: string
+          action_at?: string | null
+          action_by?: string | null
+          comments?: string | null
+          created_at?: string | null
+          id?: string
+          request_id: string
+          step_id?: string | null
+          step_order?: number | null
+        }
+        Update: {
+          action?: string
+          action_at?: string | null
+          action_by?: string | null
+          comments?: string | null
+          created_at?: string | null
+          id?: string
+          request_id?: string
+          step_id?: string | null
+          step_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_history_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "approval_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_history_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "approval_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      approval_requests: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          current_step: number | null
+          document_id: string
+          document_number: string | null
+          document_type: string
+          id: string
+          notes: string | null
+          requested_at: string | null
+          requested_by: string | null
+          status: string
+          total_steps: number | null
+          updated_at: string | null
+          workflow_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          current_step?: number | null
+          document_id: string
+          document_number?: string | null
+          document_type: string
+          id?: string
+          notes?: string | null
+          requested_at?: string | null
+          requested_by?: string | null
+          status?: string
+          total_steps?: number | null
+          updated_at?: string | null
+          workflow_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          current_step?: number | null
+          document_id?: string
+          document_number?: string | null
+          document_type?: string
+          id?: string
+          notes?: string | null
+          requested_at?: string | null
+          requested_by?: string | null
+          status?: string
+          total_steps?: number | null
+          updated_at?: string | null
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_requests_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "approval_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      approval_steps: {
+        Row: {
+          approver_role: string
+          created_at: string | null
+          department: string | null
+          id: string
+          is_required: boolean | null
+          max_amount: number | null
+          min_amount: number | null
+          step_name: string
+          step_order: number
+          warehouse_id: string | null
+          workflow_id: string
+        }
+        Insert: {
+          approver_role: string
+          created_at?: string | null
+          department?: string | null
+          id?: string
+          is_required?: boolean | null
+          max_amount?: number | null
+          min_amount?: number | null
+          step_name: string
+          step_order: number
+          warehouse_id?: string | null
+          workflow_id: string
+        }
+        Update: {
+          approver_role?: string
+          created_at?: string | null
+          department?: string | null
+          id?: string
+          is_required?: boolean | null
+          max_amount?: number | null
+          min_amount?: number | null
+          step_name?: string
+          step_order?: number
+          warehouse_id?: string | null
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_steps_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "approval_steps_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "approval_steps_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_steps_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "approval_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      approval_workflows: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          document_type: string
+          id: string
+          is_active: boolean | null
+          updated_at: string | null
+          workflow_name: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          document_type: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          workflow_name: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          document_type?: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          workflow_name?: string
+        }
+        Relationships: []
+      }
       audit_log: {
         Row: {
           changed_at: string
@@ -5772,6 +5986,87 @@ export type Database = {
           },
         ]
       }
+      pr_items: {
+        Row: {
+          created_at: string | null
+          estimated_unit_cost_bc: number | null
+          estimated_unit_cost_fc: number | null
+          id: string
+          line_no: number | null
+          line_total_bc: number | null
+          line_total_fc: number | null
+          notes: string | null
+          pr_id: string
+          product_id: string
+          requested_qty: number
+          uom_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          estimated_unit_cost_bc?: number | null
+          estimated_unit_cost_fc?: number | null
+          id?: string
+          line_no?: number | null
+          line_total_bc?: number | null
+          line_total_fc?: number | null
+          notes?: string | null
+          pr_id: string
+          product_id: string
+          requested_qty: number
+          uom_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          estimated_unit_cost_bc?: number | null
+          estimated_unit_cost_fc?: number | null
+          id?: string
+          line_no?: number | null
+          line_total_bc?: number | null
+          line_total_fc?: number | null
+          notes?: string | null
+          pr_id?: string
+          product_id?: string
+          requested_qty?: number
+          uom_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pr_items_pr_id_fkey"
+            columns: ["pr_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_requisitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pr_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "pr_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pr_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "pr_items_uom_id_fkey"
+            columns: ["uom_id"]
+            isOneToOne: false
+            referencedRelation: "uoms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prescription_items: {
         Row: {
           created_at: string | null
@@ -6436,6 +6731,9 @@ export type Database = {
           notes: string | null
           payment_terms: string | null
           po_number: string
+          pr_id: string | null
+          quote_id: string | null
+          rfq_id: string | null
           status: string | null
           subtotal: number | null
           subtotal_bc: number | null
@@ -6464,6 +6762,9 @@ export type Database = {
           notes?: string | null
           payment_terms?: string | null
           po_number: string
+          pr_id?: string | null
+          quote_id?: string | null
+          rfq_id?: string | null
           status?: string | null
           subtotal?: number | null
           subtotal_bc?: number | null
@@ -6492,6 +6793,9 @@ export type Database = {
           notes?: string | null
           payment_terms?: string | null
           po_number?: string
+          pr_id?: string | null
+          quote_id?: string | null
+          rfq_id?: string | null
           status?: string | null
           subtotal?: number | null
           subtotal_bc?: number | null
@@ -6507,6 +6811,27 @@ export type Database = {
           warehouse_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "purchase_orders_pr_id_fkey"
+            columns: ["pr_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_requisitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "rfq_quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_rfq_id_fkey"
+            columns: ["rfq_id"]
+            isOneToOne: false
+            referencedRelation: "rfq_requests"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "purchase_orders_supplier_id_fkey"
             columns: ["supplier_id"]
@@ -6537,6 +6862,116 @@ export type Database = {
           },
           {
             foreignKeyName: "purchase_orders_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_requisitions: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string | null
+          created_by: string | null
+          currency_code: string | null
+          department: string | null
+          discount_bc: number | null
+          discount_fc: number | null
+          exchange_rate: number | null
+          id: string
+          notes: string | null
+          pr_number: string
+          priority: string
+          requested_by: string | null
+          required_date: string | null
+          status: string
+          subtotal_bc: number | null
+          subtotal_fc: number | null
+          tax_bc: number | null
+          tax_fc: number | null
+          total_bc: number | null
+          total_fc: number | null
+          updated_at: string | null
+          warehouse_id: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          currency_code?: string | null
+          department?: string | null
+          discount_bc?: number | null
+          discount_fc?: number | null
+          exchange_rate?: number | null
+          id?: string
+          notes?: string | null
+          pr_number: string
+          priority?: string
+          requested_by?: string | null
+          required_date?: string | null
+          status?: string
+          subtotal_bc?: number | null
+          subtotal_fc?: number | null
+          tax_bc?: number | null
+          tax_fc?: number | null
+          total_bc?: number | null
+          total_fc?: number | null
+          updated_at?: string | null
+          warehouse_id?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          currency_code?: string | null
+          department?: string | null
+          discount_bc?: number | null
+          discount_fc?: number | null
+          exchange_rate?: number | null
+          id?: string
+          notes?: string | null
+          pr_number?: string
+          priority?: string
+          requested_by?: string | null
+          required_date?: string | null
+          status?: string
+          subtotal_bc?: number | null
+          subtotal_fc?: number | null
+          tax_bc?: number | null
+          tax_fc?: number | null
+          total_bc?: number | null
+          total_fc?: number | null
+          updated_at?: string | null
+          warehouse_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_requisitions_currency_code_fkey"
+            columns: ["currency_code"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "purchase_requisitions_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "purchase_requisitions_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "purchase_requisitions_warehouse_id_fkey"
             columns: ["warehouse_id"]
             isOneToOne: false
             referencedRelation: "warehouses"
@@ -7012,6 +7447,324 @@ export type Database = {
             columns: ["warehouse_id"]
             isOneToOne: false
             referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rfq_quote_items: {
+        Row: {
+          created_at: string | null
+          id: string
+          line_no: number | null
+          line_total_bc: number | null
+          line_total_fc: number | null
+          notes: string | null
+          product_id: string
+          quantity: number
+          quote_id: string
+          unit_price_bc: number | null
+          unit_price_fc: number
+          uom_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          line_no?: number | null
+          line_total_bc?: number | null
+          line_total_fc?: number | null
+          notes?: string | null
+          product_id: string
+          quantity: number
+          quote_id: string
+          unit_price_bc?: number | null
+          unit_price_fc: number
+          uom_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          line_no?: number | null
+          line_total_bc?: number | null
+          line_total_fc?: number | null
+          notes?: string | null
+          product_id?: string
+          quantity?: number
+          quote_id?: string
+          unit_price_bc?: number | null
+          unit_price_fc?: number
+          uom_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rfq_quote_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "rfq_quote_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_quote_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "rfq_quote_items_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "rfq_quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_quote_items_uom_id_fkey"
+            columns: ["uom_id"]
+            isOneToOne: false
+            referencedRelation: "uoms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rfq_quotes: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          currency_code: string | null
+          delivery_days: number | null
+          discount_bc: number | null
+          discount_fc: number | null
+          exchange_rate: number | null
+          id: string
+          is_winner: boolean | null
+          notes: string | null
+          payment_terms: string | null
+          quote_number: string
+          rfq_id: string
+          status: string | null
+          submitted_at: string | null
+          subtotal_bc: number | null
+          subtotal_fc: number | null
+          supplier_id: string
+          tax_bc: number | null
+          tax_fc: number | null
+          total_bc: number | null
+          total_fc: number | null
+          updated_at: string | null
+          validity_days: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          currency_code?: string | null
+          delivery_days?: number | null
+          discount_bc?: number | null
+          discount_fc?: number | null
+          exchange_rate?: number | null
+          id?: string
+          is_winner?: boolean | null
+          notes?: string | null
+          payment_terms?: string | null
+          quote_number: string
+          rfq_id: string
+          status?: string | null
+          submitted_at?: string | null
+          subtotal_bc?: number | null
+          subtotal_fc?: number | null
+          supplier_id: string
+          tax_bc?: number | null
+          tax_fc?: number | null
+          total_bc?: number | null
+          total_fc?: number | null
+          updated_at?: string | null
+          validity_days?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          currency_code?: string | null
+          delivery_days?: number | null
+          discount_bc?: number | null
+          discount_fc?: number | null
+          exchange_rate?: number | null
+          id?: string
+          is_winner?: boolean | null
+          notes?: string | null
+          payment_terms?: string | null
+          quote_number?: string
+          rfq_id?: string
+          status?: string | null
+          submitted_at?: string | null
+          subtotal_bc?: number | null
+          subtotal_fc?: number | null
+          supplier_id?: string
+          tax_bc?: number | null
+          tax_fc?: number | null
+          total_bc?: number | null
+          total_fc?: number | null
+          updated_at?: string | null
+          validity_days?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rfq_quotes_currency_code_fkey"
+            columns: ["currency_code"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "rfq_quotes_rfq_id_fkey"
+            columns: ["rfq_id"]
+            isOneToOne: false
+            referencedRelation: "rfq_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_quotes_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "safe_suppliers_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_quotes_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rfq_requests: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          currency_code: string | null
+          id: string
+          notes: string | null
+          pr_id: string | null
+          rfq_number: string
+          status: string
+          submission_deadline: string | null
+          title: string | null
+          updated_at: string | null
+          warehouse_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          currency_code?: string | null
+          id?: string
+          notes?: string | null
+          pr_id?: string | null
+          rfq_number: string
+          status?: string
+          submission_deadline?: string | null
+          title?: string | null
+          updated_at?: string | null
+          warehouse_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          currency_code?: string | null
+          id?: string
+          notes?: string | null
+          pr_id?: string | null
+          rfq_number?: string
+          status?: string
+          submission_deadline?: string | null
+          title?: string | null
+          updated_at?: string | null
+          warehouse_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rfq_requests_currency_code_fkey"
+            columns: ["currency_code"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "rfq_requests_pr_id_fkey"
+            columns: ["pr_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_requisitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_requests_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "rfq_requests_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "rfq_requests_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rfq_suppliers: {
+        Row: {
+          id: string
+          invited_at: string | null
+          response_status: string | null
+          rfq_id: string
+          supplier_id: string
+        }
+        Insert: {
+          id?: string
+          invited_at?: string | null
+          response_status?: string | null
+          rfq_id: string
+          supplier_id: string
+        }
+        Update: {
+          id?: string
+          invited_at?: string | null
+          response_status?: string | null
+          rfq_id?: string
+          supplier_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rfq_suppliers_rfq_id_fkey"
+            columns: ["rfq_id"]
+            isOneToOne: false
+            referencedRelation: "rfq_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_suppliers_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "safe_suppliers_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_suppliers_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]
@@ -10437,6 +11190,10 @@ export type Database = {
           warehouse_name: string
         }[]
       }
+      approve_approval_step: {
+        Args: { p_comments?: string; p_request_id: string }
+        Returns: Json
+      }
       calculate_financial_ratios: {
         Args: { p_end_date: string; p_start_date: string }
         Returns: Json
@@ -10524,6 +11281,12 @@ export type Database = {
         }
         Returns: number
       }
+      convert_pr_to_po: {
+        Args: { p_pr_id: string; p_supplier_id: string }
+        Returns: Json
+      }
+      convert_pr_to_rfq: { Args: { p_pr_id: string }; Returns: Json }
+      convert_quote_to_po: { Args: { p_quote_id: string }; Returns: Json }
       convert_to_base_currency: {
         Args: { p_amount: number; p_date?: string; p_from_currency: string }
         Returns: number
@@ -10588,9 +11351,11 @@ export type Database = {
       generate_journal_entry_number: { Args: never; Returns: string }
       generate_payment_number: { Args: never; Returns: string }
       generate_pos_session_number: { Args: never; Returns: string }
+      generate_pr_number: { Args: never; Returns: string }
       generate_prescription_number: { Args: never; Returns: string }
       generate_purchase_return_number: { Args: never; Returns: string }
       generate_receipt_number: { Args: never; Returns: string }
+      generate_rfq_number: { Args: never; Returns: string }
       generate_sales_return_number: { Args: never; Returns: string }
       generate_si_number: { Args: never; Returns: string }
       generate_supplier_code: { Args: never; Returns: string }
@@ -10944,6 +11709,10 @@ export type Database = {
       }
       refresh_inventory_summary: { Args: never; Returns: undefined }
       refresh_sales_summary: { Args: never; Returns: undefined }
+      reject_approval_request: {
+        Args: { p_reason: string; p_request_id: string }
+        Returns: Json
+      }
       reopen_accounting_period: { Args: { p_period_id: string }; Returns: Json }
       search_customers_for_pos: {
         Args: { p_limit?: number; p_search: string }
@@ -10964,6 +11733,7 @@ export type Database = {
           name: string
         }[]
       }
+      submit_pr: { Args: { p_pr_id: string }; Returns: Json }
       user_has_permission: {
         Args: { _permission_key: string; _user_id: string }
         Returns: boolean

@@ -22,7 +22,6 @@ interface Employee {
   phone: string | null;
   job_title: string | null;
   department: string | null;
-  salary: number | null;
   is_active: boolean | null;
   hire_date: string | null;
   user_id: string | null;

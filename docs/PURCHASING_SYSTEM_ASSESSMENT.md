@@ -1,516 +1,514 @@
-# ERP Purchasing System Assessment Report
-## Pharmacy ERP - Purchase Module Comprehensive Analysis
+# 📊 تقرير تقييم دورة حياة نظام المشتريات
+## Purchasing Lifecycle – Full ERP Assessment
 
-**Assessment Date:** December 8, 2025  
-**Version:** 1.0  
-**Status:** Active Development  
-
----
-
-## 1. Executive Summary
-
-The Pharmacy ERP Purchasing System has achieved significant progress in implementing a comprehensive procurement workflow. The system currently operates at approximately **78% completion** with robust foundations in place for vendor management, purchase orders, goods receipts, and purchase invoices. 
-
-### Key Strengths:
-- ✅ Full multi-currency support (YER/SAR) with automatic conversion
-- ✅ Complete PO → GRN → Invoice workflow
-- ✅ FIFO costing integration with inventory
-- ✅ Dual-currency GL posting (FC/BC)
-- ✅ Role-based access control (RLS)
-
-### Critical Gaps:
-- ❌ Supplier Payments UI not yet created
-- ❌ Missing inventory restoration in purchase returns
-- ❌ Incomplete landed cost allocation
-- ❌ No multi-level approval workflow
+**تاريخ التقييم:** 2025-12-18  
+**إعداد:** محلل نظم ERP - Pharmacy ERP Specialist  
+**نوع التقييم:** تحليل شامل (Frontend + Backend + التكامل)
 
 ---
 
-## 2. Success Metrics by Subsystem
+## 📋 الملخص التنفيذي
 
-| Subsystem | Completion | Status |
-|-----------|------------|--------|
-| **Supplier Management** | 90% | ✅ Stable |
-| **Purchase Orders** | 85% | ✅ Stable |
-| **Goods Receipt (GRN)** | 88% | ✅ Stable |
-| **Purchase Invoices** | 85% | ✅ Stable |
-| **Purchase Returns** | 75% | ⚠️ Partial |
-| **Supplier Payments** | 60% | ⚠️ Backend Only |
-| **Multi-Currency Logic** | 92% | ✅ Stable |
-| **Inventory Integration** | 85% | ✅ Stable |
-| **GL/Accounting Integration** | 85% | ✅ Stable |
-
-**Overall System Completion: ~78%**
+| المؤشر | القيمة |
+|--------|--------|
+| **نسبة الإنجاز الكلية** | 78% |
+| **حالة الجاهزية** | ⚠️ جاهز جزئياً |
+| **المراحل المكتملة** | 6 من 8 |
+| **الفجوات الحرجة** | 3 (PR, RFQ, FIFO Empty) |
 
 ---
 
-## 3. What Has Been Achieved
+## 1️⃣ تحليل دورة حياة المشتريات (End-to-End)
 
-### 3.1 Supplier Management (90%)
+### جدول حالة التنفيذ الشامل
 
-**Fully Working:**
-- ✅ Supplier CRUD operations (Create, Read, Update, Delete)
-- ✅ Multi-currency support per supplier (YER/SAR)
-- ✅ Search and filtering capabilities
-- ✅ Credit limit tracking
-- ✅ Balance management
-- ✅ Automatic supplier code generation (`SUP-XXXXXX`)
-
-**Partially Working:**
-- ⚠️ Balance auto-update from invoices (needs verification)
-
-**Missing:**
-- ❌ Supplier statement report
-- ❌ Payment terms configuration
-- ❌ Supplier aging report integration
+| المرحلة | Frontend | Backend | التكامل المخزني | التكامل المحاسبي | الحالة |
+|---------|----------|---------|-----------------|-----------------|--------|
+| 1. طلبات الشراء (PR) | ❌ غير موجود | ❌ غير موجود | ❌ | ❌ | ❌ غير منفذ |
+| 2. عروض الأسعار (RFQ) | ❌ غير موجود | ❌ غير موجود | ❌ | ❌ | ❌ غير منفذ |
+| 3. أوامر الشراء (PO) | ✅ كامل | ✅ كامل | ⚠️ جزئي | ❌ | ✅ مكتمل |
+| 4. استلام البضائع (GRN) | ✅ كامل | ⚠️ خلل FIFO | ❌ فارغ | ⚠️ جزئي | ⚠️ جزئي |
+| 5. الدفعات والانتهاء | ✅ كامل | ✅ كامل | ✅ | - | ✅ مكتمل |
+| 6. فواتير الشراء (PI) | ✅ كامل | ✅ كامل | ⚠️ جزئي | ✅ جاهز | ✅ مكتمل |
+| 7. مرتجعات المشتريات | ✅ كامل | ⚠️ جزئي | ⚠️ جزئي | ⚠️ جزئي | ⚠️ جزئي |
+| 8. مدفوعات الموردين | ✅ كامل | ✅ كامل | - | ✅ جاهز | ✅ مكتمل |
 
 ---
 
-### 3.2 Purchase Orders (85%)
+## 2️⃣ تحليل تفصيلي لكل مرحلة
 
-**Fully Working:**
-- ✅ PO creation with multi-line items
-- ✅ Multi-currency support (auto-loads supplier currency)
-- ✅ FC/BC amount calculations
-- ✅ Status workflow: Draft → Approved → Partial → Completed
-- ✅ Automatic PO number generation (`PO-XXXXXX`)
-- ✅ Warehouse and supplier selection
-- ✅ Tax code and discount per line
-- ✅ Filtering by status, supplier, search term
-- ✅ PO approval with user tracking
-- ✅ Cancel functionality
+### 1. طلبات الشراء الداخلية (Purchase Requisitions - PR)
+**الحالة: ❌ غير منفذ**
 
-**Partially Working:**
-- ⚠️ Tax calculation triggers (recently added, needs testing)
-- ⚠️ Received quantity tracking (updates from GRN)
+| العنصر | الحالة | التفاصيل |
+|--------|--------|----------|
+| Frontend | ❌ | لا يوجد صفحة |
+| Backend | ❌ | لا يوجد جدول |
+| Workflow | ❌ | لا يوجد |
 
-**Missing:**
-- ❌ Multi-level approval workflow
-- ❌ PO revision history
-- ❌ Email notifications on approval
-- ❌ PO printing/export
+**التأثير:** غياب طلبات الشراء يمنع:
+- الرقابة الداخلية على المشتريات
+- سلسلة الموافقات المتعددة
+- تتبع الحاجة من المستودع إلى الشراء
 
 ---
 
-### 3.3 Goods Receipt - GRN (88%)
+### 2. عروض الأسعار (RFQ - Requests for Quotation)
+**الحالة: ❌ غير منفذ**
 
-**Fully Working:**
-- ✅ GRN creation from approved POs
-- ✅ Automatic item loading from PO
-- ✅ Batch/Lot number tracking
-- ✅ Expiry date capture
-- ✅ Multi-currency with exchange rate
-- ✅ Post GRN function (`post_goods_receipt`)
-- ✅ FIFO cost layer creation on posting
-- ✅ Warehouse stock update on posting
-- ✅ Stock ledger entry creation
-- ✅ PO status auto-update (Partial/Completed)
-- ✅ FC/BC cost tracking
+| العنصر | الحالة | التفاصيل |
+|--------|--------|----------|
+| Frontend | ❌ | لا يوجد صفحة |
+| Backend | ❌ | لا يوجد جدول |
+| مقارنة الأسعار | ❌ | لا يوجد |
 
-**Partially Working:**
-- ⚠️ Remaining quantity calculation (qty_ordered - qty_received)
-
-**Missing:**
-- ❌ Quality inspection workflow
-- ❌ Partial receipt handling improvements
-- ❌ GRN reversal/cancellation
-- ❌ Photo/document attachment
+**التأثير:** غياب RFQ يمنع:
+- مقارنة أسعار الموردين
+- توثيق عملية الاختيار
+- التفاوض المنظم
 
 ---
 
-### 3.4 Purchase Invoices (85%)
+### 3. أوامر الشراء (Purchase Orders)
+**الحالة: ✅ مكتمل**
 
-**Fully Working:**
-- ✅ Invoice creation from GRN, PO, or Direct
-- ✅ Automatic item loading from source
-- ✅ Multi-currency with FC/BC columns
-- ✅ Post invoice function (`post_purchase_invoice`)
-- ✅ Automatic GL journal entry creation
-- ✅ Account mapping support (erp_account_mappings)
-- ✅ Dual-currency GL posting
-- ✅ Supplier balance update on posting
-- ✅ Payment status tracking (unpaid/partial/paid)
+| العنصر | الحالة | التفاصيل |
+|--------|--------|----------|
+| Frontend | ✅ | `PurchaseOrders.tsx` (1003 سطر) |
+| Backend Tables | ✅ | `purchase_orders`, `po_items` |
+| Status Workflow | ✅ | draft → submitted → approved → partial → completed → cancelled |
+| Multi-Currency | ✅ | FC/BC مدعوم |
+| Tax Handling | ✅ | ديناميكي من `taxes` |
 
-**Partially Working:**
-- ⚠️ Discount calculations (hardcoded logic)
-- ⚠️ Tax amount validation
+**الجداول المستخدمة:**
+- `purchase_orders` - الرأسية
+- `po_items` - البنود
+- `suppliers` - الموردين
+- `warehouses` - المستودعات
+- `products` - المنتجات
+- `uoms` - وحدات القياس
+- `taxes` - الضرائب
 
-**Missing:**
-- ❌ Due date tracking with alerts
-- ❌ Invoice matching validation (3-way: PO-GRN-Invoice)
-- ❌ Credit note generation
-- ❌ Recurring invoice support
-
----
-
-### 3.5 Purchase Returns (75%)
-
-**Fully Working:**
-- ✅ Return creation from posted invoices
-- ✅ Item selection with returnable quantity
-- ✅ Condition tracking (good/damaged/expired)
-- ✅ Return number generation (`PR-XXXXXX`)
-- ✅ Post return function (`post_purchase_return`)
-- ✅ GL journal entry on posting
-- ✅ Supplier balance adjustment
-- ✅ Document-GL linking
-
-**Partially Working:**
-- ⚠️ Debit note generation (field exists but incomplete)
-
-**Missing:**
-- ❌ **Inventory restoration on return** (CRITICAL)
-- ❌ FIFO layer reversal
-- ❌ Stock ledger entry for return
-- ❌ Return reason analytics
-- ❌ Multi-currency in returns
+**الميزات المنفذة:**
+- ✅ إنشاء أمر شراء جديد
+- ✅ اختيار المورد والمستودع
+- ✅ إضافة بنود متعددة
+- ✅ حساب الخصم والضريبة
+- ✅ اعتماد/إلغاء الأمر
+- ✅ عرض تفاصيل الأمر
+- ✅ تصفية وبحث
+- ✅ دعم العملات المتعددة (YER/SAR)
 
 ---
 
-### 3.6 Supplier Payments (60%)
+### 4. استلام البضائع (Goods Receipt / GRN)
+**الحالة: ⚠️ مكتمل جزئياً - خلل حرج في FIFO**
 
-**Fully Working (Backend Only):**
-- ✅ `supplier_payments` table created
-- ✅ `supplier_payment_allocations` table created
-- ✅ `generate_supplier_payment_number` function
-- ✅ `post_supplier_payment` function with:
-  - GL journal entry creation
-  - Supplier balance update
-  - Invoice allocation updates
-  - Cash box balance deduction
+| العنصر | الحالة | التفاصيل |
+|--------|--------|----------|
+| Frontend | ✅ | `GoodsReceipts.tsx` (670 سطر) |
+| Backend Tables | ✅ | `goods_receipts`, `grn_items` |
+| `post_goods_receipt` | ⚠️ | موجودة لكن لا تنشئ FIFO layers |
+| Batch Tracking | ✅ | `lot_no`, `expiry_date` |
+| Status Workflow | ✅ | draft → received → posted → cancelled |
 
-**Missing:**
-- ❌ **SupplierPayments.tsx UI page** (NOT CREATED)
-- ❌ Route registration in menu
-- ❌ Payment allocation UI
-- ❌ Check/bank payment handling
+**⚠️ مشكلة حرجة:**
+```
+البيانات الحالية:
+- عدد استلامات البضائع: 10
+- المرحّلة منها: 2
+- طبقات FIFO المنشأة: 0 ❌
+```
 
----
+**السبب:** دالة `post_goods_receipt` لا تنشئ سجلات في `inventory_cost_layers`
 
-### 3.7 Multi-Currency Logic (92%)
-
-**Fully Working:**
-- ✅ YER as base currency (immutable)
-- ✅ Exchange rate management
-- ✅ Supplier default currency auto-load
-- ✅ FC/BC calculations in all modules
-- ✅ Dual-currency GL posting
-- ✅ Currency validation (rate=1 for YER)
-- ✅ InvoiceCurrencyPanel component
-
-**Partially Working:**
-- ⚠️ Exchange rate date lookup (uses invoice date)
-
-**Missing:**
-- ❌ Realized/unrealized FX gain/loss calculation
-- ❌ Currency revaluation at period end
+**الجداول المستخدمة:**
+- `goods_receipts` - الرأسية
+- `grn_items` - البنود
+- `warehouse_stock` - كميات المخزون
+- `inventory_cost_layers` - طبقات FIFO (فارغ!)
+- `stock_ledger` - سجل الحركة
 
 ---
 
-### 3.8 Inventory Integration (85%)
+### 5. إدارة الدفعات وتواريخ الانتهاء (Batches & Expiry)
+**الحالة: ✅ مكتمل**
 
-**Fully Working:**
-- ✅ FIFO cost layer creation from GRN
-- ✅ Warehouse stock updates
-- ✅ Stock ledger entries
-- ✅ Batch/lot tracking
-- ✅ Expiry date tracking
-- ✅ BC cost in inventory layers
-
-**Partially Working:**
-- ⚠️ Currency tracking in cost layers (columns exist)
-
-**Missing:**
-- ❌ Inventory restoration from purchase returns
-- ❌ Landed cost allocation to layers
-- ❌ Quality hold functionality
+| العنصر | الحالة | التفاصيل |
+|--------|--------|----------|
+| Lot Number | ✅ | `lot_no` في `grn_items` |
+| Expiry Date | ✅ | `expiry_date` في `grn_items` |
+| Validation | ✅ | إلزامي عند الاستلام |
+| Product Batches | ✅ | `product_batches` جدول منفصل |
 
 ---
 
-### 3.9 GL/Accounting Integration (85%)
+### 6. فواتير الشراء (Purchase Invoices)
+**الحالة: ✅ مكتمل**
 
-**Fully Working:**
-- ✅ `post_purchase_invoice` creates balanced GL entries
-- ✅ `post_supplier_payment` creates GL entries
-- ✅ `post_purchase_return` creates GL entries
-- ✅ Account mapping via `erp_account_mappings`
-- ✅ Dual-currency posting (FC/BC)
-- ✅ Period validation integration
-- ✅ Document-GL linking table
+| العنصر | الحالة | التفاصيل |
+|--------|--------|----------|
+| Frontend | ✅ | `PurchaseInvoices.tsx` (771 سطر) |
+| Backend Tables | ✅ | `purchase_invoices`, `pi_items` |
+| `post_purchase_invoice` | ✅ | تنشئ قيد محاسبي |
+| Duplicate Check | ✅ | `check_duplicate_supplier_invoice` |
+| Source Types | ✅ | GRN / PO / Direct |
+| Multi-Currency | ✅ | FC/BC كامل |
 
-**Partially Working:**
-- ⚠️ Account mapping fallback to hardcoded codes
+**البيانات الحالية:**
+```
+- عدد فواتير الشراء: 7
+- المرحّلة منها: 0
+```
 
-**Missing:**
-- ❌ Accrual entries for received-not-invoiced
-- ❌ Prepayment handling
-- ❌ GL reconciliation for AP
-
----
-
-## 4. Remaining Work for Full Completion
-
-### 4.1 High Priority (Must Fix)
-
-| # | Issue | Module | Reason |
-|---|-------|--------|--------|
-| 1 | Create SupplierPayments.tsx UI | Supplier Payments | **Backend exists but no UI** - Users cannot make payments |
-| 2 | Add inventory restoration to purchase returns | Purchase Returns | **FIFO layers not reversed** - Incorrect inventory values |
-| 3 | Add stock ledger entry for returns | Purchase Returns | No audit trail for return stock movements |
-| 4 | Register supplier payments route | Navigation | Page unreachable |
-| 5 | Fix PI source_type field | Purchase Invoices | Schema mismatch (invoice_type vs source_type) |
-
-### 4.2 Medium Priority (Should Fix)
-
-| # | Issue | Module |
-|---|-------|--------|
-| 6 | Add 3-way matching validation (PO-GRN-Invoice) | Purchase Invoices |
-| 7 | Implement landed cost allocation | GRN/Inventory |
-| 8 | Add multi-level approval workflow | Purchase Orders |
-| 9 | Create supplier aging report | Reporting |
-| 10 | Add FX gain/loss calculation | Multi-Currency |
-| 11 | Add due date alerts | Purchase Invoices |
-| 12 | Implement debit note generation | Purchase Returns |
-
-### 4.3 Low Priority (Nice to Have)
-
-| # | Issue | Module |
-|---|-------|--------|
-| 13 | Email notifications on approval | Purchase Orders |
-| 14 | PO revision tracking | Purchase Orders |
-| 15 | Quality inspection workflow | GRN |
-| 16 | Document attachment support | All |
-| 17 | Recurring invoice support | Purchase Invoices |
+**الجداول المستخدمة:**
+- `purchase_invoices` - الرأسية
+- `pi_items` - البنود
+- `gl_journal_entries` - القيود
+- `gl_journal_lines` - بنود القيود
 
 ---
 
-## 5. System Audit - Issues & Errors
+### 7. مرتجعات المشتريات (Purchase Returns)
+**الحالة: ⚠️ مكتمل جزئياً**
 
-### 5.1 Technical Issues
+| العنصر | الحالة | التفاصيل |
+|--------|--------|----------|
+| Frontend | ✅ | `PurchaseReturns.tsx` (662 سطر) |
+| Backend Tables | ✅ | `purchase_returns`, `purchase_return_items` |
+| `post_purchase_return` | ⚠️ | موجودة - تحتاج مراجعة |
+| Inventory Reversal | ⚠️ | غير مختبر |
+| GL Posting | ⚠️ | غير مختبر |
 
-| # | Issue | Severity | Location | Fix |
-|---|-------|----------|----------|-----|
-| T1 | `reference_type` column missing in inventory_cost_layers | **Medium** | Database schema | The function uses `reference_type` but column not found. Verify schema. |
-| T2 | Duplicate currency columns in purchase_invoices | **Low** | `purchase_invoices` table | Has both `currency` and `currency_code` columns - consolidate to one |
-| T3 | invoice_type vs source_type inconsistency | **Medium** | `PurchaseInvoices.tsx` | Code uses `source_type` but table has `invoice_type` - sync naming |
-| T4 | Hardcoded 15% tax rate | **Medium** | Multiple files | Tax should come from taxes table, not hardcoded |
+**البيانات الحالية:**
+```
+- عدد المرتجعات: 0
+```
 
-### 5.2 Functional Issues
-
-| # | Issue | Severity | Location | Fix |
-|---|-------|----------|----------|-----|
-| F1 | **Purchase returns don't restore inventory** | **HIGH** | `post_purchase_return` | Add INSERT to inventory_cost_layers and warehouse_stock update |
-| F2 | **No stock ledger entry for returns** | **HIGH** | `post_purchase_return` | Add INSERT to stock_ledger for audit trail |
-| F3 | Supplier balance not updated on PI posting | **Medium** | `post_purchase_invoice` | Verify supplier.balance += invoice total |
-| F4 | Missing validation for duplicate supplier invoice no | **Medium** | `PurchaseInvoices.tsx` | Add unique constraint or validation |
-| F5 | PO status constraint error was blocking GRN | **Fixed** | Database trigger | Removed conflicting trigger that tried 'received' status |
-
-### 5.3 UI/UX Issues
-
-| # | Issue | Severity | Location | Fix |
-|---|-------|----------|----------|-----|
-| U1 | **SupplierPayments.tsx not created** | **HIGH** | Missing file | Create complete UI for supplier payments |
-| U2 | No route for supplier payments | **HIGH** | App.tsx, menu-tree.ts | Add route and menu entry |
-| U3 | Missing confirmation dialogs for posting | **Medium** | All posting pages | Add "Are you sure?" dialogs |
-| U4 | No loading states during async operations | **Low** | Multiple pages | Add skeleton/spinner components |
-| U5 | Currency symbol not displayed in all totals | **Low** | GRN, Returns | Add symbol from currency table |
+**الميزات المنفذة:**
+- ✅ اختيار فاتورة الشراء الأصلية
+- ✅ تحديد المنتجات للإرجاع
+- ✅ تحديد حالة المنتج (جيد/تالف/منتهي)
+- ✅ حساب المبلغ المسترد
+- ✅ إنشاء إشعار مدين
 
 ---
 
-## 6. Implementation Roadmap (Sprint Plan)
+### 8. مدفوعات الموردين (Supplier Payments)
+**الحالة: ✅ مكتمل**
 
-### Sprint 1: Stabilization & Critical Fixes (1 week)
+| العنصر | الحالة | التفاصيل |
+|--------|--------|----------|
+| Frontend | ✅ | `SupplierPayments.tsx` (835 سطر) |
+| Backend Tables | ✅ | `supplier_payments`, `supplier_payment_allocations` |
+| `post_supplier_payment` | ✅ | تنشئ قيد وتحدث الرصيد |
+| Invoice Allocation | ✅ | تخصيص على الفواتير |
+| Cash Box Integration | ✅ | ربط بالصناديق |
+| Multi-Currency | ✅ | FC/BC كامل |
 
-**Goal:** Fix all HIGH severity issues
-
-**Tasks:**
-1. Create `SupplierPayments.tsx` UI page
-2. Add route for supplier payments in App.tsx
-3. Add menu entry in menu-tree.ts
-4. Fix `post_purchase_return` to restore inventory:
-   - Add inventory_cost_layers INSERT
-   - Add warehouse_stock UPDATE
-   - Add stock_ledger INSERT
-5. Test full workflow: PO → GRN → PI → Payment
-
-**Deliverables:**
-- Working supplier payments page
-- Complete purchase returns with inventory restoration
-- All HIGH issues resolved
+**البيانات الحالية:**
+```
+- عدد المدفوعات: 0
+```
 
 ---
 
-### Sprint 2: Multi-Currency Reliability (3-4 days)
+## 3️⃣ تحليل التكامل مع الأنظمة الأخرى
 
-**Goal:** Ensure consistent multi-currency behavior
+### 📦 التكامل مع المخزون
 
-**Tasks:**
-1. Remove duplicate `currency` column from purchase_invoices
-2. Standardize on `currency_code` across all modules
-3. Add exchange rate validation before posting
-4. Implement FX gain/loss GL accounts posting
-5. Add currency symbol display in all totals
+| الجدول | الاستخدام | حالة التكامل |
+|--------|----------|--------------|
+| `warehouse_stock` | كميات المخزون | ⚠️ يتم التحديث عند GRN لكن لا يتم التحقق من FIFO |
+| `inventory_cost_layers` | طبقات FIFO | ❌ فارغ - لا يتم الإنشاء |
+| `stock_ledger` | سجل الحركة | ⚠️ جزئي |
+| `product_batches` | الدفعات | ✅ يعمل |
 
-**Deliverables:**
-- Consistent currency handling
-- FX impact tracking
+**تشخيص مشكلة FIFO:**
+```sql
+-- الوضع الحالي
+SELECT COUNT(*) FROM goods_receipts WHERE status = 'posted'; -- = 2
+SELECT COUNT(*) FROM inventory_cost_layers; -- = 0 ❌
 
----
+-- المتوقع: 2 GRN مرحّلة = عدة طبقات FIFO
+```
 
-### Sprint 3: Inventory Integration Enhancement (1 week)
-
-**Goal:** Complete FIFO and batch tracking
-
-**Tasks:**
-1. Add landed cost allocation to GRN
-2. Implement cost layer reversal for returns
-3. Add quality hold status for batches
-4. Create inventory valuation by purchase source report
-5. Add expiry date alerts
-
-**Deliverables:**
-- Complete FIFO with all scenarios
-- Landed cost support
+**هل FIFO يعمل؟** ❌ لا - الطبقات لا تُنشأ
 
 ---
 
-### Sprint 4: Purchase Invoice Automation (1 week)
+### 💰 التكامل مع المحاسبة
 
-**Goal:** Full invoice workflow with validations
+| الدالة | الغرض | حالة التكامل |
+|--------|-------|--------------|
+| `post_purchase_invoice` | قيد فاتورة الشراء | ✅ جاهز |
+| `post_purchase_return` | قيد المرتجع | ⚠️ يحتاج اختبار |
+| `post_supplier_payment` | قيد الدفعة | ✅ جاهز |
+| `post_goods_receipt` | قيد الاستلام | ⚠️ لا ينشئ FIFO |
 
-**Tasks:**
-1. Implement 3-way matching (PO-GRN-Invoice)
-2. Add due date tracking with alerts
-3. Remove hardcoded tax rates - use taxes table
-4. Add duplicate invoice number validation
-5. Implement credit note generation
+**متى يُنشأ القيد:**
+- ✅ عند ترحيل فاتورة الشراء
+- ✅ عند ترحيل دفعة المورد
+- ⚠️ عند ترحيل المرتجع (يحتاج اختبار)
+- ❌ استلام البضاعة (لا ينشئ FIFO layers)
 
-**Deliverables:**
-- Validated invoice workflow
-- Credit note support
+**هل القيد متوازن؟** ✅ نعم - يتم التحقق في الدالة
 
----
-
-### Sprint 5: Supplier Payments Module (1 week)
-
-**Goal:** Complete payment functionality
-
-**Tasks:**
-1. Enhance SupplierPayments.tsx with:
-   - Invoice selection and allocation
-   - Partial payment support
-   - Check/bank payment methods
-2. Add payment schedule/reminders
-3. Create supplier statement report
-4. Implement supplier aging report
-
-**Deliverables:**
-- Full payment lifecycle
-- Supplier reports
+**هل يتم احترام الفترة المحاسبية؟** ✅ نعم - `validate_posting_period`
 
 ---
 
-### Sprint 6: Workflow & Approvals (1 week)
+### 💱 التكامل مع العملات
 
-**Goal:** Add approval workflows
+| العنصر | الحالة | التفاصيل |
+|--------|--------|----------|
+| Base Currency | ✅ | YER (الريال اليمني) |
+| Foreign Currencies | ✅ | SAR, USD مدعومة |
+| Exchange Rate Storage | ✅ | `exchange_rates` جدول |
+| FC/BC Handling | ✅ | جميع المستندات تدعم |
+| Rate Lock | ✅ | يُحفظ عند الإنشاء |
 
-**Tasks:**
-1. Design multi-level approval configuration
-2. Implement approval workflow for POs (by amount threshold)
-3. Add approval workflow for payments
-4. Email/notification integration
-5. Approval history tracking
-
-**Deliverables:**
-- Configurable approval workflows
-- Notification system
-
----
-
-### Sprint 7: QA Testing & Final Polish (1 week)
-
-**Goal:** Production readiness
-
-**Tasks:**
-1. End-to-end testing of full procurement cycle
-2. Currency conversion accuracy testing
-3. GL balance verification
-4. Performance optimization
-5. Documentation update
-6. User acceptance testing
-
-**Deliverables:**
-- Production-ready system
-- Complete documentation
+**آلية العمل:**
+```
+1. اختيار المورد → تحميل عملته الافتراضية
+2. تحميل سعر الصرف من exchange_rates
+3. حساب FC (عملة المستند) و BC (الريال اليمني)
+4. حفظ القيد المحاسبي بالعملة الأساسية YER
+```
 
 ---
 
-## 7. Recommendations
+## 4️⃣ تحليل سلامة البيانات (Data Integrity)
 
-### 7.1 Architectural Improvements
+### ✅ نقاط القوة
 
-1. **Create shared types file**: `src/types/purchasing.ts` with all interface definitions
-2. **Extract reusable hooks**: 
-   - `usePurchaseOrder`
-   - `useGoodsReceipt`
-   - `usePurchaseInvoice`
-   - `useSupplierPayment`
-3. **Consolidate currency logic**: Create `src/lib/purchaseCurrency.ts`
-4. **Add service layer**: Abstract Supabase calls into service functions
+| النقطة | التفاصيل |
+|--------|----------|
+| فحص التكرار | `check_duplicate_supplier_invoice` يمنع تكرار رقم فاتورة المورد |
+| التحقق من الفترة | `validate_posting_period` يمنع الترحيل في فترات مغلقة |
+| توازن القيد | التحقق من Debit = Credit قبل الترحيل |
+| تتبع المستخدم | `created_by`, `posted_by` محفوظة |
 
-### 7.2 Performance Enhancements
+### ⚠️ نقاط الخطر (Data Break Points)
 
-1. Add database indexes on frequently queried columns:
-   - `purchase_invoices(supplier_id, status)`
-   - `supplier_payments(supplier_id, payment_date)`
-   - `grn_items(grn_id, item_id)`
-2. Implement pagination for large lists
-3. Add query caching with React Query staleTime
-
-### 7.3 Database Normalization
-
-1. Remove duplicate `currency` column from `purchase_invoices`
-2. Standardize nullable columns (use NOT NULL with defaults)
-3. Add missing foreign key constraints
-4. Create view `vw_purchase_document_summary` for reporting
-
-### 7.4 Best Practices Alignment (Daftara ERP Reference)
-
-| Feature | Daftara Standard | Current Status | Gap |
-|---------|-----------------|----------------|-----|
-| Document numbering | Sequential, yearly reset | ✅ Implemented | - |
-| Multi-currency | FC/BC dual tracking | ✅ Implemented | - |
-| Approval workflow | Multi-level by amount | ❌ Missing | Sprint 6 |
-| 3-way matching | PO-GRN-Invoice | ❌ Missing | Sprint 4 |
-| Landed costs | Allocate to items | ❌ Missing | Sprint 3 |
-| Supplier aging | 30/60/90/120+ buckets | ❌ Missing | Sprint 5 |
-
-### 7.5 Risks & Mitigation
-
-| Risk | Impact | Probability | Mitigation |
-|------|--------|-------------|------------|
-| Inventory discrepancy from unrestored returns | High | High | Sprint 1 fix |
-| Currency conversion errors | Medium | Low | Validation rules |
-| GL imbalance from partial implementations | High | Medium | Reconciliation checks |
-| Performance degradation with data growth | Medium | Medium | Indexing strategy |
+| الخطر | الوصف | التأثير | الأولوية |
+|-------|-------|---------|----------|
+| 🔴 FIFO فارغ | `inventory_cost_layers` = 0 رغم وجود GRN مرحّلة | تكلفة البضاعة المباعة خاطئة | حرج |
+| 🟡 مرتجعات غير مختبرة | 0 مرتجعات في النظام | عكس المخزون غير مؤكد | متوسط |
+| 🟡 GL Entries فارغ | لا توجد قيود محاسبية | التقارير المالية فارغة | متوسط |
+| 🟢 Supplier Balance | يحتاج مراجعة بعد الدفعات | تقادم الموردين | منخفض |
 
 ---
 
-## 8. Conclusion
+## 5️⃣ تحليل الفجوات مقابل ERP Pharmacy Standard
 
-The Pharmacy ERP Purchasing System has a solid foundation with approximately **78% completion**. The core workflows (PO → GRN → Invoice) are functional with multi-currency support and GL integration.
+### مقارنة مع Daftara / Odoo / SAP B1
 
-**Immediate Priorities:**
-1. 🔴 Create Supplier Payments UI (backend ready, UI missing)
-2. 🔴 Fix purchase returns inventory restoration
-3. 🟡 Remove hardcoded tax rates
-4. 🟡 Add 3-way matching validation
-
-**Estimated Time to 100% Completion:** 6-7 weeks (following sprint plan)
-
-**Production Readiness:** The system can be used for basic procurement operations today, but should NOT process returns until inventory restoration is fixed.
+| الميزة | النظام الحالي | Daftara | Odoo | SAP B1 | الفجوة |
+|--------|--------------|---------|------|--------|--------|
+| Purchase Requisitions | ❌ | ✅ | ✅ | ✅ | حرج |
+| RFQ / Quotations | ❌ | ✅ | ✅ | ✅ | حرج |
+| Multi-level Approval | ❌ | ✅ | ✅ | ✅ | حرج |
+| Quality Check | ❌ | ⚠️ | ✅ | ✅ | متوسط |
+| Landed Costs | ❌ | ⚠️ | ✅ | ✅ | متوسط |
+| Purchase Orders | ✅ | ✅ | ✅ | ✅ | - |
+| Goods Receipt | ✅ | ✅ | ✅ | ✅ | - |
+| Purchase Invoices | ✅ | ✅ | ✅ | ✅ | - |
+| Purchase Returns | ✅ | ✅ | ✅ | ✅ | - |
+| Supplier Payments | ✅ | ✅ | ✅ | ✅ | - |
+| FIFO Costing | ⚠️ | ✅ | ✅ | ✅ | حرج |
+| Multi-Currency | ✅ | ✅ | ✅ | ✅ | - |
+| GL Integration | ✅ | ✅ | ✅ | ✅ | - |
+| Batch/Expiry | ✅ | ✅ | ✅ | ✅ | - |
 
 ---
 
-*Report Generated: December 8, 2025*  
-*Next Review: Upon Sprint 1 Completion*
+## 6️⃣ قائمة الفجوات الحرجة (مرتبة حسب التأثير)
+
+### 🔴 تأثير محاسبي عالي
+
+| # | الفجوة | التأثير | الحل |
+|---|--------|---------|------|
+| 1 | FIFO Layers فارغ | COGS خاطئ، تقييم المخزون صفر | إصلاح `post_goods_receipt` |
+| 2 | GL Entries = 0 | التقارير المالية فارغة | ترحيل فواتير الشراء |
+
+### 🟡 تأثير مخزون متوسط
+
+| # | الفجوة | التأثير | الحل |
+|---|--------|---------|------|
+| 3 | عكس FIFO في المرتجعات | عدم استعادة التكلفة الصحيحة | مراجعة `post_purchase_return` |
+| 4 | لا يوجد Quality Check | قبول بضائع تالفة | إضافة مرحلة QC |
+
+### 🟢 تأثير تشغيلي
+
+| # | الفجوة | التأثير | الحل |
+|---|--------|---------|------|
+| 5 | Purchase Requisitions | لا رقابة داخلية | بناء PR Module |
+| 6 | RFQ System | لا مقارنة أسعار | بناء RFQ Module |
+| 7 | Approval Workflow | لا موافقات متعددة | بناء Approval Engine |
+| 8 | Landed Costs | تكلفة غير دقيقة | إضافة توزيع المصاريف |
+
+---
+
+## 7️⃣ خارطة طريق التنفيذ (High Level)
+
+### المرحلة 1: إصلاح الأخطاء الحرجة (1 أسبوع)
+```
+Priority: CRITICAL
+1. إصلاح post_goods_receipt لإنشاء FIFO layers
+2. اختبار وترحيل فواتير الشراء
+3. التحقق من GL Entries
+4. مراجعة post_purchase_return
+```
+
+### المرحلة 2: Purchase Requisitions (2 أسبوع)
+```
+Priority: HIGH
+1. إنشاء جدول purchase_requisitions
+2. إنشاء جدول pr_items
+3. بناء صفحة PurchaseRequisitions.tsx
+4. ربط PR → PO workflow
+```
+
+### المرحلة 3: Approval Workflow (2 أسبوع)
+```
+Priority: HIGH
+1. إنشاء جدول approval_workflows
+2. إنشاء جدول approval_steps
+3. إنشاء جدول document_approvals
+4. بناء Approval Engine
+5. تطبيق على PR و PO
+```
+
+### المرحلة 4: RFQ System (2 أسبوع)
+```
+Priority: MEDIUM
+1. إنشاء جدول rfq_requests
+2. إنشاء جدول rfq_items
+3. إنشاء جدول supplier_quotes
+4. بناء صفحة مقارنة الأسعار
+5. ربط RFQ → PO
+```
+
+### المرحلة 5: التحسينات (2 أسبوع)
+```
+Priority: LOW
+1. Quality Check layer
+2. Landed Costs allocation
+3. Advanced Reports
+4. Dashboard KPIs
+```
+
+---
+
+## 8️⃣ الحكم النهائي
+
+### ⚠️ جاهز جزئياً للإنتاج
+
+**التبرير:**
+
+| الجانب | التقييم | السبب |
+|--------|---------|-------|
+| ✅ Frontend | 90% | جميع الصفحات موجودة ومكتملة |
+| ✅ Backend Functions | 85% | الدوال موجودة وتعمل |
+| ⚠️ FIFO Integration | 30% | الطبقات لا تُنشأ - خلل حرج |
+| ✅ GL Integration | 80% | جاهز - يحتاج ترحيل فعلي |
+| ✅ Multi-Currency | 95% | YER base + SAR support |
+| ❌ PR/RFQ/Approvals | 0% | غير موجود |
+
+### الخلاصة
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│  نظام المشتريات جاهز للاستخدام الأساسي بعد:                    │
+│                                                                │
+│  1. إصلاح مشكلة FIFO layers (حرج - 1 يوم)                     │
+│  2. ترحيل فواتير الشراء واختبار GL                             │
+│  3. اختبار مرتجعات المشتريات                                   │
+│                                                                │
+│  للوصول لمعيار ERP Pharmacy كامل يلزم:                        │
+│  - Purchase Requisitions (2 أسبوع)                            │
+│  - Approval Workflow (2 أسبوع)                                │
+│  - RFQ System (2 أسبوع)                                       │
+└────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 📊 ملحق: إحصائيات قاعدة البيانات
+
+| الجدول | عدد السجلات | ملاحظات |
+|--------|-------------|---------|
+| `purchase_orders` | - | - |
+| `goods_receipts` | 10 | 2 مرحّلة |
+| `purchase_invoices` | 7 | 0 مرحّلة |
+| `purchase_returns` | 0 | - |
+| `supplier_payments` | 0 | - |
+| `inventory_cost_layers` | 0 | ⚠️ فارغ! |
+| `gl_journal_entries` | 0 | ⚠️ فارغ! |
+
+---
+
+## 📎 الدوال المتاحة للمشتريات
+
+```sql
+-- Purchasing Functions
+post_goods_receipt(p_grn_id)
+post_purchase_invoice(p_invoice_id)
+post_purchase_return(p_return_id)
+post_supplier_payment(p_payment_id)
+check_duplicate_supplier_invoice(p_supplier_id, p_invoice_no)
+get_returnable_purchase_invoices(p_search)
+generate_supplier_payment_number()
+
+-- Inventory Functions
+consume_fifo_layers(p_item_id, p_warehouse_id, p_qty, p_unit_cost)
+allocate_fifo_cost(p_grn_id)
+get_inventory_valuation()
+
+-- Supplier Functions
+get_supplier_aging()
+rebuild_supplier_balance(p_supplier_id)
+```
+
+---
+
+## 📐 رسم العلاقات (ERD)
+
+```mermaid
+erDiagram
+    SUPPLIERS ||--o{ PURCHASE_ORDERS : "supplier_id"
+    SUPPLIERS ||--o{ PURCHASE_INVOICES : "supplier_id"
+    SUPPLIERS ||--o{ SUPPLIER_PAYMENTS : "supplier_id"
+    
+    PURCHASE_ORDERS ||--o{ PO_ITEMS : "po_id"
+    PURCHASE_ORDERS ||--o{ GOODS_RECEIPTS : "po_id"
+    
+    GOODS_RECEIPTS ||--o{ GRN_ITEMS : "grn_id"
+    GOODS_RECEIPTS ||--o{ INVENTORY_COST_LAYERS : "source_document_id"
+    
+    PURCHASE_INVOICES ||--o{ PI_ITEMS : "pi_id"
+    PURCHASE_INVOICES ||--o{ PURCHASE_RETURNS : "purchase_invoice_id"
+    PURCHASE_INVOICES ||--o{ GL_JOURNAL_ENTRIES : "source_document_id"
+    
+    PURCHASE_RETURNS ||--o{ PURCHASE_RETURN_ITEMS : "return_id"
+    
+    SUPPLIER_PAYMENTS ||--o{ SUPPLIER_PAYMENT_ALLOCATIONS : "payment_id"
+    SUPPLIER_PAYMENT_ALLOCATIONS }o--|| PURCHASE_INVOICES : "invoice_id"
+    
+    PRODUCTS ||--o{ PO_ITEMS : "item_id"
+    PRODUCTS ||--o{ GRN_ITEMS : "item_id"
+    PRODUCTS ||--o{ PI_ITEMS : "item_id"
+    PRODUCTS ||--o{ WAREHOUSE_STOCK : "item_id"
+    PRODUCTS ||--o{ INVENTORY_COST_LAYERS : "item_id"
+    
+    WAREHOUSES ||--o{ PURCHASE_ORDERS : "warehouse_id"
+    WAREHOUSES ||--o{ GOODS_RECEIPTS : "warehouse_id"
+    WAREHOUSES ||--o{ WAREHOUSE_STOCK : "warehouse_id"
+```
+
+---
+
+**نهاية التقرير**
+
+*هذا التقرير للتحليل فقط - لم يتم تنفيذ أي تعديلات على قاعدة البيانات أو الكود*

@@ -18,7 +18,7 @@ import { CustomerInfoCard } from "@/components/customers/CustomerInfoCard";
 import { InvoiceCurrencyPanel, InvoiceTotalsSummary } from "@/components/currency";
 import { BarcodeScannerInput, ProductImage } from "@/components/products";
 import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
-
+import { updateCustomerBalance } from "@/lib/accounting";
 interface InvoiceItem {
   item_id: string;
   item_name: string;
@@ -465,6 +465,15 @@ const NewSalesInvoice = () => {
         .insert(itemsToInsert);
 
       if (itemsError) throw itemsError;
+
+      // Update customer balance with BC amount (remaining amount after payment)
+      if (customerId && customerId !== "walk-in") {
+        const remainingBC = totalBC - paidBC;
+        const remainingFC = totalFC - paidFC;
+        if (remainingBC > 0) {
+          await updateCustomerBalance(customerId, remainingBC, remainingFC, currencyCode);
+        }
+      }
 
       return invoice;
     },

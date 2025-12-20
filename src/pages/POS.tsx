@@ -47,6 +47,17 @@ import { BarcodeScannerInput } from "@/components/products";
 import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
 import { InvoiceCurrencyPanel, InvoiceTotalsSummary } from "@/components/currency";
 import { getExchangeRate, getBaseCurrencyCode } from "@/lib/currency";
+import { updateCustomerBalance } from "@/lib/accounting";
+
+// Cash Box interface
+interface CashBox {
+  id: string;
+  box_name: string;
+  box_code: string;
+  currency_code: string;
+  current_balance: number;
+  is_active: boolean;
+}
 
 // Interfaces
 interface Product {
@@ -147,6 +158,10 @@ const POS = () => {
   const [sessionStats, setSessionStats] = useState<{ total_sales: number; invoice_count: number } | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   
+  // Cash boxes state
+  const [cashBoxes, setCashBoxes] = useState<CashBox[]>([]);
+  const [selectedCashBox, setSelectedCashBox] = useState<CashBox | null>(null);
+  
   // Multi-currency state
   const [currencyCode, setCurrencyCode] = useState<string>("YER");
   const [exchangeRate, setExchangeRate] = useState<number>(1);
@@ -216,8 +231,37 @@ const POS = () => {
       fetchCustomers(),
       fetchPaymentMethods(),
       fetchPOSSession(),
+      fetchCashBoxes(),
     ]);
   };
+
+  // Fetch cash boxes
+  const fetchCashBoxes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("cash_boxes")
+        .select("id, box_name, box_code, currency_code, current_balance, is_active")
+        .eq("is_active", true)
+        .order("box_name");
+
+      if (error) throw error;
+      setCashBoxes(data || []);
+    } catch (error) {
+      console.error("Error fetching cash boxes:", error);
+    }
+  };
+
+  // Auto-select cash box when currency changes
+  useEffect(() => {
+    if (cashBoxes.length > 0 && currencyCode) {
+      const matchingBox = cashBoxes.find(box => box.currency_code === currencyCode);
+      if (matchingBox) {
+        setSelectedCashBox(matchingBox);
+      } else {
+        setSelectedCashBox(null);
+      }
+    }
+  }, [currencyCode, cashBoxes]);
 
   const fetchProducts = async () => {
     try {
@@ -567,6 +611,25 @@ const POS = () => {
       return;
     }
 
+    // Validate cash box matches currency
+    if (!selectedCashBox) {
+      toast({
+        title: "لا يوجد صندوق مناسب",
+        description: `لا يوجد صندوق نقدي مرتبط بالعملة ${currencyCode}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (selectedCashBox.currency_code !== currencyCode) {
+      toast({
+        title: "عملة الصندوق غير متوافقة",
+        description: `الصندوق "${selectedCashBox.box_name}" مرتبط بعملة ${selectedCashBox.currency_code} وليس ${currencyCode}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsProcessing(true);
 
     try {
@@ -678,6 +741,45 @@ const POS = () => {
       const { error: itemsError } = await supabase.from("sales_invoice_items").insert(invoiceItems);
 
       if (itemsError) throw itemsError;
+
+      // Update cash box balance (add the paid amount in FC)
+      if (selectedCashBox) {
+        const { error: cashBoxError } = await supabase
+          .from("cash_boxes")
+          .update({
+            current_balance: selectedCashBox.current_balance + grandTotal,
+          })
+          .eq("id", selectedCashBox.id);
+
+        if (cashBoxError) {
+          console.error("Error updating cash box:", cashBoxError);
+        }
+
+        // Create cash transaction record
+        const { error: txError } = await supabase
+          .from("cash_transactions")
+          .insert({
+            cash_box_id: selectedCashBox.id,
+            transaction_type: "receipt",
+            amount: grandTotal,
+            amount_fc: totalFC,
+            amount_bc: totalBC,
+            currency_code: currencyCode,
+            exchange_rate: effectiveRate,
+            transaction_number: invoiceNumber,
+            transaction_date: new Date().toISOString().split("T")[0],
+            reference_type: "sales_invoice",
+            reference_id: invoice.id,
+            reference_number: invoiceNumber,
+            description: `مبيعات POS - فاتورة ${invoiceNumber}`,
+            status: "posted",
+            posted_at: new Date().toISOString(),
+          });
+
+        if (txError) {
+          console.error("Error creating cash transaction:", txError);
+        }
+      }
 
       // Prepare receipt data snapshot before clearing the cart
       setLastInvoiceNumber(invoiceNumber);

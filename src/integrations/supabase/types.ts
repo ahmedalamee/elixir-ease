@@ -11386,6 +11386,7 @@ export type Database = {
       generate_exchange_number: { Args: never; Returns: string }
       generate_journal_entry_number: { Args: never; Returns: string }
       generate_payment_number: { Args: never; Returns: string }
+      generate_po_number: { Args: never; Returns: string }
       generate_pos_session_number: { Args: never; Returns: string }
       generate_pr_number: { Args: never; Returns: string }
       generate_prescription_number: { Args: never; Returns: string }

@@ -14,6 +14,7 @@ import { Plus, FileText, Eye, Check, Search, Filter } from 'lucide-react';
 import { format } from 'date-fns';
 import { InvoiceCurrencyPanel, InvoiceTotalsSummary } from '@/components/currency';
 import { getExchangeRate, getBaseCurrencyCode } from '@/lib/currency';
+import { updateSupplierBalance } from '@/lib/accounting';
 
 export default function PurchaseInvoices() {
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -325,14 +326,33 @@ export default function PurchaseInvoices() {
     try {
       toast.loading('جاري ترحيل فاتورة الشراء...');
       
+      // Get invoice details first
+      const { data: invoice, error: fetchError } = await supabase
+        .from('purchase_invoices')
+        .select('supplier_id, total_amount_bc, total_amount_fc, currency_code')
+        .eq('id', invoiceId)
+        .single();
+      
+      if (fetchError) throw fetchError;
+      
       const { data, error } = await supabase.rpc('post_purchase_invoice', { 
         p_invoice_id: invoiceId 
       });
 
       if (error) throw error;
 
+      // Update supplier balance with BC amount
+      if (invoice?.supplier_id) {
+        await updateSupplierBalance(
+          invoice.supplier_id,
+          invoice.total_amount_bc || 0,
+          invoice.total_amount_fc || 0,
+          invoice.currency_code || 'YER'
+        );
+      }
+
       toast.dismiss();
-      toast.success('تم ترحيل فاتورة الشراء وإنشاء القيد المحاسبي بنجاح');
+      toast.success('تم ترحيل فاتورة الشراء وتحديث رصيد المورد بنجاح');
       
       await fetchInvoices();
       setIsViewDialogOpen(false);

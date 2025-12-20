@@ -441,6 +441,57 @@ export async function updateCustomerBalance(
 }
 
 /**
+ * Update supplier balance with dual-currency support
+ * Always updates balance_bc (base currency) for accurate accounting
+ * 
+ * @param supplierId - Supplier ID
+ * @param amountBC - Amount in base currency (YER) to add (positive) or subtract (negative)
+ * @param amountFC - Amount in foreign currency
+ * @param currencyCode - Currency code of the transaction
+ */
+export async function updateSupplierBalance(
+  supplierId: string,
+  amountBC: number,
+  amountFC?: number,
+  currencyCode?: string
+): Promise<void> {
+  // Get current supplier balance
+  const { data: supplier, error: fetchError } = await supabase
+    .from("suppliers")
+    .select("balance, balance_bc, balance_fc, balance_currency_code")
+    .eq("id", supplierId)
+    .single();
+
+  if (fetchError) {
+    console.error("Error fetching supplier balance:", fetchError);
+    throw fetchError;
+  }
+
+  const currentBalanceBC = supplier?.balance_bc || supplier?.balance || 0;
+  const currentBalanceFC = supplier?.balance_fc || 0;
+  const effectiveFC = amountFC ?? amountBC;
+  const effectiveCurrency = currencyCode || "YER";
+
+  // Update supplier with new balances
+  const { error: updateError } = await supabase
+    .from("suppliers")
+    .update({
+      balance: currentBalanceBC + amountBC, // Legacy field
+      balance_bc: currentBalanceBC + amountBC,
+      balance_fc: effectiveCurrency === (supplier?.balance_currency_code || "YER") 
+        ? currentBalanceFC + effectiveFC 
+        : currentBalanceFC, // Only add FC if same currency
+      balance_currency_code: effectiveCurrency,
+    })
+    .eq("id", supplierId);
+
+  if (updateError) {
+    console.error("Error updating supplier balance:", updateError);
+    throw updateError;
+  }
+}
+
+/**
  * Fetch journal entry with its lines
  * Used for viewing journal entry details
  */

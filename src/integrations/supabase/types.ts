@@ -2465,6 +2465,9 @@ export type Database = {
         Row: {
           address: string | null
           balance: number | null
+          balance_bc: number | null
+          balance_currency_code: string | null
+          balance_fc: number | null
           created_at: string | null
           credit_limit: number | null
           currency_code: string | null
@@ -2485,6 +2488,9 @@ export type Database = {
         Insert: {
           address?: string | null
           balance?: number | null
+          balance_bc?: number | null
+          balance_currency_code?: string | null
+          balance_fc?: number | null
           created_at?: string | null
           credit_limit?: number | null
           currency_code?: string | null
@@ -2505,6 +2511,9 @@ export type Database = {
         Update: {
           address?: string | null
           balance?: number | null
+          balance_bc?: number | null
+          balance_currency_code?: string | null
+          balance_fc?: number | null
           created_at?: string | null
           credit_limit?: number | null
           currency_code?: string | null
@@ -4742,10 +4751,16 @@ export type Database = {
           account_id: string
           created_at: string | null
           credit_amount: number | null
+          credit_amount_bc: number | null
+          credit_amount_fc: number | null
           currency: string | null
+          currency_code: string | null
           debit_amount: number | null
+          debit_amount_bc: number | null
+          debit_amount_fc: number | null
           description: string | null
           entry_id: string
+          exchange_rate: number | null
           id: string
           line_no: number
         }
@@ -4753,10 +4768,16 @@ export type Database = {
           account_id: string
           created_at?: string | null
           credit_amount?: number | null
+          credit_amount_bc?: number | null
+          credit_amount_fc?: number | null
           currency?: string | null
+          currency_code?: string | null
           debit_amount?: number | null
+          debit_amount_bc?: number | null
+          debit_amount_fc?: number | null
           description?: string | null
           entry_id: string
+          exchange_rate?: number | null
           id?: string
           line_no: number
         }
@@ -4764,10 +4785,16 @@ export type Database = {
           account_id?: string
           created_at?: string | null
           credit_amount?: number | null
+          credit_amount_bc?: number | null
+          credit_amount_fc?: number | null
           currency?: string | null
+          currency_code?: string | null
           debit_amount?: number | null
+          debit_amount_bc?: number | null
+          debit_amount_fc?: number | null
           description?: string | null
           entry_id?: string
+          exchange_rate?: number | null
           id?: string
           line_no?: number
         }

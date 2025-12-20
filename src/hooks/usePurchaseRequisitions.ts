@@ -51,7 +51,7 @@ export function useGeneratePRNumber() {
   });
 }
 
-interface PRItemInput {
+export interface PRItemInput {
   product_id: string;
   requested_qty: number;
   uom_id?: string | null;

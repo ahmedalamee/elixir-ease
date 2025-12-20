@@ -229,6 +229,11 @@ export const menuTree: TreeMenuItem[] = [
     icon: ShoppingBag,
     children: [
       {
+        id: "purchases-requisitions",
+        label: "طلبات الشراء",
+        route: "/purchases/requisitions",
+      },
+      {
         id: "purchases-orders",
         label: "أوامر الشراء",
         route: "/purchase-orders",

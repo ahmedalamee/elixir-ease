@@ -108,9 +108,9 @@ export default function RFQRequests() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="text-right">رقم الطلب</TableHead>
-                  <TableHead className="text-right">العنوان</TableHead>
-                  <TableHead className="text-right">التاريخ</TableHead>
-                  <TableHead className="text-right">تاريخ الانتهاء</TableHead>
+                  <TableHead className="text-right">طلب الشراء</TableHead>
+                  <TableHead className="text-right">تاريخ الإنشاء</TableHead>
+                  <TableHead className="text-right">آخر موعد للتقديم</TableHead>
                   <TableHead className="text-right">الحالة</TableHead>
                   <TableHead className="text-right">الإجراءات</TableHead>
                 </TableRow>
@@ -119,15 +119,15 @@ export default function RFQRequests() {
                 {rfqs.map((rfq) => (
                   <TableRow key={rfq.id}>
                     <TableCell className="font-medium">{rfq.rfq_number}</TableCell>
-                    <TableCell>{rfq.title || "-"}</TableCell>
+                    <TableCell>{rfq.purchase_requisitions?.pr_number || "-"}</TableCell>
                     <TableCell>
-                      {rfq.rfq_date
-                        ? format(new Date(rfq.rfq_date), "dd MMM yyyy", { locale: ar })
+                      {rfq.created_at
+                        ? format(new Date(rfq.created_at), "dd MMM yyyy", { locale: ar })
                         : "-"}
                     </TableCell>
                     <TableCell>
-                      {rfq.deadline
-                        ? format(new Date(rfq.deadline), "dd MMM yyyy", { locale: ar })
+                      {rfq.submission_deadline
+                        ? format(new Date(rfq.submission_deadline), "dd MMM yyyy", { locale: ar })
                         : "-"}
                     </TableCell>
                     <TableCell>

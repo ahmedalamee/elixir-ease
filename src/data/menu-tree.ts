@@ -234,6 +234,11 @@ export const menuTree: TreeMenuItem[] = [
         route: "/purchases/requisitions",
       },
       {
+        id: "purchases-rfq",
+        label: "طلبات عروض الأسعار",
+        route: "/rfq",
+      },
+      {
         id: "purchases-orders",
         label: "أوامر الشراء",
         route: "/purchase-orders",
@@ -257,6 +262,16 @@ export const menuTree: TreeMenuItem[] = [
         id: "purchases-supplier-payments",
         label: "مدفوعات الموردين",
         route: "/purchases/supplier-payments",
+      },
+      {
+        id: "purchases-approvals",
+        label: "الموافقات",
+        route: "/approvals",
+      },
+      {
+        id: "purchases-approval-workflows",
+        label: "سير عمل الموافقات",
+        route: "/approvals/workflows",
       },
     ],
   },

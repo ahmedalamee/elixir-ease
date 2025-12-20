@@ -44,9 +44,7 @@ export default function RFQForm() {
 
   const [formData, setFormData] = useState({
     rfq_number: "",
-    title: "",
-    description: "",
-    deadline: "",
+    submission_deadline: "",
     notes: "",
   });
 
@@ -66,11 +64,12 @@ export default function RFQForm() {
     if (existingRFQ) {
       setFormData({
         rfq_number: existingRFQ.rfq_number,
-        title: existingRFQ.title || "",
-        description: existingRFQ.description || "",
-        deadline: existingRFQ.deadline || "",
+        submission_deadline: existingRFQ.submission_deadline || "",
         notes: existingRFQ.notes || "",
       });
+      if (existingRFQ.pr_id) {
+        setSelectedPRId(existingRFQ.pr_id);
+      }
     }
   }, [existingRFQ]);
 
@@ -102,13 +101,13 @@ export default function RFQForm() {
         return;
       }
       const { data } = await supabase
-        .from("purchase_requisition_items")
+        .from("pr_items")
         .select(`
           id,
           product_id,
-          quantity,
+          requested_qty,
           products:product_id (name),
-          unit_of_measures:uom_id (name)
+          uoms:uom_id (name)
         `)
         .eq("pr_id", selectedPRId);
 
@@ -118,8 +117,8 @@ export default function RFQForm() {
             id: item.id,
             product_id: item.product_id,
             product_name: item.products?.name || "",
-            quantity: item.quantity,
-            uom_name: item.unit_of_measures?.name || "",
+            quantity: item.requested_qty,
+            uom_name: item.uoms?.name || "",
           }))
         );
       }
@@ -149,9 +148,7 @@ export default function RFQForm() {
       await createRFQ.mutateAsync({
         rfq: {
           rfq_number: formData.rfq_number,
-          title: formData.title,
-          description: formData.description,
-          deadline: formData.deadline || null,
+          submission_deadline: formData.submission_deadline || null,
           notes: formData.notes,
           pr_id: selectedPRId || null,
           status: sendToSuppliers ? "sent" : "draft",
@@ -193,36 +190,15 @@ export default function RFQForm() {
                   <Input value={formData.rfq_number} disabled />
                 </div>
                 <div className="space-y-2">
-                  <Label>تاريخ الانتهاء</Label>
+                  <Label>آخر موعد للتقديم</Label>
                   <Input
                     type="date"
-                    value={formData.deadline}
+                    value={formData.submission_deadline}
                     onChange={(e) =>
-                      setFormData({ ...formData, deadline: e.target.value })
+                      setFormData({ ...formData, submission_deadline: e.target.value })
                     }
                   />
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label>العنوان</Label>
-                <Input
-                  value={formData.title}
-                  onChange={(e) =>
-                    setFormData({ ...formData, title: e.target.value })
-                  }
-                  placeholder="عنوان طلب عرض السعر"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>الوصف</Label>
-                <Textarea
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  placeholder="وصف تفصيلي للطلب"
-                  rows={3}
-                />
               </div>
               <div className="space-y-2">
                 <Label>ملاحظات</Label>
@@ -232,7 +208,7 @@ export default function RFQForm() {
                     setFormData({ ...formData, notes: e.target.value })
                   }
                   placeholder="ملاحظات إضافية"
-                  rows={2}
+                  rows={3}
                 />
               </div>
             </CardContent>

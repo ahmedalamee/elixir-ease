@@ -265,6 +265,15 @@ export function validateJournalEntry(
  * @param lines - Array of journal lines (debits and credits)
  * @returns Created journal entry with ID
  */
+/**
+ * Create journal entry with lines in a single transaction
+ * Supports dual-currency (FC/BC) for multi-currency transactions
+ * 
+ * @param entry - Journal entry header data
+ * @param lines - Array of journal lines (debits and credits)
+ * @param currencyInfo - Optional currency information for FC/BC support
+ * @returns Created journal entry with ID
+ */
 export async function createJournalEntry(
   entry: {
     entryDate: string;
@@ -279,13 +288,19 @@ export async function createJournalEntry(
     accountId: string;
     debit?: number;
     credit?: number;
+    debitFC?: number;
+    creditFC?: number;
     description?: string;
     costCenterId?: string | null;
     branchId?: string | null;
     lineNo: number;
-  }>
+  }>,
+  currencyInfo?: {
+    currencyCode: string;
+    exchangeRate: number;
+  }
 ): Promise<{ journalId: string; entryNo: string }> {
-  // Client-side validation
+  // Client-side validation (use BC amounts for validation)
   const validation = validateJournalEntry(
     lines.map((l) => ({ debit: l.debit || 0, credit: l.credit || 0 }))
   );
@@ -299,6 +314,10 @@ export async function createJournalEntry(
   // Generate entry number if not provided
   const entryNo = await generateJournalEntryNumber();
 
+  // Determine currency values
+  const currencyCode = currencyInfo?.currencyCode || "YER";
+  const exchangeRate = currencyCode === "YER" ? 1 : (currencyInfo?.exchangeRate || 1);
+
   // Insert journal entry header
   const { data: journalData, error: journalError } = await supabase
     .from("gl_journal_entries")
@@ -310,7 +329,7 @@ export async function createJournalEntry(
       source_module: entry.sourceModule,
       source_document_id: entry.sourceDocumentId,
       branch_id: entry.branchId,
-      is_posted: entry.isPosted ?? false, // Start as draft by default
+      is_posted: entry.isPosted ?? false,
       is_reversed: false,
     })
     .select()
@@ -321,17 +340,34 @@ export async function createJournalEntry(
     throw journalError;
   }
 
-  // Insert journal lines
-  const linesToInsert = lines.map((line) => ({
-    journal_id: journalData.id,
-    account_id: line.accountId,
-    debit: line.debit || 0,
-    credit: line.credit || 0,
-    description: line.description,
-    cost_center_id: line.costCenterId,
-    branch_id: line.branchId,
-    line_no: line.lineNo,
-  }));
+  // Insert journal lines with FC/BC support
+  const linesToInsert = lines.map((line) => {
+    // Calculate FC values if not provided
+    const debitBC = line.debit || 0;
+    const creditBC = line.credit || 0;
+    const debitFC = line.debitFC ?? (currencyCode === "YER" ? debitBC : debitBC / exchangeRate);
+    const creditFC = line.creditFC ?? (currencyCode === "YER" ? creditBC : creditBC / exchangeRate);
+
+    return {
+      journal_id: journalData.id,
+      account_id: line.accountId,
+      // Legacy fields (BC values)
+      debit: debitBC,
+      credit: creditBC,
+      // New dual-currency fields
+      debit_amount_fc: debitFC,
+      debit_amount_bc: debitBC,
+      credit_amount_fc: creditFC,
+      credit_amount_bc: creditBC,
+      currency_code: currencyCode,
+      exchange_rate: exchangeRate,
+      // Other fields
+      description: line.description,
+      cost_center_id: line.costCenterId,
+      branch_id: line.branchId,
+      line_no: line.lineNo,
+    };
+  });
 
   const { error: linesError } = await supabase
     .from("gl_journal_lines")
@@ -351,6 +387,57 @@ export async function createJournalEntry(
     journalId: journalData.id,
     entryNo: journalData.entry_no,
   };
+}
+
+/**
+ * Update customer balance with dual-currency support
+ * Always updates balance_bc (base currency) for accurate accounting
+ * 
+ * @param customerId - Customer ID
+ * @param amountBC - Amount in base currency (YER) to add (positive) or subtract (negative)
+ * @param amountFC - Amount in foreign currency
+ * @param currencyCode - Currency code of the transaction
+ */
+export async function updateCustomerBalance(
+  customerId: string,
+  amountBC: number,
+  amountFC?: number,
+  currencyCode?: string
+): Promise<void> {
+  // Get current customer balance
+  const { data: customer, error: fetchError } = await supabase
+    .from("customers")
+    .select("balance, balance_bc, balance_fc, balance_currency_code")
+    .eq("id", customerId)
+    .single();
+
+  if (fetchError) {
+    console.error("Error fetching customer balance:", fetchError);
+    throw fetchError;
+  }
+
+  const currentBalanceBC = customer?.balance_bc || customer?.balance || 0;
+  const currentBalanceFC = customer?.balance_fc || 0;
+  const effectiveFC = amountFC ?? amountBC;
+  const effectiveCurrency = currencyCode || "YER";
+
+  // Update customer with new balances
+  const { error: updateError } = await supabase
+    .from("customers")
+    .update({
+      balance: currentBalanceBC + amountBC, // Legacy field
+      balance_bc: currentBalanceBC + amountBC,
+      balance_fc: effectiveCurrency === (customer?.balance_currency_code || "YER") 
+        ? currentBalanceFC + effectiveFC 
+        : currentBalanceFC, // Only add FC if same currency
+      balance_currency_code: effectiveCurrency,
+    })
+    .eq("id", customerId);
+
+  if (updateError) {
+    console.error("Error updating customer balance:", updateError);
+    throw updateError;
+  }
 }
 
 /**

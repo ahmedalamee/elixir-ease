@@ -3,7 +3,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -90,12 +89,17 @@ export default function RFQView() {
       return;
     }
 
+    const totalAmount = parseFloat(quoteTotal);
+
     try {
       await createQuote.mutateAsync({
         quote: {
           rfq_id: id,
           supplier_id: selectedSupplierId,
-          total_amount_fc: parseFloat(quoteTotal),
+          total_fc: totalAmount,
+          total_bc: totalAmount,
+          subtotal_fc: totalAmount,
+          subtotal_bc: totalAmount,
           currency_code: "YER",
           exchange_rate: 1,
           notes: quoteNotes,
@@ -137,7 +141,9 @@ export default function RFQView() {
           </Button>
           <div>
             <h1 className="text-3xl font-bold">{rfq.rfq_number}</h1>
-            <p className="text-muted-foreground">{rfq.title || "طلب عرض سعر"}</p>
+            <p className="text-muted-foreground">
+              {rfq.purchase_requisitions?.pr_number || "طلب عرض سعر"}
+            </p>
           </div>
         </div>
         <Badge className={statusColors[rfq.status] || "bg-gray-500"}>
@@ -153,28 +159,22 @@ export default function RFQView() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-muted-foreground">تاريخ الطلب</p>
+                <p className="text-sm text-muted-foreground">تاريخ الإنشاء</p>
                 <p className="font-medium">
-                  {rfq.rfq_date
-                    ? format(new Date(rfq.rfq_date), "dd MMM yyyy", { locale: ar })
+                  {rfq.created_at
+                    ? format(new Date(rfq.created_at), "dd MMM yyyy", { locale: ar })
                     : "-"}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">تاريخ الانتهاء</p>
+                <p className="text-sm text-muted-foreground">آخر موعد للتقديم</p>
                 <p className="font-medium">
-                  {rfq.deadline
-                    ? format(new Date(rfq.deadline), "dd MMM yyyy", { locale: ar })
+                  {rfq.submission_deadline
+                    ? format(new Date(rfq.submission_deadline), "dd MMM yyyy", { locale: ar })
                     : "-"}
                 </p>
               </div>
             </div>
-            {rfq.description && (
-              <div>
-                <p className="text-sm text-muted-foreground">الوصف</p>
-                <p>{rfq.description}</p>
-              </div>
-            )}
             {rfq.notes && (
               <div>
                 <p className="text-sm text-muted-foreground">ملاحظات</p>
@@ -194,11 +194,11 @@ export default function RFQView() {
                 <div key={s.id} className="p-2 border rounded-md">
                   <p className="font-medium">{s.suppliers?.name}</p>
                   <Badge variant="outline" className="mt-1">
-                    {s.status === "invited"
+                    {s.response_status === "invited"
                       ? "تمت الدعوة"
-                      : s.status === "quoted"
+                      : s.response_status === "quoted"
                       ? "قدم عرض"
-                      : s.status}
+                      : s.response_status}
                   </Badge>
                 </div>
               ))}
@@ -291,11 +291,11 @@ export default function RFQView() {
                   <TableRow key={quote.id}>
                     <TableCell>{quote.suppliers?.name || "-"}</TableCell>
                     <TableCell>
-                      {quote.total_amount_fc?.toLocaleString()} {quote.currency_code}
+                      {quote.total_fc?.toLocaleString()} {quote.currency_code}
                     </TableCell>
                     <TableCell>
-                      {quote.quote_date
-                        ? format(new Date(quote.quote_date), "dd MMM yyyy", {
+                      {quote.created_at
+                        ? format(new Date(quote.created_at), "dd MMM yyyy", {
                             locale: ar,
                           })
                         : "-"}

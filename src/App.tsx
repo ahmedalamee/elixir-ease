@@ -123,6 +123,12 @@ import SupplierPayments from "./pages/SupplierPayments";
 import PurchaseRequisitions from "./pages/PurchaseRequisitions";
 import PurchaseRequisitionForm from "./pages/PurchaseRequisitionForm";
 import PurchaseRequisitionView from "./pages/PurchaseRequisitionView";
+import RFQRequests from "./pages/RFQRequests";
+import RFQForm from "./pages/RFQForm";
+import RFQView from "./pages/RFQView";
+import ApprovalRequests from "./pages/ApprovalRequests";
+import ApprovalView from "./pages/ApprovalView";
+import ApprovalWorkflows from "./pages/ApprovalWorkflows";
 
 const queryClient = new QueryClient();
 
@@ -274,6 +280,13 @@ const AppContent = () => {
           <Route path="/purchases/requisitions/new" element={<PurchaseRequisitionForm />} />
           <Route path="/purchases/requisitions/:id" element={<PurchaseRequisitionView />} />
           <Route path="/purchases/requisitions/:id/edit" element={<PurchaseRequisitionForm />} />
+          <Route path="/rfq" element={<RFQRequests />} />
+          <Route path="/rfq/new" element={<RFQForm />} />
+          <Route path="/rfq/:id" element={<RFQView />} />
+          <Route path="/rfq/:id/edit" element={<RFQForm />} />
+          <Route path="/approvals" element={<ApprovalRequests />} />
+          <Route path="/approvals/:id" element={<ApprovalView />} />
+          <Route path="/approvals/workflows" element={<ApprovalWorkflows />} />
           <Route path="/tax/compliance" element={<TaxCompliance />} />
           <Route path="/tax/vat-returns" element={<VATReturns />} />
           <Route path="/tax/e-invoicing" element={<EInvoicing />} />

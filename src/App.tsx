@@ -120,6 +120,9 @@ import ArApGlReconciliation from "./pages/ArApGlReconciliation";
 import CashBoxExchange from "./pages/CashBoxExchange";
 import CompanyBranding from "./pages/CompanyBranding";
 import SupplierPayments from "./pages/SupplierPayments";
+import PurchaseRequisitions from "./pages/PurchaseRequisitions";
+import PurchaseRequisitionForm from "./pages/PurchaseRequisitionForm";
+import PurchaseRequisitionView from "./pages/PurchaseRequisitionView";
 
 const queryClient = new QueryClient();
 
@@ -267,6 +270,10 @@ const AppContent = () => {
           <Route path="/sales/returns" element={<SalesReturns />} />
           <Route path="/purchases/returns" element={<PurchaseReturns />} />
           <Route path="/purchases/supplier-payments" element={<SupplierPayments />} />
+          <Route path="/purchases/requisitions" element={<PurchaseRequisitions />} />
+          <Route path="/purchases/requisitions/new" element={<PurchaseRequisitionForm />} />
+          <Route path="/purchases/requisitions/:id" element={<PurchaseRequisitionView />} />
+          <Route path="/purchases/requisitions/:id/edit" element={<PurchaseRequisitionForm />} />
           <Route path="/tax/compliance" element={<TaxCompliance />} />
           <Route path="/tax/vat-returns" element={<VATReturns />} />
           <Route path="/tax/e-invoicing" element={<EInvoicing />} />

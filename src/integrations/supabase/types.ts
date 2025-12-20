@@ -11771,6 +11771,10 @@ export type Database = {
         }[]
       }
       submit_pr: { Args: { p_pr_id: string }; Returns: Json }
+      user_has_customer_record: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
       user_has_permission: {
         Args: { _permission_key: string; _user_id: string }
         Returns: boolean

@@ -9398,6 +9398,9 @@ export type Database = {
         Row: {
           address: string | null
           balance: number | null
+          balance_bc: number | null
+          balance_currency_code: string | null
+          balance_fc: number | null
           code: string | null
           contact_person: string | null
           created_at: string | null
@@ -9417,6 +9420,9 @@ export type Database = {
         Insert: {
           address?: string | null
           balance?: number | null
+          balance_bc?: number | null
+          balance_currency_code?: string | null
+          balance_fc?: number | null
           code?: string | null
           contact_person?: string | null
           created_at?: string | null
@@ -9436,6 +9442,9 @@ export type Database = {
         Update: {
           address?: string | null
           balance?: number | null
+          balance_bc?: number | null
+          balance_currency_code?: string | null
+          balance_fc?: number | null
           code?: string | null
           contact_person?: string | null
           created_at?: string | null

@@ -1025,10 +1025,10 @@ const POS = () => {
                           <Plus className="h-3 w-3" />
                         </Button>
                       </div>
-                      <span className="font-bold">{item.line_total.toFixed(2)} ر.س</span>
+                      <span className="font-bold">{item.line_total.toFixed(2)} {currencyCode}</span>
                     </div>
                     <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>السعر: {item.unit_price.toFixed(2)} ر.س</span>
+                      <span>السعر: {item.unit_price.toFixed(2)} {currencyCode}</span>
                       {item.discount_percentage > 0 && (
                         <span className="text-destructive">
                           خصم {item.discount_percentage}%
@@ -1048,25 +1048,64 @@ const POS = () => {
             <div className="p-4 space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">المجموع الفرعي:</span>
-                <span className="font-medium">{subtotal.toFixed(2)} ر.س</span>
+                <span className="font-medium">{subtotal.toFixed(2)} {currencyCode}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">الخصم:</span>
-                <span className="font-medium text-destructive">{totalDiscount.toFixed(2)} ر.س</span>
+                <span className="font-medium text-destructive">{totalDiscount.toFixed(2)} {currencyCode}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">الضريبة ({TAX_RATE}%):</span>
-                <span className="font-medium">{tax.toFixed(2)} ر.س</span>
+                <span className="font-medium">{tax.toFixed(2)} {currencyCode}</span>
               </div>
               <Separator />
               <div className="flex justify-between text-lg font-bold">
                 <span>الإجمالي:</span>
-                <span className="text-primary">{grandTotal.toFixed(2)} ر.س</span>
+                <span className="text-primary">{grandTotal.toFixed(2)} {currencyCode}</span>
               </div>
+              {currencyCode !== baseCurrency && exchangeRate > 0 && (
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>الإجمالي بالعملة الأساسية:</span>
+                  <span>{(grandTotal * exchangeRate).toFixed(2)} {baseCurrency}</span>
+                </div>
+              )}
             </div>
 
             {/* Payment Section */}
             <div className="p-4 border-t border-border space-y-3">
+              {/* Currency Selection */}
+              <div>
+                <label className="text-sm font-medium mb-2 block">العملة:</label>
+                <Select value={currencyCode} onValueChange={async (currency) => {
+                  setCurrencyCode(currency);
+                  if (currency === baseCurrency) {
+                    setExchangeRate(1);
+                  } else {
+                    try {
+                      const rate = await getExchangeRate(currency, baseCurrency, new Date().toISOString().split("T")[0]);
+                      setExchangeRate(rate);
+                    } catch (error) {
+                      console.error("Error fetching exchange rate:", error);
+                      setExchangeRate(1);
+                    }
+                  }
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="اختر العملة" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="YER">ريال يمني (YER)</SelectItem>
+                    <SelectItem value="SAR">ريال سعودي (SAR)</SelectItem>
+                    <SelectItem value="USD">دولار أمريكي (USD)</SelectItem>
+                  </SelectContent>
+                </Select>
+                {currencyCode !== baseCurrency && exchangeRate > 0 && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    سعر الصرف: 1 {currencyCode} = {exchangeRate.toFixed(2)} {baseCurrency}
+                  </p>
+                )}
+              </div>
+
               <div>
                 <label className="text-sm font-medium mb-2 block">طريقة الدفع:</label>
                 <Select value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
@@ -1096,10 +1135,9 @@ const POS = () => {
               {paidAmount && changeAmount >= 0 && (
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">المبلغ المرتجع:</span>
-                  <span className="font-bold text-green-600">{changeAmount.toFixed(2)} ر.س</span>
+                  <span className="font-bold text-green-600">{changeAmount.toFixed(2)} {currencyCode}</span>
                 </div>
               )}
-
               <Button
                 className="w-full"
                 size="lg"

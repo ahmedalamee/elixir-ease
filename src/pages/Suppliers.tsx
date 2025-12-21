@@ -30,7 +30,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Edit, Trash, Search } from "lucide-react";
+import { Plus, Edit, Trash, Search, Upload } from "lucide-react";
+import { ExcelImportDialog } from "@/components/import";
 
 interface Supplier {
   id: string;
@@ -215,6 +216,59 @@ const Suppliers = () => {
                   إضافة وتعديل وحذف بيانات الموردين
                 </CardDescription>
               </div>
+              <div className="flex gap-2">
+                <ExcelImportDialog
+                  title="استيراد الموردين من Excel"
+                  description="قم برفع ملف Excel يحتوي على بيانات الموردين"
+                  templateFileName="suppliers_template.xlsx"
+                  columns={[
+                    { excelColumn: "الاسم", dbColumn: "name", required: true, type: "string", label: "الاسم" },
+                    { excelColumn: "الهاتف", dbColumn: "phone", required: false, type: "string", label: "الهاتف" },
+                    { excelColumn: "البريد الإلكتروني", dbColumn: "email", required: false, type: "string", label: "البريد الإلكتروني" },
+                    { excelColumn: "العنوان", dbColumn: "address", required: false, type: "string", label: "العنوان" },
+                    { excelColumn: "حد الائتمان", dbColumn: "credit_limit", required: false, type: "number", label: "حد الائتمان" },
+                    { excelColumn: "العملة", dbColumn: "currency_code", required: false, type: "string", label: "العملة" },
+                    { excelColumn: "الشخص المسؤول", dbColumn: "contact_person", required: false, type: "string", label: "الشخص المسؤول" },
+                    { excelColumn: "الرقم الضريبي", dbColumn: "tax_number", required: false, type: "string", label: "الرقم الضريبي" },
+                  ]}
+                  onImport={async (data) => {
+                    let success = 0;
+                    let failed = 0;
+                    const errors: string[] = [];
+
+                    for (const row of data) {
+                      try {
+                        const supplierData = {
+                          name: row.name,
+                          phone: row.phone || null,
+                          email: row.email || null,
+                          address: row.address || null,
+                          credit_limit: row.credit_limit || 0,
+                          currency_code: row.currency_code || "YER",
+                          contact_person: row.contact_person || null,
+                          tax_number: row.tax_number || null,
+                          is_active: true,
+                          balance: 0,
+                        };
+                        const { error } = await supabase.from("suppliers").insert([supplierData]);
+                        if (error) throw error;
+                        success++;
+                      } catch (err: any) {
+                        failed++;
+                        errors.push(`${row.name}: ${err.message}`);
+                      }
+                    }
+
+                    if (success > 0) fetchSuppliers();
+                    return { success, failed, errors };
+                  }}
+                  triggerButton={
+                    <Button variant="outline" className="gap-2">
+                      <Upload className="w-4 h-4" />
+                      استيراد Excel
+                    </Button>
+                  }
+                />
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
                   <Button className="gap-2" onClick={() => resetForm()}>
@@ -324,6 +378,7 @@ const Suppliers = () => {
                   </form>
                 </DialogContent>
               </Dialog>
+              </div>
             </div>
           </CardHeader>
           <CardContent>

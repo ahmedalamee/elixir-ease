@@ -15,7 +15,9 @@ import {
   Trash2,
   Package,
   AlertTriangle,
+  Upload,
 } from "lucide-react";
+import { ExcelImportDialog, ColumnMapping } from "@/components/import";
 import { ProductImageUpload, ProductImage } from "@/components/products";
 import {
   Dialog,
@@ -346,6 +348,62 @@ const Products = () => {
                 <h2 className="text-2xl font-bold">إدارة المنتجات</h2>
                 <p className="text-muted-foreground">إضافة وتعديل وحذف المنتجات</p>
               </div>
+              <div className="flex gap-2">
+                <ExcelImportDialog
+                  title="استيراد المنتجات من Excel"
+                  description="قم برفع ملف Excel يحتوي على بيانات المنتجات"
+                  templateFileName="products_template.xlsx"
+                  columns={[
+                    { excelColumn: "الاسم", dbColumn: "name", required: true, type: "string", label: "الاسم" },
+                    { excelColumn: "الاسم الانجليزي", dbColumn: "name_en", required: false, type: "string", label: "الاسم الانجليزي" },
+                    { excelColumn: "الباركود", dbColumn: "barcode", required: false, type: "string", label: "الباركود" },
+                    { excelColumn: "SKU", dbColumn: "sku", required: false, type: "string", label: "SKU" },
+                    { excelColumn: "سعر البيع", dbColumn: "price", required: true, type: "number", label: "سعر البيع" },
+                    { excelColumn: "سعر الشراء", dbColumn: "cost_price", required: true, type: "number", label: "سعر الشراء" },
+                    { excelColumn: "الكمية", dbColumn: "quantity", required: true, type: "number", label: "الكمية" },
+                    { excelColumn: "الحد الأدنى", dbColumn: "min_quantity", required: false, type: "number", label: "الحد الأدنى" },
+                    { excelColumn: "تاريخ الانتهاء", dbColumn: "expiry_date", required: false, type: "date", label: "تاريخ الانتهاء" },
+                    { excelColumn: "الوصف", dbColumn: "description", required: false, type: "string", label: "الوصف" },
+                  ]}
+                  onImport={async (data) => {
+                    let success = 0;
+                    let failed = 0;
+                    const errors: string[] = [];
+
+                    for (const row of data) {
+                      try {
+                        const productData = {
+                          name: row.name,
+                          name_en: row.name_en || null,
+                          barcode: row.barcode || null,
+                          sku: row.sku || null,
+                          price: row.price || 0,
+                          cost_price: row.cost_price || 0,
+                          quantity: row.quantity || 0,
+                          min_quantity: row.min_quantity || 10,
+                          expiry_date: row.expiry_date || null,
+                          description: row.description || null,
+                          is_active: true,
+                        };
+                        const { error } = await supabase.from("products").insert([productData]);
+                        if (error) throw error;
+                        success++;
+                      } catch (err: any) {
+                        failed++;
+                        errors.push(`${row.name}: ${err.message}`);
+                      }
+                    }
+
+                    if (success > 0) fetchData();
+                    return { success, failed, errors };
+                  }}
+                  triggerButton={
+                    <Button variant="outline" className="gap-2">
+                      <Upload className="w-4 h-4" />
+                      استيراد Excel
+                    </Button>
+                  }
+                />
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="btn-medical gap-2" onClick={resetForm}>
@@ -744,8 +802,8 @@ const Products = () => {
                 </form>
               </DialogContent>
             </Dialog>
+              </div>
             </div>
-            
             <div className="mb-6 space-y-4">
               <div className="relative">
                 <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />

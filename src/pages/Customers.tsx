@@ -32,7 +32,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Edit, Trash, Search, Eye } from "lucide-react";
+import { Plus, Edit, Trash, Search, Eye, Upload } from "lucide-react";
+import { ExcelImportDialog, ColumnMapping } from "@/components/import";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 
@@ -257,6 +258,85 @@ const Customers = () => {
                   إضافة وتعديل وحذف بيانات العملاء
                 </CardDescription>
               </div>
+              <div className="flex gap-2">
+                <ExcelImportDialog
+                  title="استيراد/تصدير العملاء"
+                  description="قم بتصدير العملاء الحاليين للتعديل عليهم، أو استيراد عملاء جدد"
+                  templateFileName="customers_template.xlsx"
+                  allowUpdate={true}
+                  columns={[
+                    { excelColumn: "الاسم", dbColumn: "name", required: true, type: "string", label: "الاسم", isKey: true },
+                    { excelColumn: "الهاتف", dbColumn: "phone", required: false, type: "string", label: "الهاتف" },
+                    { excelColumn: "البريد الإلكتروني", dbColumn: "email", required: false, type: "string", label: "البريد الإلكتروني" },
+                    { excelColumn: "العنوان", dbColumn: "address", required: false, type: "string", label: "العنوان" },
+                    { excelColumn: "حد الائتمان", dbColumn: "credit_limit", required: false, type: "number", label: "حد الائتمان" },
+                    { excelColumn: "العملة", dbColumn: "currency_code", required: false, type: "string", label: "العملة" },
+                    { excelColumn: "نشط", dbColumn: "is_active", required: false, type: "boolean", label: "نشط" },
+                  ]}
+                  onExport={async () => {
+                    const { data, error } = await supabase
+                      .from("customers")
+                      .select("name, phone, email, address, credit_limit, currency_code, is_active")
+                      .order("name");
+                    if (error) throw error;
+                    return data || [];
+                  }}
+                  onImport={async (data) => {
+                    let success = 0;
+                    let failed = 0;
+                    const errors: string[] = [];
+
+                    for (const row of data) {
+                      try {
+                        const customerData = {
+                          name: row.name,
+                          phone: row.phone || null,
+                          email: row.email || null,
+                          address: row.address || null,
+                          credit_limit: row.credit_limit || 0,
+                          currency_code: row.currency_code || "YER",
+                          is_active: row.is_active !== false,
+                        };
+
+                        // Check if customer exists by name
+                        const { data: existing } = await supabase
+                          .from("customers")
+                          .select("id")
+                          .eq("name", customerData.name)
+                          .maybeSingle();
+
+                        if (existing) {
+                          // Update existing
+                          const { error } = await supabase
+                            .from("customers")
+                            .update(customerData)
+                            .eq("id", existing.id);
+                          if (error) throw error;
+                        } else {
+                          // Insert new
+                          const { error } = await supabase.from("customers").insert([customerData]);
+                          if (error) throw error;
+                        }
+                        success++;
+                      } catch (err: any) {
+                        failed++;
+                        errors.push(`${row.name}: ${err.message}`);
+                      }
+                    }
+
+                    if (success > 0) {
+                      fetchCustomers();
+                      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === "customers" });
+                    }
+                    return { success, failed, errors };
+                  }}
+                  triggerButton={
+                    <Button variant="outline" className="gap-2">
+                      <Upload className="w-4 h-4" />
+                      استيراد/تصدير Excel
+                    </Button>
+                  }
+                />
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
                   <Button className="gap-2" onClick={() => resetForm()}>
@@ -383,6 +463,7 @@ const Customers = () => {
                   </form>
                 </DialogContent>
               </Dialog>
+              </div>
             </div>
           </CardHeader>
           <CardContent>

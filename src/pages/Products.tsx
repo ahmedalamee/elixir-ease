@@ -350,21 +350,30 @@ const Products = () => {
               </div>
               <div className="flex gap-2">
                 <ExcelImportDialog
-                  title="استيراد المنتجات من Excel"
-                  description="قم برفع ملف Excel يحتوي على بيانات المنتجات"
+                  title="استيراد/تصدير المنتجات"
+                  description="قم بتصدير المنتجات الحالية للتعديل عليها، أو استيراد منتجات جديدة"
                   templateFileName="products_template.xlsx"
+                  allowUpdate={true}
                   columns={[
+                    { excelColumn: "الباركود", dbColumn: "barcode", required: false, type: "string", label: "الباركود", isKey: true },
                     { excelColumn: "الاسم", dbColumn: "name", required: true, type: "string", label: "الاسم" },
                     { excelColumn: "الاسم الانجليزي", dbColumn: "name_en", required: false, type: "string", label: "الاسم الانجليزي" },
-                    { excelColumn: "الباركود", dbColumn: "barcode", required: false, type: "string", label: "الباركود" },
                     { excelColumn: "SKU", dbColumn: "sku", required: false, type: "string", label: "SKU" },
                     { excelColumn: "سعر البيع", dbColumn: "price", required: true, type: "number", label: "سعر البيع" },
                     { excelColumn: "سعر الشراء", dbColumn: "cost_price", required: true, type: "number", label: "سعر الشراء" },
-                    { excelColumn: "الكمية", dbColumn: "quantity", required: true, type: "number", label: "الكمية" },
+                    { excelColumn: "الكمية", dbColumn: "quantity", required: false, type: "number", label: "الكمية" },
                     { excelColumn: "الحد الأدنى", dbColumn: "min_quantity", required: false, type: "number", label: "الحد الأدنى" },
                     { excelColumn: "تاريخ الانتهاء", dbColumn: "expiry_date", required: false, type: "date", label: "تاريخ الانتهاء" },
                     { excelColumn: "الوصف", dbColumn: "description", required: false, type: "string", label: "الوصف" },
                   ]}
+                  onExport={async () => {
+                    const { data, error } = await supabase
+                      .from("products")
+                      .select("barcode, name, name_en, sku, price, cost_price, quantity, min_quantity, expiry_date, description")
+                      .order("name");
+                    if (error) throw error;
+                    return data || [];
+                  }}
                   onImport={async (data) => {
                     let success = 0;
                     let failed = 0;
@@ -379,14 +388,46 @@ const Products = () => {
                           sku: row.sku || null,
                           price: row.price || 0,
                           cost_price: row.cost_price || 0,
-                          quantity: row.quantity || 0,
+                          quantity: row.quantity ?? 0,
                           min_quantity: row.min_quantity || 10,
                           expiry_date: row.expiry_date || null,
                           description: row.description || null,
                           is_active: true,
                         };
-                        const { error } = await supabase.from("products").insert([productData]);
-                        if (error) throw error;
+
+                        // Check if product exists by barcode or name
+                        let existing = null;
+                        if (productData.barcode) {
+                          const { data: byBarcode } = await supabase
+                            .from("products")
+                            .select("id")
+                            .eq("barcode", productData.barcode)
+                            .maybeSingle();
+                          existing = byBarcode;
+                        }
+                        
+                        if (!existing) {
+                          const { data: byName } = await supabase
+                            .from("products")
+                            .select("id")
+                            .eq("name", productData.name)
+                            .maybeSingle();
+                          existing = byName;
+                        }
+
+                        if (existing) {
+                          // Update existing - don't override quantity
+                          const { quantity, ...updateData } = productData;
+                          const { error } = await supabase
+                            .from("products")
+                            .update(updateData)
+                            .eq("id", existing.id);
+                          if (error) throw error;
+                        } else {
+                          // Insert new
+                          const { error } = await supabase.from("products").insert([productData]);
+                          if (error) throw error;
+                        }
                         success++;
                       } catch (err: any) {
                         failed++;
@@ -400,7 +441,7 @@ const Products = () => {
                   triggerButton={
                     <Button variant="outline" className="gap-2">
                       <Upload className="w-4 h-4" />
-                      استيراد Excel
+                      استيراد/تصدير Excel
                     </Button>
                   }
                 />

@@ -28,6 +28,7 @@ export interface ColumnMapping {
   required: boolean;
   type: "string" | "number" | "date" | "boolean";
   label: string;
+  isKey?: boolean; // Used for upsert - identifies the unique key column
 }
 
 interface ExcelImportDialogProps {
@@ -35,8 +36,10 @@ interface ExcelImportDialogProps {
   description: string;
   columns: ColumnMapping[];
   onImport: (data: Record<string, any>[]) => Promise<{ success: number; failed: number; errors: string[] }>;
+  onExport?: () => Promise<Record<string, any>[]>;
   templateFileName: string;
   triggerButton?: React.ReactNode;
+  allowUpdate?: boolean; // Enable update mode for existing records
 }
 
 export const ExcelImportDialog = ({
@@ -44,8 +47,10 @@ export const ExcelImportDialog = ({
   description,
   columns,
   onImport,
+  onExport,
   templateFileName,
   triggerButton,
+  allowUpdate = false,
 }: ExcelImportDialogProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -215,6 +220,52 @@ export const ExcelImportDialog = ({
     XLSX.writeFile(wb, templateFileName);
   };
 
+  const handleExport = async () => {
+    if (!onExport) return;
+    
+    try {
+      const data = await onExport();
+      if (data.length === 0) {
+        toast({
+          title: "لا توجد بيانات",
+          description: "لا توجد بيانات للتصدير",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Map data to Excel columns
+      const headers = columns.map((col) => col.excelColumn);
+      const rows = data.map((item) => 
+        columns.map((col) => {
+          const value = item[col.dbColumn];
+          if (value === null || value === undefined) return "";
+          if (col.type === "boolean") return value ? "نعم" : "لا";
+          if (col.type === "date" && value) {
+            return new Date(value).toISOString().split("T")[0];
+          }
+          return value;
+        })
+      );
+
+      const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Data");
+      XLSX.writeFile(wb, templateFileName.replace("_template", "_export"));
+
+      toast({
+        title: "تم التصدير بنجاح",
+        description: `تم تصدير ${data.length} سجل`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "فشل التصدير",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const resetDialog = () => {
     setFile(null);
     setParsedData([]);
@@ -246,18 +297,34 @@ export const ExcelImportDialog = ({
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Template Download */}
+          {/* Template Download & Export */}
           <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
             <div>
-              <p className="font-medium">تحميل قالب Excel</p>
+              <p className="font-medium">قالب Excel</p>
               <p className="text-sm text-muted-foreground">
-                قم بتحميل القالب وملئه بالبيانات ثم رفعه
+                {onExport 
+                  ? "قم بتصدير البيانات الحالية للتعديل، أو حمّل قالب فارغ"
+                  : "قم بتحميل القالب وملئه بالبيانات ثم رفعه"
+                }
               </p>
+              {allowUpdate && (
+                <p className="text-xs text-blue-600 mt-1">
+                  💡 سيتم تحديث السجلات الموجودة تلقائياً بناءً على المفتاح الفريد
+                </p>
+              )}
             </div>
-            <Button variant="outline" onClick={downloadTemplate} className="gap-2">
-              <Download className="h-4 w-4" />
-              تحميل القالب
-            </Button>
+            <div className="flex gap-2">
+              {onExport && (
+                <Button variant="default" onClick={handleExport} className="gap-2">
+                  <Download className="h-4 w-4" />
+                  تصدير البيانات
+                </Button>
+              )}
+              <Button variant="outline" onClick={downloadTemplate} className="gap-2">
+                <Download className="h-4 w-4" />
+                قالب فارغ
+              </Button>
+            </div>
           </div>
 
           {/* File Upload */}

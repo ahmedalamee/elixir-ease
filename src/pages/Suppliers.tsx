@@ -218,11 +218,12 @@ const Suppliers = () => {
               </div>
               <div className="flex gap-2">
                 <ExcelImportDialog
-                  title="استيراد الموردين من Excel"
-                  description="قم برفع ملف Excel يحتوي على بيانات الموردين"
+                  title="استيراد/تصدير الموردين"
+                  description="قم بتصدير الموردين الحاليين للتعديل عليهم، أو استيراد موردين جدد"
                   templateFileName="suppliers_template.xlsx"
+                  allowUpdate={true}
                   columns={[
-                    { excelColumn: "الاسم", dbColumn: "name", required: true, type: "string", label: "الاسم" },
+                    { excelColumn: "الاسم", dbColumn: "name", required: true, type: "string", label: "الاسم", isKey: true },
                     { excelColumn: "الهاتف", dbColumn: "phone", required: false, type: "string", label: "الهاتف" },
                     { excelColumn: "البريد الإلكتروني", dbColumn: "email", required: false, type: "string", label: "البريد الإلكتروني" },
                     { excelColumn: "العنوان", dbColumn: "address", required: false, type: "string", label: "العنوان" },
@@ -231,6 +232,14 @@ const Suppliers = () => {
                     { excelColumn: "الشخص المسؤول", dbColumn: "contact_person", required: false, type: "string", label: "الشخص المسؤول" },
                     { excelColumn: "الرقم الضريبي", dbColumn: "tax_number", required: false, type: "string", label: "الرقم الضريبي" },
                   ]}
+                  onExport={async () => {
+                    const { data, error } = await supabase
+                      .from("suppliers")
+                      .select("name, phone, email, address, credit_limit, currency_code, contact_person, tax_number")
+                      .order("name");
+                    if (error) throw error;
+                    return data || [];
+                  }}
                   onImport={async (data) => {
                     let success = 0;
                     let failed = 0;
@@ -248,10 +257,27 @@ const Suppliers = () => {
                           contact_person: row.contact_person || null,
                           tax_number: row.tax_number || null,
                           is_active: true,
-                          balance: 0,
                         };
-                        const { error } = await supabase.from("suppliers").insert([supplierData]);
-                        if (error) throw error;
+
+                        // Check if supplier exists by name
+                        const { data: existing } = await supabase
+                          .from("suppliers")
+                          .select("id")
+                          .eq("name", supplierData.name)
+                          .maybeSingle();
+
+                        if (existing) {
+                          // Update existing
+                          const { error } = await supabase
+                            .from("suppliers")
+                            .update(supplierData)
+                            .eq("id", existing.id);
+                          if (error) throw error;
+                        } else {
+                          // Insert new with balance = 0
+                          const { error } = await supabase.from("suppliers").insert([{ ...supplierData, balance: 0 }]);
+                          if (error) throw error;
+                        }
                         success++;
                       } catch (err: any) {
                         failed++;
@@ -265,7 +291,7 @@ const Suppliers = () => {
                   triggerButton={
                     <Button variant="outline" className="gap-2">
                       <Upload className="w-4 h-4" />
-                      استيراد Excel
+                      استيراد/تصدير Excel
                     </Button>
                   }
                 />

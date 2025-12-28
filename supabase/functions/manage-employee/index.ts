@@ -151,7 +151,7 @@ serve(async (req) => {
           )
         }
         return new Response(
-          JSON.stringify({ error: `فشل في إنشاء المستخدم: ${authError.message}` }),
+          JSON.stringify({ error: 'فشل في إنشاء المستخدم', error_id: crypto.randomUUID() }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
@@ -203,7 +203,7 @@ serve(async (req) => {
         // Cleanup: delete the auth user
         await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
         return new Response(
-          JSON.stringify({ error: `فشل في إنشاء سجل الموظف: ${employeeError.message}` }),
+          JSON.stringify({ error: 'فشل في إنشاء سجل الموظف', error_id: crypto.randomUUID() }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
@@ -261,7 +261,7 @@ serve(async (req) => {
       if (updateError) {
         console.error('Failed to update employee:', updateError.message)
         return new Response(
-          JSON.stringify({ error: `فشل في تحديث الموظف: ${updateError.message}` }),
+          JSON.stringify({ error: 'فشل في تحديث الموظف', error_id: crypto.randomUUID() }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
@@ -312,7 +312,7 @@ serve(async (req) => {
       if (deleteError) {
         console.error('Failed to delete employee:', deleteError.message)
         return new Response(
-          JSON.stringify({ error: `فشل في حذف الموظف: ${deleteError.message}` }),
+          JSON.stringify({ error: 'فشل في حذف الموظف', error_id: crypto.randomUUID() }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }

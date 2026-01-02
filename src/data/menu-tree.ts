@@ -21,6 +21,7 @@ import {
   BookOpen,
   UserCog,
   Building2,
+  Store,
 } from "lucide-react";
 import { TreeMenuItem } from "@/types/tree-menu";
 
@@ -507,6 +508,43 @@ export const menuTree: TreeMenuItem[] = [
         id: "hr-reports",
         label: "تقارير الموظفين",
         route: "/hr/employee-reports",
+      },
+    ],
+  },
+  {
+    id: "ecommerce",
+    label: "المتجر الإلكتروني",
+    icon: Store,
+    children: [
+      {
+        id: "ecommerce-orders",
+        label: "طلبات المتجر",
+        route: "/ecommerce/orders",
+      },
+      {
+        id: "ecommerce-wholesale-orders",
+        label: "طلبات الجملة",
+        route: "/ecommerce/wholesale-orders",
+      },
+      {
+        id: "ecommerce-wholesale-requests",
+        label: "طلبات حسابات الجملة",
+        route: "/ecommerce/wholesale-requests",
+      },
+      {
+        id: "ecommerce-products",
+        label: "منتجات المتجر",
+        route: "/ecommerce/products",
+      },
+      {
+        id: "ecommerce-categories",
+        label: "فئات المتجر",
+        route: "/ecommerce/categories",
+      },
+      {
+        id: "ecommerce-sync",
+        label: "سجل المزامنة",
+        route: "/ecommerce/sync-log",
       },
     ],
   },

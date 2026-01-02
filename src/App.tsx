@@ -129,6 +129,13 @@ import RFQView from "./pages/RFQView";
 import ApprovalRequests from "./pages/ApprovalRequests";
 import ApprovalView from "./pages/ApprovalView";
 import ApprovalWorkflows from "./pages/ApprovalWorkflows";
+import {
+  EcommerceOrders,
+  WholesaleRequests,
+  EcommerceProducts,
+  EcommerceCategories,
+  EcommerceSyncLog,
+} from "./pages/ecommerce";
 
 const queryClient = new QueryClient();
 
@@ -298,6 +305,13 @@ const AppContent = () => {
           <Route path="/inventory-reports" element={<InventoryReports />} />
           <Route path="/stock-alerts" element={<StockAlerts />} />
           <Route path="/complaints-reports" element={<ComplaintsReports />} />
+          {/* E-commerce routes */}
+          <Route path="/ecommerce/orders" element={<EcommerceOrders />} />
+          <Route path="/ecommerce/wholesale-orders" element={<EcommerceOrders />} />
+          <Route path="/ecommerce/wholesale-requests" element={<WholesaleRequests />} />
+          <Route path="/ecommerce/products" element={<EcommerceProducts />} />
+          <Route path="/ecommerce/categories" element={<EcommerceCategories />} />
+          <Route path="/ecommerce/sync-log" element={<EcommerceSyncLog />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

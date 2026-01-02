@@ -3097,6 +3097,445 @@ export type Database = {
         }
         Relationships: []
       }
+      ecommerce_categories: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          name: string
+          name_en: string | null
+          parent_id: string | null
+          sort_order: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name: string
+          name_en?: string | null
+          parent_id?: string | null
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name?: string
+          name_en?: string | null
+          parent_id?: string | null
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ecommerce_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ecommerce_order_items: {
+        Row: {
+          created_at: string | null
+          discount_amount_bc: number | null
+          discount_amount_fc: number | null
+          discount_percent: number | null
+          ecommerce_product_id: string | null
+          id: string
+          line_total_bc: number
+          line_total_fc: number
+          notes: string | null
+          order_id: string
+          product_id: string | null
+          product_name: string
+          quantity: number
+          sku: string | null
+          tax_amount_bc: number | null
+          tax_amount_fc: number | null
+          tax_percent: number | null
+          unit_price_bc: number
+          unit_price_fc: number
+        }
+        Insert: {
+          created_at?: string | null
+          discount_amount_bc?: number | null
+          discount_amount_fc?: number | null
+          discount_percent?: number | null
+          ecommerce_product_id?: string | null
+          id?: string
+          line_total_bc: number
+          line_total_fc: number
+          notes?: string | null
+          order_id: string
+          product_id?: string | null
+          product_name: string
+          quantity?: number
+          sku?: string | null
+          tax_amount_bc?: number | null
+          tax_amount_fc?: number | null
+          tax_percent?: number | null
+          unit_price_bc: number
+          unit_price_fc: number
+        }
+        Update: {
+          created_at?: string | null
+          discount_amount_bc?: number | null
+          discount_amount_fc?: number | null
+          discount_percent?: number | null
+          ecommerce_product_id?: string | null
+          id?: string
+          line_total_bc?: number
+          line_total_fc?: number
+          notes?: string | null
+          order_id?: string
+          product_id?: string | null
+          product_name?: string
+          quantity?: number
+          sku?: string | null
+          tax_amount_bc?: number | null
+          tax_amount_fc?: number | null
+          tax_percent?: number | null
+          unit_price_bc?: number
+          unit_price_fc?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ecommerce_order_items_ecommerce_product_id_fkey"
+            columns: ["ecommerce_product_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["product_id"]
+          },
+        ]
+      }
+      ecommerce_orders: {
+        Row: {
+          created_at: string | null
+          currency_code: string | null
+          customer_email: string | null
+          customer_id: string | null
+          customer_name: string
+          customer_phone: string
+          delivered_at: string | null
+          discount_amount_bc: number | null
+          discount_amount_fc: number | null
+          exchange_rate: number | null
+          external_order_id: string | null
+          id: string
+          internal_notes: string | null
+          notes: string | null
+          order_number: string
+          order_type: string | null
+          payment_method: string | null
+          payment_status: string | null
+          processed_at: string | null
+          processed_by: string | null
+          sales_invoice_id: string | null
+          shipped_at: string | null
+          shipping_address: string | null
+          shipping_amount_bc: number | null
+          shipping_amount_fc: number | null
+          shipping_city: string | null
+          source: string | null
+          status: string | null
+          subtotal_bc: number | null
+          subtotal_fc: number | null
+          tax_amount_bc: number | null
+          tax_amount_fc: number | null
+          total_amount_bc: number | null
+          total_amount_fc: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          currency_code?: string | null
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name: string
+          customer_phone: string
+          delivered_at?: string | null
+          discount_amount_bc?: number | null
+          discount_amount_fc?: number | null
+          exchange_rate?: number | null
+          external_order_id?: string | null
+          id?: string
+          internal_notes?: string | null
+          notes?: string | null
+          order_number: string
+          order_type?: string | null
+          payment_method?: string | null
+          payment_status?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          sales_invoice_id?: string | null
+          shipped_at?: string | null
+          shipping_address?: string | null
+          shipping_amount_bc?: number | null
+          shipping_amount_fc?: number | null
+          shipping_city?: string | null
+          source?: string | null
+          status?: string | null
+          subtotal_bc?: number | null
+          subtotal_fc?: number | null
+          tax_amount_bc?: number | null
+          tax_amount_fc?: number | null
+          total_amount_bc?: number | null
+          total_amount_fc?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          currency_code?: string | null
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name?: string
+          customer_phone?: string
+          delivered_at?: string | null
+          discount_amount_bc?: number | null
+          discount_amount_fc?: number | null
+          exchange_rate?: number | null
+          external_order_id?: string | null
+          id?: string
+          internal_notes?: string | null
+          notes?: string | null
+          order_number?: string
+          order_type?: string | null
+          payment_method?: string | null
+          payment_status?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          sales_invoice_id?: string | null
+          shipped_at?: string | null
+          shipping_address?: string | null
+          shipping_amount_bc?: number | null
+          shipping_amount_fc?: number | null
+          shipping_city?: string | null
+          source?: string | null
+          status?: string | null
+          subtotal_bc?: number | null
+          subtotal_fc?: number | null
+          tax_amount_bc?: number | null
+          tax_amount_fc?: number | null
+          total_amount_bc?: number | null
+          total_amount_fc?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ecommerce_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_admin_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_cashier_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_full_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_pos_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "safe_customers_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_orders_sales_invoice_id_fkey"
+            columns: ["sales_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "sales_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ecommerce_products: {
+        Row: {
+          category_id: string | null
+          created_at: string | null
+          description: string | null
+          description_en: string | null
+          id: string
+          images: string[] | null
+          is_available: boolean | null
+          is_featured: boolean | null
+          min_wholesale_qty: number | null
+          product_id: string | null
+          retail_price: number
+          sort_order: number | null
+          updated_at: string | null
+          wholesale_price: number | null
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          description_en?: string | null
+          id?: string
+          images?: string[] | null
+          is_available?: boolean | null
+          is_featured?: boolean | null
+          min_wholesale_qty?: number | null
+          product_id?: string | null
+          retail_price: number
+          sort_order?: number | null
+          updated_at?: string | null
+          wholesale_price?: number | null
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          description_en?: string | null
+          id?: string
+          images?: string[] | null
+          is_available?: boolean | null
+          is_featured?: boolean | null
+          min_wholesale_qty?: number | null
+          product_id?: string | null
+          retail_price?: number
+          sort_order?: number | null
+          updated_at?: string | null
+          wholesale_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ecommerce_products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["product_id"]
+          },
+        ]
+      }
+      ecommerce_sync_log: {
+        Row: {
+          action: string
+          created_at: string | null
+          error_message: string | null
+          external_id: string | null
+          id: string
+          internal_id: string | null
+          request_data: Json | null
+          response_data: Json | null
+          status: string | null
+          sync_type: string
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          error_message?: string | null
+          external_id?: string | null
+          id?: string
+          internal_id?: string | null
+          request_data?: Json | null
+          response_data?: Json | null
+          status?: string | null
+          sync_type: string
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          error_message?: string | null
+          external_id?: string | null
+          id?: string
+          internal_id?: string | null
+          request_data?: Json | null
+          response_data?: Json | null
+          status?: string | null
+          sync_type?: string
+        }
+        Relationships: []
+      }
       employee_attendance: {
         Row: {
           check_in: string
@@ -10534,6 +10973,131 @@ export type Database = {
           },
         ]
       }
+      wholesale_account_requests: {
+        Row: {
+          address: string | null
+          city: string | null
+          commercial_register_image: string | null
+          commercial_register_number: string | null
+          company_name: string
+          company_name_en: string | null
+          contact_name: string
+          created_at: string | null
+          customer_id: string | null
+          email: string
+          id: string
+          national_id_image: string | null
+          national_id_number: string | null
+          notes: string | null
+          phone: string
+          rejection_reason: string | null
+          request_number: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+          tax_number: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          commercial_register_image?: string | null
+          commercial_register_number?: string | null
+          company_name: string
+          company_name_en?: string | null
+          contact_name: string
+          created_at?: string | null
+          customer_id?: string | null
+          email: string
+          id?: string
+          national_id_image?: string | null
+          national_id_number?: string | null
+          notes?: string | null
+          phone: string
+          rejection_reason?: string | null
+          request_number: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          tax_number?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          commercial_register_image?: string | null
+          commercial_register_number?: string | null
+          company_name?: string
+          company_name_en?: string | null
+          contact_name?: string
+          created_at?: string | null
+          customer_id?: string | null
+          email?: string
+          id?: string
+          national_id_image?: string | null
+          national_id_number?: string | null
+          notes?: string | null
+          phone?: string
+          rejection_reason?: string | null
+          request_number?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          tax_number?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wholesale_account_requests_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wholesale_account_requests_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_admin_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wholesale_account_requests_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_cashier_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wholesale_account_requests_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_full_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wholesale_account_requests_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wholesale_account_requests_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_pos_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wholesale_account_requests_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "safe_customers_summary"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       cashier_prescription_view: {
@@ -11661,6 +12225,7 @@ export type Database = {
       generate_campaign_number: { Args: never; Returns: string }
       generate_complaint_number: { Args: never; Returns: string }
       generate_doctor_code: { Args: never; Returns: string }
+      generate_ecommerce_order_number: { Args: never; Returns: string }
       generate_employee_code: { Args: never; Returns: string }
       generate_exchange_number: { Args: never; Returns: string }
       generate_journal_entry_number: { Args: never; Returns: string }
@@ -11681,6 +12246,7 @@ export type Database = {
         Args: { p_end_date: string; p_start_date: string }
         Returns: Json
       }
+      generate_wholesale_request_number: { Args: never; Returns: string }
       get_account_mapping: {
         Args: { p_branch_id?: string; p_module: string; p_operation: string }
         Returns: {

@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import Navbar from "@/components/Navbar";
+import { TreeSidebar } from "@/components/TreeSidebar";
+import { menuTree } from "@/data/menu-tree";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -163,14 +166,18 @@ export default function EcommerceCategories() {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6" dir="rtl">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">فئات المتجر الإلكتروني</h1>
-        <Button onClick={() => setShowAddDialog(true)}>
-          <Plus className="h-4 w-4 ml-2" />
-          إضافة فئة
-        </Button>
-      </div>
+    <div className="min-h-screen bg-background" dir="rtl">
+      <Navbar />
+      <div className="flex">
+        <TreeSidebar menuData={menuTree} />
+        <main className="flex-1 container mx-auto py-6 px-4 space-y-6">
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-bold">فئات المتجر الإلكتروني</h1>
+            <Button onClick={() => setShowAddDialog(true)}>
+              <Plus className="h-4 w-4 ml-2" />
+              إضافة فئة
+            </Button>
+          </div>
 
       <Card>
         <CardContent className="pt-6">
@@ -332,6 +339,8 @@ export default function EcommerceCategories() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+        </main>
+      </div>
     </div>
   );
 }

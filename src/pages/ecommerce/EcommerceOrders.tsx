@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import Navbar from "@/components/Navbar";
+import { TreeSidebar } from "@/components/TreeSidebar";
+import { menuTree } from "@/data/menu-tree";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -126,10 +129,14 @@ export default function EcommerceOrders() {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6" dir="rtl">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">طلبات المتجر الإلكتروني</h1>
-      </div>
+    <div className="min-h-screen bg-background" dir="rtl">
+      <Navbar />
+      <div className="flex">
+        <TreeSidebar menuData={menuTree} />
+        <main className="flex-1 container mx-auto py-6 px-4 space-y-6">
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-bold">طلبات المتجر الإلكتروني</h1>
+          </div>
 
       <Card>
         <CardHeader>
@@ -364,6 +371,8 @@ export default function EcommerceOrders() {
           )}
         </DialogContent>
       </Dialog>
+        </main>
+      </div>
     </div>
   );
 }

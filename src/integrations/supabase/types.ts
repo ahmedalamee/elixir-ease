@@ -3097,6 +3097,51 @@ export type Database = {
         }
         Relationships: []
       }
+      ecommerce_banners: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          display_order: number | null
+          end_date: string | null
+          id: string
+          image_url: string
+          is_active: boolean | null
+          link_url: string | null
+          start_date: string | null
+          title: string
+          title_en: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          display_order?: number | null
+          end_date?: string | null
+          id?: string
+          image_url: string
+          is_active?: boolean | null
+          link_url?: string | null
+          start_date?: string | null
+          title: string
+          title_en?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          display_order?: number | null
+          end_date?: string | null
+          id?: string
+          image_url?: string
+          is_active?: boolean | null
+          link_url?: string | null
+          start_date?: string | null
+          title?: string
+          title_en?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       ecommerce_categories: {
         Row: {
           created_at: string | null
@@ -3143,6 +3188,196 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ecommerce_coupon_usage: {
+        Row: {
+          coupon_id: string
+          customer_id: string | null
+          discount_amount: number
+          id: string
+          order_id: string | null
+          used_at: string | null
+        }
+        Insert: {
+          coupon_id: string
+          customer_id?: string | null
+          discount_amount: number
+          id?: string
+          order_id?: string | null
+          used_at?: string | null
+        }
+        Update: {
+          coupon_id?: string
+          customer_id?: string | null
+          discount_amount?: number
+          id?: string
+          order_id?: string | null
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ecommerce_coupon_usage_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_coupon_usage_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_coupon_usage_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_admin_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_coupon_usage_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_cashier_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_coupon_usage_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_full_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_coupon_usage_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_coupon_usage_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_pos_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_coupon_usage_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "safe_customers_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_coupon_usage_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ecommerce_coupons: {
+        Row: {
+          applicable_to: string | null
+          code: string
+          created_at: string | null
+          created_by: string | null
+          discount_type: string
+          discount_value: number
+          end_date: string | null
+          id: string
+          is_active: boolean | null
+          max_discount_amount: number | null
+          min_order_amount: number | null
+          name: string
+          name_en: string | null
+          start_date: string | null
+          updated_at: string | null
+          usage_limit: number | null
+          used_count: number | null
+        }
+        Insert: {
+          applicable_to?: string | null
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          discount_type: string
+          discount_value: number
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_discount_amount?: number | null
+          min_order_amount?: number | null
+          name: string
+          name_en?: string | null
+          start_date?: string | null
+          updated_at?: string | null
+          usage_limit?: number | null
+          used_count?: number | null
+        }
+        Update: {
+          applicable_to?: string | null
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          discount_type?: string
+          discount_value?: number
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_discount_amount?: number | null
+          min_order_amount?: number | null
+          name?: string
+          name_en?: string | null
+          start_date?: string | null
+          updated_at?: string | null
+          usage_limit?: number | null
+          used_count?: number | null
+        }
+        Relationships: []
+      }
+      ecommerce_notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string | null
+          notification_type: string
+          read_at: string | null
+          read_by: string | null
+          reference_id: string | null
+          reference_type: string | null
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string | null
+          notification_type: string
+          read_at?: string | null
+          read_by?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string | null
+          notification_type?: string
+          read_at?: string | null
+          read_by?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          title?: string
+        }
+        Relationships: []
       }
       ecommerce_order_items: {
         Row: {
@@ -3248,6 +3483,7 @@ export type Database = {
       }
       ecommerce_orders: {
         Row: {
+          coupon_id: string | null
           created_at: string | null
           currency_code: string | null
           customer_email: string | null
@@ -3255,6 +3491,7 @@ export type Database = {
           customer_name: string
           customer_phone: string
           delivered_at: string | null
+          discount_amount: number | null
           discount_amount_bc: number | null
           discount_amount_fc: number | null
           exchange_rate: number | null
@@ -3285,6 +3522,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          coupon_id?: string | null
           created_at?: string | null
           currency_code?: string | null
           customer_email?: string | null
@@ -3292,6 +3530,7 @@ export type Database = {
           customer_name: string
           customer_phone: string
           delivered_at?: string | null
+          discount_amount?: number | null
           discount_amount_bc?: number | null
           discount_amount_fc?: number | null
           exchange_rate?: number | null
@@ -3322,6 +3561,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          coupon_id?: string | null
           created_at?: string | null
           currency_code?: string | null
           customer_email?: string | null
@@ -3329,6 +3569,7 @@ export type Database = {
           customer_name?: string
           customer_phone?: string
           delivered_at?: string | null
+          discount_amount?: number | null
           discount_amount_bc?: number | null
           discount_amount_fc?: number | null
           exchange_rate?: number | null
@@ -3359,6 +3600,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ecommerce_orders_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_coupons"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ecommerce_orders_customer_id_fkey"
             columns: ["customer_id"]

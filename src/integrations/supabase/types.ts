@@ -9660,6 +9660,36 @@ export type Database = {
         }
         Relationships: []
       }
+      sensitive_document_access_log: {
+        Row: {
+          accessed_at: string | null
+          document_id: string
+          document_type: string
+          id: string
+          ip_address: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          accessed_at?: string | null
+          document_id: string
+          document_type: string
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          accessed_at?: string | null
+          document_id?: string
+          document_type?: string
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       so_items: {
         Row: {
           created_at: string | null
@@ -12220,6 +12250,57 @@ export type Database = {
           },
         ]
       }
+      wholesale_requests_summary: {
+        Row: {
+          city: string | null
+          company_name: string | null
+          company_name_en: string | null
+          contact_name: string | null
+          created_at: string | null
+          email: string | null
+          id: string | null
+          phone: string | null
+          rejection_reason: string | null
+          request_number: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          city?: string | null
+          company_name?: string | null
+          company_name_en?: string | null
+          contact_name?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          phone?: string | null
+          rejection_reason?: string | null
+          request_number?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          city?: string | null
+          company_name?: string | null
+          company_name_en?: string | null
+          contact_name?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          phone?: string | null
+          rejection_reason?: string | null
+          request_number?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       add_cost_layer: {
@@ -12754,6 +12835,10 @@ export type Database = {
         Returns: boolean
       }
       is_document_posted: { Args: { doc_status: string }; Returns: boolean }
+      log_document_access: {
+        Args: { p_document_id: string; p_document_type: string }
+        Returns: undefined
+      }
       log_system_event: {
         Args: {
           p_event_data: Json

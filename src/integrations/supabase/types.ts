@@ -11993,7 +11993,6 @@ export type Database = {
         Row: {
           created_at: string | null
           department: string | null
-          email: string | null
           employee_code: string | null
           full_name: string | null
           full_name_en: string | null
@@ -12001,13 +12000,10 @@ export type Database = {
           id: string | null
           is_active: boolean | null
           job_title: string | null
-          notes: string | null
-          phone: string | null
         }
         Insert: {
           created_at?: string | null
           department?: string | null
-          email?: string | null
           employee_code?: string | null
           full_name?: string | null
           full_name_en?: string | null
@@ -12015,13 +12011,10 @@ export type Database = {
           id?: string | null
           is_active?: boolean | null
           job_title?: string | null
-          notes?: string | null
-          phone?: string | null
         }
         Update: {
           created_at?: string | null
           department?: string | null
-          email?: string | null
           employee_code?: string | null
           full_name?: string | null
           full_name_en?: string | null
@@ -12029,8 +12022,6 @@ export type Database = {
           id?: string | null
           is_active?: boolean | null
           job_title?: string | null
-          notes?: string | null
-          phone?: string | null
         }
         Relationships: []
       }
@@ -12675,6 +12666,13 @@ export type Database = {
         }[]
       }
       get_default_tax_rate: { Args: never; Returns: number }
+      get_employee_salary: {
+        Args: { p_employee_id: string }
+        Returns: {
+          national_id_enc: string
+          salary: number
+        }[]
+      }
       get_encryption_key: { Args: never; Returns: string }
       get_exchange_rate: {
         Args: {

@@ -64,14 +64,20 @@ const EcommerceDashboard = () => {
   const { data: productStats } = useQuery({
     queryKey: ["ecommerce-product-stats"],
     queryFn: async () => {
-      const { data, error, count } = await supabase
+      const { count, error } = await supabase
         .from("ecommerce_products")
-        .select("id, stock_quantity", { count: "exact" })
-        .eq("is_active", true);
+        .select("id", { count: "exact", head: true })
+        .eq("is_available", true);
       
       if (error) throw error;
-      const lowStock = (data || []).filter(p => (p.stock_quantity || 0) < 10).length;
-      return { total: count || 0, lowStock };
+      
+      // الحصول على المنتجات منخفضة المخزون من جدول products الأساسي
+      const { data: lowStockProducts } = await supabase
+        .from("products")
+        .select("id")
+        .lt("stock_quantity", 10);
+      
+      return { total: count || 0, lowStock: lowStockProducts?.length || 0 };
     },
   });
 

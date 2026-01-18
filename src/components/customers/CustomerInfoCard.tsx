@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, User, CreditCard, Award, TrendingUp, Calendar } from "lucide-react";
+import { AlertCircle, User, CreditCard, Award, Calendar, Coins } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CustomerInfoCardProps {
@@ -19,7 +19,31 @@ interface CustomerDetails {
   loyalty_points: number;
   last_transaction_date: string | null;
   is_active: boolean;
+  currency_code: string | null;
 }
+
+// دالة لتنسيق الأرقام بالتنسيق العربي مع فواصل الألوف
+const formatArabicNumber = (num: number, decimals: number = 2): string => {
+  return num.toLocaleString('ar-SA', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  });
+};
+
+// دالة للحصول على رمز العملة ونوعها
+const getCurrencyInfo = (currencyCode: string | null): { symbol: string; name: string; code: string } => {
+  switch (currencyCode?.toUpperCase()) {
+    case 'SAR':
+      return { symbol: 'ر.س', name: 'ريال سعودي', code: 'SAR' };
+    case 'USD':
+      return { symbol: '$', name: 'دولار أمريكي', code: 'USD' };
+    case 'EUR':
+      return { symbol: '€', name: 'يورو', code: 'EUR' };
+    case 'YER':
+    default:
+      return { symbol: 'ر.ي', name: 'ريال يمني', code: 'YER' };
+  }
+};
 
 export const CustomerInfoCard = ({ customerId }: CustomerInfoCardProps) => {
   const { data: customer, isLoading } = useQuery({
@@ -55,6 +79,8 @@ export const CustomerInfoCard = ({ customerId }: CustomerInfoCardProps) => {
   const isOverLimit = customer.balance > customer.credit_limit;
   const isNearLimit = creditUsagePercent > 80 && !isOverLimit;
 
+  const currencyInfo = getCurrencyInfo(customer.currency_code);
+
   return (
     <div className="space-y-3 mb-4">
       <Card className="bg-muted/30">
@@ -88,14 +114,14 @@ export const CustomerInfoCard = ({ customerId }: CustomerInfoCardProps) => {
                 "font-bold text-base",
                 customer.balance > 0 ? "text-red-600" : customer.balance < 0 ? "text-green-600" : ""
               )}>
-                {customer.balance.toFixed(2)} ر.س
+                {formatArabicNumber(customer.balance)} {currencyInfo.symbol}
               </p>
             </div>
 
             {/* حد الائتمان */}
             <div>
               <p className="text-muted-foreground mb-1">حد الائتمان</p>
-              <p className="font-medium">{customer.credit_limit.toFixed(2)} ر.س</p>
+              <p className="font-medium">{formatArabicNumber(customer.credit_limit)} {currencyInfo.symbol}</p>
               {customer.credit_limit > 0 && (
                 <div className="mt-1">
                   <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
@@ -108,7 +134,7 @@ export const CustomerInfoCard = ({ customerId }: CustomerInfoCardProps) => {
                     />
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {creditUsagePercent.toFixed(0)}% مستخدم
+                    {formatArabicNumber(creditUsagePercent, 0)}% مستخدم
                   </p>
                 </div>
               )}
@@ -121,7 +147,7 @@ export const CustomerInfoCard = ({ customerId }: CustomerInfoCardProps) => {
                 نقاط الولاء
               </p>
               <p className="font-bold text-base text-primary">
-                {customer.loyalty_points} نقطة
+                {formatArabicNumber(customer.loyalty_points, 0)} نقطة
               </p>
             </div>
 
@@ -154,6 +180,17 @@ export const CustomerInfoCard = ({ customerId }: CustomerInfoCardProps) => {
                 {customer.is_active ? "نشط" : "غير نشط"}
               </div>
             </div>
+
+            {/* نوع العملة */}
+            <div>
+              <p className="text-muted-foreground mb-1 flex items-center gap-1">
+                <Coins className="h-3 w-3" />
+                نوع العملة
+              </p>
+              <p className="font-medium">
+                {currencyInfo.name} ({currencyInfo.code})
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -164,7 +201,7 @@ export const CustomerInfoCard = ({ customerId }: CustomerInfoCardProps) => {
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             <strong>تحذير:</strong> تجاوز العميل حد الائتمان المسموح به
-            (الرصيد: {customer.balance.toFixed(2)} / الحد: {customer.credit_limit.toFixed(2)})
+            (الرصيد: {formatArabicNumber(customer.balance)} {currencyInfo.symbol} / الحد: {formatArabicNumber(customer.credit_limit)} {currencyInfo.symbol})
           </AlertDescription>
         </Alert>
       )}
@@ -173,7 +210,7 @@ export const CustomerInfoCard = ({ customerId }: CustomerInfoCardProps) => {
         <Alert className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950/20">
           <AlertCircle className="h-4 w-4 text-yellow-600" />
           <AlertDescription className="text-yellow-800 dark:text-yellow-400">
-            العميل قريب من تجاوز حد الائتمان ({creditUsagePercent.toFixed(0)}% مستخدم)
+            العميل قريب من تجاوز حد الائتمان ({formatArabicNumber(creditUsagePercent, 0)}% مستخدم)
           </AlertDescription>
         </Alert>
       )}

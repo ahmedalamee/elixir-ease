@@ -52,10 +52,10 @@ const CustomerPortal = () => {
         .from("customers")
         .select("*")
         .eq("user_id", session.user.id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
-      return data as CustomerData;
+      return data as CustomerData | null;
     },
   });
 

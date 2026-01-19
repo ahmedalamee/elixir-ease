@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { User, Phone, Mail, MapPin, CreditCard, TrendingUp, FileText, LogOut, Wallet, Edit } from "lucide-react";
+import { User, Phone, Mail, MapPin, CreditCard, TrendingUp, FileText, LogOut, Wallet, Edit, UserPlus, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EditCustomerInfoDialog } from "@/components/customers/EditCustomerInfoDialog";
 
@@ -21,6 +21,7 @@ interface CustomerData {
   credit_limit: number;
   loyalty_points: number;
   last_transaction_date: string;
+  currency_code: string | null;
 }
 
 interface Invoice {
@@ -38,15 +39,24 @@ const CustomerPortal = () => {
   const queryClient = useQueryClient();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
-  // Fetch customer data
-  const { data: customer, isLoading: customerLoading } = useQuery({
-    queryKey: ["customer-portal"],
+  // Get current session
+  const { data: session } = useQuery({
+    queryKey: ["auth-session"],
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         navigate("/customer-auth");
         return null;
       }
+      return session;
+    },
+  });
+
+  // Fetch customer data
+  const { data: customer, isLoading: customerLoading, refetch: refetchCustomer } = useQuery({
+    queryKey: ["customer-portal", session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) return null;
 
       const { data, error } = await supabase
         .from("customers")
@@ -56,6 +66,46 @@ const CustomerPortal = () => {
 
       if (error) throw error;
       return (data?.[0] ?? null) as CustomerData | null;
+    },
+    enabled: !!session?.user?.id,
+  });
+
+  // Create customer profile mutation
+  const createCustomerMutation = useMutation({
+    mutationFn: async () => {
+      if (!session?.user) throw new Error("لم يتم تسجيل الدخول");
+      
+      const { data, error } = await supabase
+        .from("customers")
+        .insert({
+          name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || "عميل جديد",
+          email: session.user.email,
+          user_id: session.user.id,
+          balance: 0,
+          credit_limit: 0,
+          loyalty_points: 0,
+          is_active: true,
+          currency_code: 'YER',
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast({
+        title: "تم إنشاء الملف الشخصي",
+        description: "مرحباً بك في بوابة العملاء",
+      });
+      refetchCustomer();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "خطأ",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -109,6 +159,17 @@ const CustomerPortal = () => {
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
+  // دالة للحصول على رمز العملة
+  const getCurrencySymbol = (code: string | null) => {
+    switch (code?.toUpperCase()) {
+      case 'SAR': return 'ر.س';
+      case 'USD': return '$';
+      case 'EUR': return '€';
+      case 'YER':
+      default: return 'ر.ي';
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background p-4" dir="rtl">
@@ -128,15 +189,45 @@ const CustomerPortal = () => {
   if (!customer) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background" dir="rtl">
-        <Card className="p-8 text-center">
-          <p className="text-muted-foreground mb-4">لم يتم العثور على بيانات العميل</p>
-          <Button onClick={() => navigate("/customer-auth")}>
-            العودة لتسجيل الدخول
-          </Button>
+        <Card className="p-8 text-center max-w-md">
+          <div className="mb-6">
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <UserPlus className="w-8 h-8 text-primary" />
+            </div>
+            <h2 className="text-xl font-bold mb-2">مرحباً بك!</h2>
+            <p className="text-muted-foreground">
+              لم يتم العثور على ملف شخصي مرتبط بحسابك. يمكنك إنشاء ملفك الشخصي الآن.
+            </p>
+          </div>
+          <div className="space-y-3">
+            <Button 
+              onClick={() => createCustomerMutation.mutate()} 
+              disabled={createCustomerMutation.isPending}
+              className="w-full"
+            >
+              {createCustomerMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                  جاري الإنشاء...
+                </>
+              ) : (
+                <>
+                  <UserPlus className="w-4 h-4 ml-2" />
+                  إنشاء الملف الشخصي
+                </>
+              )}
+            </Button>
+            <Button variant="outline" onClick={handleLogout} className="w-full">
+              <LogOut className="w-4 h-4 ml-2" />
+              تسجيل الخروج
+            </Button>
+          </div>
         </Card>
       </div>
     );
   }
+
+  const currencySymbol = getCurrencySymbol(customer.currency_code);
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
@@ -167,7 +258,7 @@ const CustomerPortal = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">الرصيد الحالي</p>
-                <p className="text-2xl font-bold">{customer.balance.toFixed(2)} ر.س</p>
+                <p className="text-2xl font-bold">{customer.balance.toFixed(2)} {currencySymbol}</p>
               </div>
             </div>
           </Card>
@@ -179,7 +270,7 @@ const CustomerPortal = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">حد الائتمان</p>
-                <p className="text-2xl font-bold">{customer.credit_limit.toFixed(2)} ر.س</p>
+                <p className="text-2xl font-bold">{customer.credit_limit.toFixed(2)} {currencySymbol}</p>
               </div>
             </div>
           </Card>
@@ -278,7 +369,7 @@ const CustomerPortal = () => {
                     >
                       <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
                       <TableCell>{new Date(invoice.invoice_date).toLocaleDateString("ar-SA")}</TableCell>
-                      <TableCell>{invoice.total_amount.toFixed(2)} ر.س</TableCell>
+                      <TableCell>{invoice.total_amount.toFixed(2)} {currencySymbol}</TableCell>
                       <TableCell>{getStatusBadge(invoice.status)}</TableCell>
                       <TableCell>{getPaymentStatusBadge(invoice.payment_status)}</TableCell>
                     </TableRow>

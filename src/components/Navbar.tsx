@@ -3,14 +3,12 @@ import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard,
   ShoppingCart,
-  Package,
   Users,
   Truck,
-  FolderTree,
-  FileText,
-  Settings,
+  Package,
   LogOut,
   Warehouse,
+  Building2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -30,52 +28,54 @@ const Navbar = () => {
   };
 
   const navItems = [
-    { path: "/dashboard", icon: LayoutDashboard, label: "لوحة التحكم" },
+    { path: "/dashboard", icon: LayoutDashboard, label: "الرئيسية" },
     { path: "/pos", icon: ShoppingCart, label: "نقطة البيع" },
-    { path: "/products", icon: Package, label: "المنتجات" },
+    { path: "/inventory", icon: Package, label: "المخزون" },
     { path: "/warehouses", icon: Warehouse, label: "المخازن" },
-    { path: "/purchase-orders", icon: FileText, label: "أوامر الشراء" },
     { path: "/customers", icon: Users, label: "العملاء" },
     { path: "/suppliers", icon: Truck, label: "الموردين" },
-    { path: "/categories", icon: FolderTree, label: "التصنيفات" },
-    { path: "/inventory", icon: Package, label: "المخزون" },
-    { path: "/accounting", icon: FileText, label: "المحاسبة" },
-    { path: "/price-lists", icon: FileText, label: "قوائم الأسعار" },
-    { path: "/inventory/alerts", icon: Package, label: "تنبيهات المخزون" },
-    { path: "/reports", icon: FileText, label: "التقارير" },
-    { path: "/settings", icon: Settings, label: "الإعدادات" },
   ];
 
   return (
-    <nav className="bg-card border-b border-border sticky top-0 z-50">
+    <nav className="bg-sidebar border-b border-sidebar-border sticky top-0 z-50 shadow-sm">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
-          <div className="flex items-center gap-8">
-            <Link to="/dashboard" className="text-xl font-bold text-primary">
-              نظام الصيدلية
+        <div className="flex items-center justify-between h-14">
+          <div className="flex items-center gap-6">
+            <Link to="/dashboard" className="flex items-center gap-2 text-sidebar-foreground hover:text-sidebar-primary transition-colors">
+              <Building2 className="h-6 w-6 text-sidebar-primary" />
+              <span className="text-lg font-bold">نظام الصيدلية</span>
             </Link>
-            <div className="hidden md:flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path;
                 return (
                   <Link key={item.path} to={item.path}>
                     <Button
-                      variant={isActive ? "default" : "ghost"}
+                      variant="ghost"
                       size="sm"
-                      className="gap-2"
+                      className={`gap-2 h-9 px-3 transition-all ${
+                        isActive 
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" 
+                          : "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+                      }`}
                     >
                       <Icon className="h-4 w-4" />
-                      {item.label}
+                      <span className="text-sm">{item.label}</span>
                     </Button>
                   </Link>
                 );
               })}
             </div>
           </div>
-          <Button onClick={handleLogout} variant="ghost" size="sm" className="gap-2">
+          <Button 
+            onClick={handleLogout} 
+            variant="ghost" 
+            size="sm" 
+            className="gap-2 text-sidebar-foreground/70 hover:text-destructive hover:bg-destructive/10"
+          >
             <LogOut className="h-4 w-4" />
-            تسجيل الخروج
+            <span className="hidden sm:inline">خروج</span>
           </Button>
         </div>
       </div>

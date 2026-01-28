@@ -12773,7 +12773,10 @@ export type Database = {
       }
       check_invoice_returnable: {
         Args: { p_invoice_id: string }
-        Returns: boolean
+        Returns: {
+          error_message: string
+          is_returnable: boolean
+        }[]
       }
       check_reorder_levels: {
         Args: never

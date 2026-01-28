@@ -9,9 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, Save, Search, AlertCircle } from "lucide-react";
+import { Plus, Trash2, Save, Search, AlertCircle, Users, Truck, User } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CustomerCombobox } from "@/components/customers/CustomerCombobox";
 import { CustomerInfoCard } from "@/components/customers/CustomerInfoCard";
@@ -51,6 +52,12 @@ const NewSalesInvoice = () => {
   // Currency state
   const [currencyCode, setCurrencyCode] = useState("YER");
   const [exchangeRate, setExchangeRate] = useState(1);
+
+  // NEW: Representatives and delivery agent state
+  const [customerRepresentativeId, setCustomerRepresentativeId] = useState("");
+  const [salesRepresentativeId, setSalesRepresentativeId] = useState("");
+  const [deliveryAgentId, setDeliveryAgentId] = useState("");
+  const [preventReturn, setPreventReturn] = useState(false);
 
   // Product Selection Dialog
   const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
@@ -112,6 +119,48 @@ const NewSalesInvoice = () => {
         .select("*")
         .eq("is_active", true)
         .order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch customer representatives
+  const { data: customerRepresentatives } = useQuery({
+    queryKey: ["customer-representatives"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("customer_representatives")
+        .select("*")
+        .eq("is_active", true)
+        .order("name_ar");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch sales representatives
+  const { data: salesRepresentatives } = useQuery({
+    queryKey: ["sales-representatives"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sales_representatives")
+        .select("*")
+        .eq("is_active", true)
+        .order("name_ar");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch delivery agents
+  const { data: deliveryAgents } = useQuery({
+    queryKey: ["delivery-agents"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("delivery_agents")
+        .select("*")
+        .eq("is_active", true)
+        .order("name_ar");
       if (error) throw error;
       return data;
     },
@@ -434,6 +483,11 @@ const NewSalesInvoice = () => {
         payment_terms: paymentTerms || null,
         notes,
         created_by: userData?.user?.id,
+        // NEW: Representative and delivery agent fields
+        customer_representative_id: customerRepresentativeId || null,
+        sales_representative_id: salesRepresentativeId || null,
+        delivery_agent_id: deliveryAgentId || null,
+        prevent_return: preventReturn,
       };
 
       // Insert invoice
@@ -599,6 +653,98 @@ const NewSalesInvoice = () => {
                   <SelectItem value="90 يوم">90 يوم</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+
+          {/* حقول المندوبين والتوصيل - ERP Style */}
+          <div className="border rounded-lg p-4 bg-muted/30">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              معلومات المندوبين والتوصيل
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="customerRep" className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  مندوب العميل
+                </Label>
+                <Select value={customerRepresentativeId} onValueChange={setCustomerRepresentativeId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="اختر مندوب العميل" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">-- بدون --</SelectItem>
+                    {customerRepresentatives?.map((rep) => (
+                      <SelectItem key={rep.id} value={rep.id}>
+                        {rep.name_ar}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="salesRep" className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  مندوب المبيعات
+                </Label>
+                <Select value={salesRepresentativeId} onValueChange={setSalesRepresentativeId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="اختر مندوب المبيعات" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">-- بدون --</SelectItem>
+                    {salesRepresentatives?.map((rep) => (
+                      <SelectItem key={rep.id} value={rep.id}>
+                        {rep.name_ar} {rep.commission_rate ? `(${rep.commission_rate}%)` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="deliveryAgent" className="flex items-center gap-2">
+                  <Truck className="h-4 w-4" />
+                  موزع الطلبية
+                </Label>
+                <Select value={deliveryAgentId} onValueChange={setDeliveryAgentId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="اختر موزع الطلبية" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">-- بدون --</SelectItem>
+                    {deliveryAgents?.map((agent) => (
+                      <SelectItem key={agent.id} value={agent.id}>
+                        {agent.name_ar} {agent.vehicle_number ? `(${agent.vehicle_number})` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* منع إرجاع الفاتورة */}
+            <div className="mt-4 pt-4 border-t">
+              <div className="flex items-center gap-3">
+                <Checkbox
+                  id="preventReturn"
+                  checked={preventReturn}
+                  onCheckedChange={(checked) => setPreventReturn(checked === true)}
+                />
+                <Label 
+                  htmlFor="preventReturn" 
+                  className="text-sm font-medium cursor-pointer flex items-center gap-2"
+                >
+                  <AlertCircle className="h-4 w-4 text-destructive" />
+                  عدم السماح بإرجاع الفاتورة
+                </Label>
+              </div>
+              {preventReturn && (
+                <p className="text-sm text-destructive mt-2 mr-6">
+                  ⚠️ لن يُسمح بإنشاء مرتجع لهذه الفاتورة بعد حفظها
+                </p>
+              )}
             </div>
           </div>
 

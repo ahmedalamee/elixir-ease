@@ -2580,6 +2580,42 @@ export type Database = {
           },
         ]
       }
+      customer_representatives: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string
+          is_active: boolean | null
+          name_ar: string
+          name_en: string | null
+          notes: string | null
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name_ar: string
+          name_en?: string | null
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name_ar?: string
+          name_en?: string | null
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       customer_segments: {
         Row: {
           color: string | null
@@ -2708,6 +2744,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      delivery_agents: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name_ar: string
+          name_en: string | null
+          notes: string | null
+          phone: string | null
+          updated_at: string | null
+          vehicle_number: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name_ar: string
+          name_en?: string | null
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string | null
+          vehicle_number?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name_ar?: string
+          name_en?: string | null
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string | null
+          vehicle_number?: string | null
+        }
+        Relationships: []
       }
       doctors: {
         Row: {
@@ -9163,6 +9235,8 @@ export type Database = {
           created_by: string | null
           currency_code: string | null
           customer_id: string
+          customer_representative_id: string | null
+          delivery_agent_id: string | null
           discount_amount: number
           discount_amount_bc: number | null
           discount_amount_fc: number | null
@@ -9181,6 +9255,8 @@ export type Database = {
           pos_session_id: string | null
           posted_at: string | null
           posted_by: string | null
+          prevent_return: boolean | null
+          sales_representative_id: string | null
           status: string
           subtotal: number
           subtotal_bc: number | null
@@ -9200,6 +9276,8 @@ export type Database = {
           created_by?: string | null
           currency_code?: string | null
           customer_id: string
+          customer_representative_id?: string | null
+          delivery_agent_id?: string | null
           discount_amount?: number
           discount_amount_bc?: number | null
           discount_amount_fc?: number | null
@@ -9218,6 +9296,8 @@ export type Database = {
           pos_session_id?: string | null
           posted_at?: string | null
           posted_by?: string | null
+          prevent_return?: boolean | null
+          sales_representative_id?: string | null
           status?: string
           subtotal?: number
           subtotal_bc?: number | null
@@ -9237,6 +9317,8 @@ export type Database = {
           created_by?: string | null
           currency_code?: string | null
           customer_id?: string
+          customer_representative_id?: string | null
+          delivery_agent_id?: string | null
           discount_amount?: number
           discount_amount_bc?: number | null
           discount_amount_fc?: number | null
@@ -9255,6 +9337,8 @@ export type Database = {
           pos_session_id?: string | null
           posted_at?: string | null
           posted_by?: string | null
+          prevent_return?: boolean | null
+          sales_representative_id?: string | null
           status?: string
           subtotal?: number
           subtotal_bc?: number | null
@@ -9333,6 +9417,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "sales_invoices_customer_representative_id_fkey"
+            columns: ["customer_representative_id"]
+            isOneToOne: false
+            referencedRelation: "customer_representatives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_invoices_delivery_agent_id_fkey"
+            columns: ["delivery_agent_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_agents"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "sales_invoices_payment_method_id_fkey"
             columns: ["payment_method_id"]
             isOneToOne: false
@@ -9344,6 +9442,13 @@ export type Database = {
             columns: ["pos_session_id"]
             isOneToOne: false
             referencedRelation: "pos_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_invoices_sales_representative_id_fkey"
+            columns: ["sales_representative_id"]
+            isOneToOne: false
+            referencedRelation: "sales_representatives"
             referencedColumns: ["id"]
           },
           {
@@ -9503,6 +9608,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sales_representatives: {
+        Row: {
+          commission_rate: number | null
+          created_at: string | null
+          email: string | null
+          id: string
+          is_active: boolean | null
+          name_ar: string
+          name_en: string | null
+          notes: string | null
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          commission_rate?: number | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name_ar: string
+          name_en?: string | null
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          commission_rate?: number | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name_ar?: string
+          name_en?: string | null
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       sales_return_items: {
         Row: {
@@ -12625,6 +12769,10 @@ export type Database = {
           p_supplier_id: string
           p_supplier_invoice_no: string
         }
+        Returns: boolean
+      }
+      check_invoice_returnable: {
+        Args: { p_invoice_id: string }
         Returns: boolean
       }
       check_reorder_levels: {

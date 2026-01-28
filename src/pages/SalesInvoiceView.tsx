@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Printer, Download, CheckCircle, Loader2 } from "lucide-react";
+import { ArrowLeft, Printer, Download, CheckCircle, Loader2, AlertTriangle, User, Truck, Users } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import { toast } from "sonner";
 
@@ -36,6 +36,9 @@ const SalesInvoiceView = () => {
           customers (*),
           warehouses (name),
           payment_methods (name),
+          customer_representatives (name_ar, name_en, phone),
+          sales_representatives (name_ar, name_en, phone, commission_rate),
+          delivery_agents (name_ar, name_en, phone, vehicle_number),
           sales_invoice_items (
             *,
             products (name),
@@ -232,6 +235,65 @@ const SalesInvoiceView = () => {
             )}
           </div>
         </div>
+
+        {/* معلومات المندوبين والتوصيل */}
+        {(invoice.customer_representatives || invoice.sales_representatives || invoice.delivery_agents) && (
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              معلومات المندوبين
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {invoice.customer_representatives && (
+                <div className="bg-muted p-3 rounded-lg">
+                  <div className="flex items-center gap-2 mb-1">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">مندوب العميل</span>
+                  </div>
+                  <p className="font-medium">{invoice.customer_representatives.name_ar}</p>
+                  {invoice.customer_representatives.phone && (
+                    <p className="text-sm text-muted-foreground">{invoice.customer_representatives.phone}</p>
+                  )}
+                </div>
+              )}
+              {invoice.sales_representatives && (
+                <div className="bg-muted p-3 rounded-lg">
+                  <div className="flex items-center gap-2 mb-1">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">مندوب المبيعات</span>
+                  </div>
+                  <p className="font-medium">{invoice.sales_representatives.name_ar}</p>
+                  {invoice.sales_representatives.commission_rate && (
+                    <p className="text-sm text-muted-foreground">العمولة: {invoice.sales_representatives.commission_rate}%</p>
+                  )}
+                </div>
+              )}
+              {invoice.delivery_agents && (
+                <div className="bg-muted p-3 rounded-lg">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Truck className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">موزع الطلبية</span>
+                  </div>
+                  <p className="font-medium">{invoice.delivery_agents.name_ar}</p>
+                  {invoice.delivery_agents.vehicle_number && (
+                    <p className="text-sm text-muted-foreground">رقم المركبة: {invoice.delivery_agents.vehicle_number}</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* تحذير منع الإرجاع */}
+        {invoice.prevent_return && (
+          <div className="mb-6 p-4 bg-destructive/10 border border-destructive/30 rounded-lg flex items-center gap-3">
+            <AlertTriangle className="h-5 w-5 text-destructive" />
+            <div>
+              <p className="font-medium text-destructive">لا يمكن إرجاع هذه الفاتورة</p>
+              <p className="text-sm text-muted-foreground">تم تفعيل خيار منع الإرجاع عند إنشاء الفاتورة</p>
+            </div>
+          </div>
+        )}
 
         {/* بنود الفاتورة */}
         <Table>

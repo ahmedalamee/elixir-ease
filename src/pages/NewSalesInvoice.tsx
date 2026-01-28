@@ -483,10 +483,10 @@ const NewSalesInvoice = () => {
         payment_terms: paymentTerms || null,
         notes,
         created_by: userData?.user?.id,
-        // NEW: Representative and delivery agent fields
-        customer_representative_id: customerRepresentativeId || null,
-        sales_representative_id: salesRepresentativeId || null,
-        delivery_agent_id: deliveryAgentId || null,
+        // NEW: Representative and delivery agent fields (convert "none" back to null)
+        customer_representative_id: customerRepresentativeId && customerRepresentativeId !== "none" ? customerRepresentativeId : null,
+        sales_representative_id: salesRepresentativeId && salesRepresentativeId !== "none" ? salesRepresentativeId : null,
+        delivery_agent_id: deliveryAgentId && deliveryAgentId !== "none" ? deliveryAgentId : null,
         prevent_return: preventReturn,
       };
 
@@ -673,7 +673,7 @@ const NewSalesInvoice = () => {
                     <SelectValue placeholder="اختر مندوب العميل" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">-- بدون --</SelectItem>
+                    <SelectItem value="none">-- بدون --</SelectItem>
                     {customerRepresentatives?.map((rep) => (
                       <SelectItem key={rep.id} value={rep.id}>
                         {rep.name_ar}
@@ -693,7 +693,7 @@ const NewSalesInvoice = () => {
                     <SelectValue placeholder="اختر مندوب المبيعات" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">-- بدون --</SelectItem>
+                    <SelectItem value="none">-- بدون --</SelectItem>
                     {salesRepresentatives?.map((rep) => (
                       <SelectItem key={rep.id} value={rep.id}>
                         {rep.name_ar} {rep.commission_rate ? `(${rep.commission_rate}%)` : ''}
@@ -713,7 +713,7 @@ const NewSalesInvoice = () => {
                     <SelectValue placeholder="اختر موزع الطلبية" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">-- بدون --</SelectItem>
+                    <SelectItem value="none">-- بدون --</SelectItem>
                     {deliveryAgents?.map((agent) => (
                       <SelectItem key={agent.id} value={agent.id}>
                         {agent.name_ar} {agent.vehicle_number ? `(${agent.vehicle_number})` : ''}

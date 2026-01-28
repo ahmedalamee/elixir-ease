@@ -54,6 +54,9 @@ interface Product {
   category_id?: string;
   manufacturer_id?: string;
   scientific_material_id?: string;
+  // Extended fields for display
+  scientific_material_name?: string;
+  alternatives_names?: string[];
 }
 
 interface UOM {
@@ -107,6 +110,7 @@ const Products = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedManufacturer, setSelectedManufacturer] = useState("");
+  const [selectedScientificMaterial, setSelectedScientificMaterial] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -152,13 +156,21 @@ const Products = () => {
 
   const fetchData = async () => {
     try {
-      const [productsRes, uomsRes, categoriesRes, manufacturersRes, taxesRes, scientificMaterialsRes] = await Promise.all([
-        supabase.from("products").select("*").order("created_at", { ascending: false }),
+      const [productsRes, uomsRes, categoriesRes, manufacturersRes, taxesRes, scientificMaterialsRes, alternativesRes] = await Promise.all([
+        supabase.from("products").select(`
+          *,
+          scientific_materials (id, name, name_en)
+        `).order("created_at", { ascending: false }),
         supabase.from("uoms").select("*").order("name", { ascending: true }),
         supabase.from("categories").select("*").order("name", { ascending: true }),
         supabase.from("manufacturers").select("*").eq("is_active", true).order("name", { ascending: true }),
         supabase.from("taxes").select("*").eq("is_active", true),
         supabase.from("scientific_materials").select("*").eq("is_active", true).order("name", { ascending: true }),
+        supabase.from("product_alternatives").select(`
+          product_id,
+          alternative_product_id,
+          products!product_alternatives_alternative_product_id_fkey (id, name)
+        `),
       ]);
 
       if (productsRes.error) throw productsRes.error;
@@ -168,7 +180,29 @@ const Products = () => {
       if (taxesRes.error) throw taxesRes.error;
       if (scientificMaterialsRes.error) throw scientificMaterialsRes.error;
 
-      setProducts(productsRes.data || []);
+      // Build alternatives map for quick lookup
+      const alternativesMap = new Map<string, string[]>();
+      if (alternativesRes.data) {
+        alternativesRes.data.forEach((alt: any) => {
+          const productId = alt.product_id;
+          const altName = alt.products?.name || '';
+          if (!alternativesMap.has(productId)) {
+            alternativesMap.set(productId, []);
+          }
+          if (altName) {
+            alternativesMap.get(productId)!.push(altName);
+          }
+        });
+      }
+
+      // Enrich products with scientific material name and alternatives
+      const enrichedProducts = (productsRes.data || []).map((p: any) => ({
+        ...p,
+        scientific_material_name: p.scientific_materials?.name || null,
+        alternatives_names: alternativesMap.get(p.id) || [],
+      }));
+
+      setProducts(enrichedProducts);
       setUoms(uomsRes.data || []);
       setCategories(categoriesRes.data || []);
       setManufacturers(manufacturersRes.data || []);
@@ -201,18 +235,24 @@ const Products = () => {
   };
 
   const filteredProducts = products.filter((p) => {
+    const query = searchQuery.toLowerCase();
     const matchesSearch = 
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.barcode?.includes(searchQuery) ||
-      p.name_en?.toLowerCase().includes(searchQuery.toLowerCase());
+      p.name.toLowerCase().includes(query) ||
+      p.barcode?.toLowerCase().includes(query) ||
+      p.name_en?.toLowerCase().includes(query) ||
+      // Search by scientific material name
+      p.scientific_material_name?.toLowerCase().includes(query) ||
+      // Search by alternatives names
+      (p.alternatives_names && p.alternatives_names.some(alt => alt.toLowerCase().includes(query)));
     
-    const matchesCategory = !selectedCategory || p.category_id === selectedCategory;
-    const matchesManufacturer = !selectedManufacturer || p.manufacturer_id === selectedManufacturer;
-    const matchesStatus = !selectedStatus || 
+    const matchesCategory = !selectedCategory || selectedCategory === "all" || p.category_id === selectedCategory;
+    const matchesManufacturer = !selectedManufacturer || selectedManufacturer === "all" || p.manufacturer_id === selectedManufacturer;
+    const matchesScientificMaterial = !selectedScientificMaterial || selectedScientificMaterial === "all" || p.scientific_material_id === selectedScientificMaterial;
+    const matchesStatus = !selectedStatus || selectedStatus === "all" ||
       (selectedStatus === "active" && p.is_active) ||
       (selectedStatus === "inactive" && !p.is_active);
 
-    return matchesSearch && matchesCategory && matchesManufacturer && matchesStatus;
+    return matchesSearch && matchesCategory && matchesManufacturer && matchesScientificMaterial && matchesStatus;
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1026,6 +1066,23 @@ const Products = () => {
                 </div>
 
                 <div className="space-y-2">
+                  <Label>المادة العلمية</Label>
+                  <Select value={selectedScientificMaterial} onValueChange={setSelectedScientificMaterial}>
+                    <SelectTrigger className="input-medical">
+                      <SelectValue placeholder="[جميع المواد العلمية]" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">جميع المواد العلمية</SelectItem>
+                      {scientificMaterials.map((mat) => (
+                        <SelectItem key={mat.id} value={mat.id}>
+                          {mat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
                   <Label>الحالة</Label>
                   <Select value={selectedStatus} onValueChange={setSelectedStatus}>
                     <SelectTrigger className="input-medical">
@@ -1038,24 +1095,25 @@ const Products = () => {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
 
-                <div className="flex items-end gap-2">
-                  <Button 
-                    variant="outline" 
-                    className="flex-1"
-                    onClick={() => {
-                      setSearchQuery("");
-                      setSelectedCategory("");
-                      setSelectedManufacturer("");
-                      setSelectedStatus("");
-                    }}
-                  >
-                    إلغاء الفلتر
-                  </Button>
-                  <Button className="flex-1 btn-medical">
-                    بحث
-                  </Button>
-                </div>
+              <div className="flex items-end gap-2 mt-4">
+                <Button 
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setSelectedCategory("");
+                    setSelectedManufacturer("");
+                    setSelectedScientificMaterial("");
+                    setSelectedStatus("");
+                  }}
+                >
+                  إلغاء الفلتر
+                </Button>
+                <Button className="flex-1 btn-medical">
+                  بحث
+                </Button>
               </div>
             </div>
 
@@ -1080,7 +1138,7 @@ const Products = () => {
                         )}
                       </div>
                       {product.quantity <= product.min_quantity && (
-                        <AlertTriangle className="w-5 h-5 text-orange-500 flex-shrink-0" />
+                        <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0" />
                       )}
                     </div>
                   </div>
@@ -1090,6 +1148,25 @@ const Products = () => {
                   <p className="text-sm text-muted-foreground">
                     الباركود: {product.barcode}
                   </p>
+                )}
+
+                {/* Scientific Material Display */}
+                {product.scientific_material_name && (
+                  <div className="bg-muted/50 rounded-md px-2 py-1">
+                    <p className="text-xs text-muted-foreground">المادة العلمية</p>
+                    <p className="text-sm font-medium text-foreground">{product.scientific_material_name}</p>
+                  </div>
+                )}
+
+                {/* Alternatives Display */}
+                {product.alternatives_names && product.alternatives_names.length > 0 && (
+                  <div className="bg-accent/30 rounded-md px-2 py-1">
+                    <p className="text-xs text-muted-foreground">البدائل المتاحة</p>
+                    <p className="text-sm text-foreground truncate" title={product.alternatives_names.join(', ')}>
+                      {product.alternatives_names.slice(0, 2).join(', ')}
+                      {product.alternatives_names.length > 2 && ` +${product.alternatives_names.length - 2}`}
+                    </p>
+                  </div>
                 )}
 
                 <div className="flex justify-between items-center">
@@ -1104,7 +1181,7 @@ const Products = () => {
                     <p
                       className={`text-lg font-bold ${
                         product.quantity <= product.min_quantity
-                          ? "text-orange-500"
+                          ? "text-destructive"
                           : "text-foreground"
                       }`}
                     >

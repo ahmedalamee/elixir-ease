@@ -7324,6 +7324,79 @@ export type Database = {
         }
         Relationships: []
       }
+      product_alternatives: {
+        Row: {
+          alternative_product_id: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          notes: string | null
+          priority: number | null
+          product_id: string
+        }
+        Insert: {
+          alternative_product_id: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          priority?: number | null
+          product_id: string
+        }
+        Update: {
+          alternative_product_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          priority?: number | null
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_alternatives_alternative_product_id_fkey"
+            columns: ["alternative_product_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_alternatives_alternative_product_id_fkey"
+            columns: ["alternative_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_alternatives_alternative_product_id_fkey"
+            columns: ["alternative_product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_alternatives_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_alternatives_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_alternatives_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["product_id"]
+          },
+        ]
+      }
       product_batches: {
         Row: {
           batch_number: string
@@ -7409,6 +7482,7 @@ export type Database = {
           quantity: number
           reorder_level: number | null
           reorder_qty: number | null
+          scientific_material_id: string | null
           sellable: boolean | null
           sku: string | null
           status: Database["public"]["Enums"]["product_status"] | null
@@ -7443,6 +7517,7 @@ export type Database = {
           quantity?: number
           reorder_level?: number | null
           reorder_qty?: number | null
+          scientific_material_id?: string | null
           sellable?: boolean | null
           sku?: string | null
           status?: Database["public"]["Enums"]["product_status"] | null
@@ -7477,6 +7552,7 @@ export type Database = {
           quantity?: number
           reorder_level?: number | null
           reorder_qty?: number | null
+          scientific_material_id?: string | null
           sellable?: boolean | null
           sku?: string | null
           status?: Database["public"]["Enums"]["product_status"] | null
@@ -7526,6 +7602,13 @@ export type Database = {
             columns: ["preferred_supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers_safe_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_scientific_material_id_fkey"
+            columns: ["scientific_material_id"]
+            isOneToOne: false
+            referencedRelation: "scientific_materials"
             referencedColumns: ["id"]
           },
           {
@@ -9921,6 +10004,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      scientific_materials: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          name_en: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          name_en?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          name_en?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       security_audit_log: {
         Row: {
@@ -12645,6 +12758,15 @@ export type Database = {
         }
         Returns: string
       }
+      add_product_alternative: {
+        Args: {
+          p_alternative_id: string
+          p_notes?: string
+          p_priority?: number
+          p_product_id: string
+        }
+        Returns: string
+      }
       allocate_fifo_cost: {
         Args: {
           p_product_id: string
@@ -13079,6 +13201,18 @@ export type Database = {
         Returns: Json
       }
       get_period_statistics: { Args: { p_period_id: string }; Returns: Json }
+      get_product_alternatives: {
+        Args: { p_product_id: string }
+        Returns: {
+          alternative_id: string
+          barcode: string
+          is_active: boolean
+          price: number
+          priority: number
+          product_name: string
+          product_name_en: string
+        }[]
+      }
       get_returnable_invoice_items: {
         Args: { p_invoice_id: string }
         Returns: {

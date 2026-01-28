@@ -53,6 +53,7 @@ interface Product {
   base_uom_id?: string;
   category_id?: string;
   manufacturer_id?: string;
+  scientific_material_id?: string;
 }
 
 interface UOM {
@@ -82,6 +83,18 @@ interface Tax {
   is_active: boolean;
 }
 
+interface ScientificMaterial {
+  id: string;
+  name: string;
+  name_en?: string;
+}
+
+interface ProductAlternative {
+  id: string;
+  product_id: string;
+  alternative_product_id: string;
+}
+
 const Products = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -90,12 +103,14 @@ const Products = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
   const [taxes, setTaxes] = useState<Tax[]>([]);
+  const [scientificMaterials, setScientificMaterials] = useState<ScientificMaterial[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedManufacturer, setSelectedManufacturer] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [selectedAlternatives, setSelectedAlternatives] = useState<string[]>([]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -113,6 +128,7 @@ const Products = () => {
     base_uom_id: "",
     category_id: "",
     manufacturer_id: "",
+    scientific_material_id: "",
     default_tax: "",
     discount_type: "percentage",
     discount_value: "",
@@ -136,12 +152,13 @@ const Products = () => {
 
   const fetchData = async () => {
     try {
-      const [productsRes, uomsRes, categoriesRes, manufacturersRes, taxesRes] = await Promise.all([
+      const [productsRes, uomsRes, categoriesRes, manufacturersRes, taxesRes, scientificMaterialsRes] = await Promise.all([
         supabase.from("products").select("*").order("created_at", { ascending: false }),
         supabase.from("uoms").select("*").order("name", { ascending: true }),
         supabase.from("categories").select("*").order("name", { ascending: true }),
         supabase.from("manufacturers").select("*").eq("is_active", true).order("name", { ascending: true }),
         supabase.from("taxes").select("*").eq("is_active", true),
+        supabase.from("scientific_materials").select("*").eq("is_active", true).order("name", { ascending: true }),
       ]);
 
       if (productsRes.error) throw productsRes.error;
@@ -149,12 +166,14 @@ const Products = () => {
       if (categoriesRes.error) throw categoriesRes.error;
       if (manufacturersRes.error) throw manufacturersRes.error;
       if (taxesRes.error) throw taxesRes.error;
+      if (scientificMaterialsRes.error) throw scientificMaterialsRes.error;
 
       setProducts(productsRes.data || []);
       setUoms(uomsRes.data || []);
       setCategories(categoriesRes.data || []);
       setManufacturers(manufacturersRes.data || []);
       setTaxes(taxesRes.data || []);
+      setScientificMaterials(scientificMaterialsRes.data || []);
     } catch (error) {
       console.error("Error fetching data:", error);
       toast({
@@ -162,6 +181,22 @@ const Products = () => {
         description: "فشل تحميل البيانات",
         variant: "destructive",
       });
+    }
+  };
+  
+  // Fetch alternatives when editing a product
+  const fetchProductAlternatives = async (productId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("product_alternatives")
+        .select("alternative_product_id")
+        .eq("product_id", productId);
+      
+      if (error) throw error;
+      setSelectedAlternatives(data?.map(a => a.alternative_product_id) || []);
+    } catch (error) {
+      console.error("Error fetching alternatives:", error);
+      setSelectedAlternatives([]);
     }
   };
 
@@ -223,9 +258,12 @@ const Products = () => {
         base_uom_id: formData.base_uom_id || null,
         category_id: formData.category_id || null,
         manufacturer_id: formData.manufacturer_id || null,
+        scientific_material_id: formData.scientific_material_id || null,
         sku: formData.sku.trim() || null,
         reorder_level: formData.reorder_level ? parseFloat(formData.reorder_level) : null,
       };
+
+      let productId: string;
 
       if (editingProduct) {
         const { error } = await supabase
@@ -234,12 +272,46 @@ const Products = () => {
           .eq("id", editingProduct.id);
 
         if (error) throw error;
+        productId = editingProduct.id;
+        
+        // Update alternatives: delete existing and add new ones
+        await supabase
+          .from("product_alternatives")
+          .delete()
+          .eq("product_id", productId);
+        
         toast({ title: "تم تحديث المنتج بنجاح" });
       } else {
-        const { error } = await supabase.from("products").insert([productData]);
+        const { data: insertedProduct, error } = await supabase
+          .from("products")
+          .insert([productData])
+          .select("id")
+          .single();
 
         if (error) throw error;
+        productId = insertedProduct.id;
         toast({ title: "تم إضافة المنتج بنجاح" });
+      }
+
+      // Add selected alternatives
+      if (selectedAlternatives.length > 0) {
+        const alternativesData = selectedAlternatives.map(altId => ({
+          product_id: productId,
+          alternative_product_id: altId,
+        }));
+        
+        const { error: altError } = await supabase
+          .from("product_alternatives")
+          .insert(alternativesData);
+        
+        if (altError) {
+          console.error("Error saving alternatives:", altError);
+          toast({
+            title: "تحذير",
+            description: "تم حفظ المنتج ولكن فشل حفظ بعض البدائل",
+            variant: "destructive",
+          });
+        }
       }
 
       setIsDialogOpen(false);
@@ -262,7 +334,7 @@ const Products = () => {
     }
   };
 
-  const handleEdit = (product: Product) => {
+  const handleEdit = async (product: Product) => {
     setEditingProduct(product);
     setFormData({
       name: product.name,
@@ -280,6 +352,7 @@ const Products = () => {
       base_uom_id: product.base_uom_id || "",
       category_id: product.category_id || "",
       manufacturer_id: product.manufacturer_id || "",
+      scientific_material_id: product.scientific_material_id || "",
       default_tax: "",
       discount_type: "percentage",
       discount_value: "",
@@ -288,6 +361,7 @@ const Products = () => {
       track_inventory: true,
       image_url: (product as any).image_url || "",
     });
+    await fetchProductAlternatives(product.id);
     setIsDialogOpen(true);
   };
 
@@ -326,6 +400,7 @@ const Products = () => {
       base_uom_id: "",
       category_id: "",
       manufacturer_id: "",
+      scientific_material_id: "",
       default_tax: "",
       discount_type: "percentage",
       discount_value: "",
@@ -335,6 +410,7 @@ const Products = () => {
       image_url: "",
     });
     setEditingProduct(null);
+    setSelectedAlternatives([]);
   };
 
   return (
@@ -557,6 +633,63 @@ const Products = () => {
                             </SelectContent>
                           </Select>
                         </div>
+                      </div>
+
+                      {/* Scientific Material Field */}
+                      <div className="space-y-2">
+                        <Label>المادة العلمية / الفعالة</Label>
+                        <Select
+                          value={formData.scientific_material_id}
+                          onValueChange={(value) =>
+                            setFormData({ ...formData, scientific_material_id: value })
+                          }
+                        >
+                          <SelectTrigger className="input-medical">
+                            <SelectValue placeholder="اختر المادة العلمية" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {scientificMaterials.map((mat) => (
+                              <SelectItem key={mat.id} value={mat.id}>
+                                {mat.name} {mat.name_en && `(${mat.name_en})`}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Product Alternatives Multi-Select */}
+                      <div className="space-y-2">
+                        <Label>البدائل المتاحة</Label>
+                        <div className="border rounded-md p-3 max-h-48 overflow-y-auto bg-background">
+                          {products
+                            .filter(p => p.is_active && p.id !== editingProduct?.id)
+                            .map((product) => (
+                              <div key={product.id} className="flex items-center space-x-2 space-x-reverse py-1">
+                                <Checkbox
+                                  id={`alt-${product.id}`}
+                                  checked={selectedAlternatives.includes(product.id)}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      setSelectedAlternatives([...selectedAlternatives, product.id]);
+                                    } else {
+                                      setSelectedAlternatives(selectedAlternatives.filter(id => id !== product.id));
+                                    }
+                                  }}
+                                />
+                                <Label htmlFor={`alt-${product.id}`} className="cursor-pointer text-sm">
+                                  {product.name} {product.barcode && `(${product.barcode})`}
+                                </Label>
+                              </div>
+                            ))}
+                          {products.filter(p => p.is_active && p.id !== editingProduct?.id).length === 0 && (
+                            <p className="text-muted-foreground text-sm">لا توجد منتجات متاحة للإختيار كبدائل</p>
+                          )}
+                        </div>
+                        {selectedAlternatives.length > 0 && (
+                          <p className="text-sm text-muted-foreground">
+                            تم اختيار {selectedAlternatives.length} بديل/بدائل
+                          </p>
+                        )}
                       </div>
                     </TabsContent>
 

@@ -110,6 +110,22 @@ const SalesReturns = () => {
     enabled: !!selectedInvoiceId,
   });
 
+  // Helper function to extract user-friendly error message
+  const extractErrorMessage = (error: any): string => {
+    const message = error?.message || String(error);
+    // Check for known Arabic error messages from database triggers
+    if (message.includes('لا يمكن إرجاع هذه الفاتورة')) {
+      return message.split('\n')[0]; // Return just the Arabic message
+    }
+    if (message.includes('الفاتورة غير موجودة')) {
+      return 'الفاتورة غير موجودة أو تم حذفها';
+    }
+    if (message.includes('غير مرحّلة')) {
+      return 'لا يمكن إرجاع فاتورة غير مرحّلة';
+    }
+    return message;
+  };
+
   // إنشاء مرتجع جديد
   const createReturnMutation = useMutation({
     mutationFn: async () => {
@@ -119,6 +135,18 @@ const SalesReturns = () => {
 
       if (!returnReason.trim()) {
         throw new Error("يرجى إدخال سبب الإرجاع");
+      }
+
+      // Pre-check if invoice is returnable (API-level enforcement)
+      const { data: checkResult, error: checkError } = await supabase.rpc("check_invoice_returnable", {
+        p_invoice_id: selectedInvoiceId,
+      });
+      
+      if (checkError) throw checkError;
+      
+      const returnableCheck = checkResult?.[0];
+      if (returnableCheck && !returnableCheck.is_returnable) {
+        throw new Error(returnableCheck.error_message || 'لا يمكن إرجاع هذه الفاتورة');
       }
 
       const items = returnItems.map(item => ({
@@ -151,7 +179,8 @@ const SalesReturns = () => {
       setShowCreateDialog(false);
     },
     onError: (error: Error) => {
-      toast.error(`خطأ في إنشاء المرتجع: ${error.message}`);
+      const userMessage = extractErrorMessage(error);
+      toast.error(userMessage);
     },
   });
 
@@ -172,7 +201,8 @@ const SalesReturns = () => {
       queryClient.invalidateQueries({ queryKey: ["sales-returns"] });
     },
     onError: (error: any) => {
-      toast.error(`فشل ترحيل المرتجع: ${error.message}`);
+      const userMessage = extractErrorMessage(error);
+      toast.error(userMessage);
     },
   });
 

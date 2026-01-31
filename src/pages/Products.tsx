@@ -719,7 +719,18 @@ const Products = () => {
 
                       {/* Scientific Material Field */}
                       <div className="space-y-2">
-                        <Label>المادة العلمية / الفعالة</Label>
+                        <div className="flex items-center justify-between">
+                          <Label>المادة العلمية / الفعالة</Label>
+                          <Button
+                            type="button"
+                            variant="link"
+                            size="sm"
+                            className="h-auto p-0 text-xs"
+                            onClick={() => window.open('/product-settings/scientific-materials', '_blank')}
+                          >
+                            إدارة المواد العلمية
+                          </Button>
+                        </div>
                         <Select
                           value={formData.scientific_material_id}
                           onValueChange={(value) =>

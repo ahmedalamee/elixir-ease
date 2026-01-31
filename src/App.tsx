@@ -129,6 +129,7 @@ import RFQView from "./pages/RFQView";
 import ApprovalRequests from "./pages/ApprovalRequests";
 import ApprovalView from "./pages/ApprovalView";
 import ApprovalWorkflows from "./pages/ApprovalWorkflows";
+import ScientificMaterials from "./pages/ScientificMaterials";
 import {
   EcommerceOrders,
   WholesaleRequests,
@@ -312,6 +313,8 @@ const AppContent = () => {
           <Route path="/ecommerce/products" element={<EcommerceProducts />} />
           <Route path="/ecommerce/categories" element={<EcommerceCategories />} />
           <Route path="/ecommerce/sync-log" element={<EcommerceSyncLog />} />
+          {/* Product Settings */}
+          <Route path="/product-settings/scientific-materials" element={<ScientificMaterials />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

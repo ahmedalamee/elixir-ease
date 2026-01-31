@@ -208,6 +208,11 @@ export const menuTree: TreeMenuItem[] = [
         route: "/batch-tracking",
       },
       {
+        id: "inventory-scientific-materials",
+        label: "المواد العلمية (الفعالة)",
+        route: "/product-settings/scientific-materials",
+      },
+      {
         id: "inventory-price-lists",
         label: "قوائم الأسعار",
         route: "/price-lists",

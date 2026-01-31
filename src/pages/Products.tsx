@@ -269,16 +269,38 @@ const Products = () => {
     }
   }, []);
   
-  // Fetch alternatives when editing a product
-  const fetchProductAlternatives = async (productId: string) => {
+  // Fetch alternatives when editing a product (validates same scientific material)
+  const fetchProductAlternatives = async (productId: string, scientificMaterialId?: string | null) => {
     try {
       const { data, error } = await supabase
         .from("product_alternatives")
-        .select("alternative_product_id")
+        .select(`
+          alternative_product_id,
+          products!product_alternatives_alternative_product_id_fkey (
+            id, scientific_material_id
+          )
+        `)
         .eq("product_id", productId);
       
       if (error) throw error;
-      setSelectedAlternatives(data?.map(a => a.alternative_product_id) || []);
+      
+      // Filter to only include alternatives with same scientific material
+      const validAlternatives = (data || []).filter((a: any) => {
+        if (!scientificMaterialId) return false;
+        return a.products?.scientific_material_id === scientificMaterialId;
+      });
+      
+      const invalidCount = (data?.length || 0) - validAlternatives.length;
+      
+      if (invalidCount > 0) {
+        toast({
+          title: "⚠️ تنبيه",
+          description: `تم تجاهل ${invalidCount} بديل غير صالح (مادة علمية مختلفة)`,
+          variant: "destructive",
+        });
+      }
+      
+      setSelectedAlternatives(validAlternatives.map((a: any) => a.alternative_product_id) || []);
     } catch (error) {
       console.error("Error fetching alternatives:", error);
       setSelectedAlternatives([]);
@@ -462,7 +484,7 @@ const Products = () => {
       track_inventory: true,
       image_url: (product as any).image_url || "",
     });
-    await fetchProductAlternatives(product.id);
+    await fetchProductAlternatives(product.id, product.scientific_material_id);
     setIsDialogOpen(true);
   };
 
@@ -761,9 +783,20 @@ const Products = () => {
                         </div>
                         <Select
                           value={formData.scientific_material_id}
-                          onValueChange={(value) =>
-                            setFormData({ ...formData, scientific_material_id: value })
-                          }
+                          onValueChange={(value) => {
+                            const oldMaterialId = formData.scientific_material_id;
+                            setFormData({ ...formData, scientific_material_id: value });
+                            
+                            // Clear alternatives if material changed (pharmaceutical safety rule)
+                            if (oldMaterialId && oldMaterialId !== value && selectedAlternatives.length > 0) {
+                              setSelectedAlternatives([]);
+                              toast({
+                                title: "⚠️ تنبيه",
+                                description: "تم إزالة البدائل لعدم تطابق المادة العلمية",
+                                variant: "destructive",
+                              });
+                            }
+                          }}
                         >
                           <SelectTrigger className="input-medical">
                             <SelectValue placeholder="اختر المادة العلمية" />
@@ -778,38 +811,74 @@ const Products = () => {
                         </Select>
                       </div>
 
-                      {/* Product Alternatives Multi-Select */}
+                      {/* Product Alternatives Multi-Select - PHARMACEUTICAL SAFETY RULE */}
                       <div className="space-y-2">
-                        <Label>البدائل المتاحة</Label>
-                        <div className="border rounded-md p-3 max-h-48 overflow-y-auto bg-background">
-                          {products
-                            .filter(p => p.is_active && p.id !== editingProduct?.id)
-                            .map((product) => (
-                              <div key={product.id} className="flex items-center space-x-2 space-x-reverse py-1">
-                                <Checkbox
-                                  id={`alt-${product.id}`}
-                                  checked={selectedAlternatives.includes(product.id)}
-                                  onCheckedChange={(checked) => {
-                                    if (checked) {
-                                      setSelectedAlternatives([...selectedAlternatives, product.id]);
-                                    } else {
-                                      setSelectedAlternatives(selectedAlternatives.filter(id => id !== product.id));
-                                    }
-                                  }}
-                                />
-                                <Label htmlFor={`alt-${product.id}`} className="cursor-pointer text-sm">
-                                  {product.name} {product.barcode && `(${product.barcode})`}
-                                </Label>
-                              </div>
-                            ))}
-                          {products.filter(p => p.is_active && p.id !== editingProduct?.id).length === 0 && (
-                            <p className="text-muted-foreground text-sm">لا توجد منتجات متاحة للإختيار كبدائل</p>
+                        <div className="flex items-center justify-between">
+                          <Label>البدائل المتاحة</Label>
+                          {formData.scientific_material_id && (
+                            <span className="text-xs text-muted-foreground">
+                              (فقط المنتجات بنفس المادة العلمية)
+                            </span>
                           )}
                         </div>
-                        {selectedAlternatives.length > 0 && (
-                          <p className="text-sm text-muted-foreground">
-                            تم اختيار {selectedAlternatives.length} بديل/بدائل
-                          </p>
+                        
+                        {!formData.scientific_material_id ? (
+                          <div className="border border-dashed rounded-md p-4 bg-muted/30 text-center">
+                            <p className="text-sm text-muted-foreground">
+                              ⚠️ يرجى اختيار المادة العلمية أولاً لعرض البدائل المتاحة
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              (قاعدة سلامة صيدلانية: البدائل يجب أن تحتوي على نفس المادة الفعالة)
+                            </p>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="border rounded-md p-3 max-h-48 overflow-y-auto bg-background">
+                              {products
+                                .filter(p => 
+                                  p.is_active && 
+                                  p.id !== editingProduct?.id &&
+                                  p.scientific_material_id === formData.scientific_material_id
+                                )
+                                .map((product) => (
+                                  <div key={product.id} className="flex items-center space-x-2 space-x-reverse py-1">
+                                    <Checkbox
+                                      id={`alt-${product.id}`}
+                                      checked={selectedAlternatives.includes(product.id)}
+                                      onCheckedChange={(checked) => {
+                                        if (checked) {
+                                          setSelectedAlternatives([...selectedAlternatives, product.id]);
+                                        } else {
+                                          setSelectedAlternatives(selectedAlternatives.filter(id => id !== product.id));
+                                        }
+                                      }}
+                                    />
+                                    <Label htmlFor={`alt-${product.id}`} className="cursor-pointer text-sm">
+                                      {product.name} {product.barcode && `(${product.barcode})`}
+                                      {product.scientific_material_name && (
+                                        <span className="text-xs text-muted-foreground mr-1">
+                                          - {product.scientific_material_name}
+                                        </span>
+                                      )}
+                                    </Label>
+                                  </div>
+                                ))}
+                              {products.filter(p => 
+                                p.is_active && 
+                                p.id !== editingProduct?.id &&
+                                p.scientific_material_id === formData.scientific_material_id
+                              ).length === 0 && (
+                                <p className="text-muted-foreground text-sm text-center py-2">
+                                  لا توجد منتجات أخرى بنفس المادة العلمية
+                                </p>
+                              )}
+                            </div>
+                            {selectedAlternatives.length > 0 && (
+                              <p className="text-sm text-muted-foreground">
+                                ✓ تم اختيار {selectedAlternatives.length} بديل/بدائل
+                              </p>
+                            )}
+                          </>
                         )}
                       </div>
                     </TabsContent>

@@ -34,7 +34,7 @@ export default function PurchaseInvoices() {
   const [supplierFilter, setSupplierFilter] = useState('all');
   
   // Form states
-  const [invoiceSource, setInvoiceSource] = useState<'grn' | 'po' | 'direct'>('grn');
+  const [invoiceSource, setInvoiceSource] = useState<'grn' | 'po'>('grn');
   const [grnId, setGrnId] = useState('');
   const [poId, setPoId] = useState('');
   const [supplierId, setSupplierId] = useState('');
@@ -565,11 +565,17 @@ export default function PurchaseInvoices() {
               <DialogTitle>فاتورة شراء جديدة</DialogTitle>
             </DialogHeader>
             
-            <Tabs value={invoiceSource} onValueChange={(v) => setInvoiceSource(v as any)}>
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="grn">من استلام بضائع</TabsTrigger>
-                <TabsTrigger value="po">من أمر شراء</TabsTrigger>
-                <TabsTrigger value="direct">مباشرة</TabsTrigger>
+            {/* تنبيه: فاتورة الشراء يجب أن تكون مرتبطة بـ GRN أو PO */}
+            <div className="bg-warning/10 border border-warning rounded-lg p-3 mb-4">
+              <p className="text-warning-foreground text-sm font-medium">
+                ⚠️ وفقاً لقواعد ERP: فاتورة الشراء يجب إنشاؤها من استلام بضاعة (GRN) أو أمر شراء (PO) فقط
+              </p>
+            </div>
+            
+            <Tabs value={invoiceSource} onValueChange={(v) => setInvoiceSource(v as 'grn' | 'po')}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="grn">من استلام بضائع (GRN)</TabsTrigger>
+                <TabsTrigger value="po">من أمر شراء (PO)</TabsTrigger>
               </TabsList>
               
               <TabsContent value="grn" className="space-y-4">
@@ -602,25 +608,6 @@ export default function PurchaseInvoices() {
                       {purchaseOrders.map((po) => (
                         <SelectItem key={po.id} value={po.id}>
                           {po.po_number} - {po.suppliers?.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="direct" className="space-y-4">
-                <div>
-                  <Label>المورد *</Label>
-                  <Select value={supplierId} onValueChange={setSupplierId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر المورد" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {suppliers.map((supplier) => (
-                        <SelectItem key={supplier.id} value={supplier.id}>
-                          {supplier.name}
-                          {supplier.code && ` (${supplier.code})`}
                         </SelectItem>
                       ))}
                     </SelectContent>

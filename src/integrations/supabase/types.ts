@@ -4531,6 +4531,48 @@ export type Database = {
           },
         ]
       }
+      erp_violation_log: {
+        Row: {
+          attempted_action: string
+          blocked_reason: string
+          created_at: string | null
+          id: string
+          ip_address: string | null
+          new_data: Json | null
+          old_data: Json | null
+          record_id: string | null
+          table_name: string
+          user_id: string | null
+          violation_type: string
+        }
+        Insert: {
+          attempted_action: string
+          blocked_reason: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          table_name: string
+          user_id?: string | null
+          violation_type: string
+        }
+        Update: {
+          attempted_action?: string
+          blocked_reason?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          table_name?: string
+          user_id?: string | null
+          violation_type?: string
+        }
+        Relationships: []
+      }
       exchange_rates: {
         Row: {
           created_at: string | null
@@ -7850,6 +7892,7 @@ export type Database = {
           created_at: string | null
           default_discount_percentage: number | null
           description: string | null
+          expiry_alert_months: number | null
           expiry_date: string | null
           form: Database["public"]["Enums"]["product_form"] | null
           generic_name: string | null
@@ -7885,6 +7928,7 @@ export type Database = {
           created_at?: string | null
           default_discount_percentage?: number | null
           description?: string | null
+          expiry_alert_months?: number | null
           expiry_date?: string | null
           form?: Database["public"]["Enums"]["product_form"] | null
           generic_name?: string | null
@@ -7920,6 +7964,7 @@ export type Database = {
           created_at?: string | null
           default_discount_percentage?: number | null
           description?: string | null
+          expiry_alert_months?: number | null
           expiry_date?: string | null
           form?: Database["public"]["Enums"]["product_form"] | null
           generic_name?: string | null
@@ -13554,6 +13599,88 @@ export type Database = {
         }
         Relationships: []
       }
+      v_expiry_alerts: {
+        Row: {
+          alert_level: string | null
+          barcode: string | null
+          batch_number: string | null
+          days_until_expiry: number | null
+          expiry_alert_months: number | null
+          expiry_date: string | null
+          product_id: string | null
+          product_name: string | null
+          quantity_remaining: number | null
+          total_value_at_risk: number | null
+          unit_cost: number | null
+          warehouse_id: string | null
+          warehouse_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_cost_layers_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "inventory_cost_layers_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_cost_layers_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "inventory_cost_layers_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "v_comprehensive_stock_status"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "inventory_cost_layers_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_stock_summary"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "inventory_cost_layers_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "inventory_cost_layers_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "inventory_cost_layers_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "v_comprehensive_stock_status"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "inventory_cost_layers_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_product_stock_summary: {
         Row: {
           available_stock: number | null
@@ -13573,6 +13700,88 @@ export type Database = {
           total_stock: number | null
         }
         Relationships: []
+      }
+      v_stock_levels: {
+        Row: {
+          available_quantity: number | null
+          barcode: string | null
+          inbound_quantity: number | null
+          last_updated: string | null
+          outbound_quantity: number | null
+          product_id: string | null
+          product_name: string | null
+          reserved_quantity: number | null
+          sku: string | null
+          stock_status: string | null
+          total_quantity: number | null
+          warehouse_id: string | null
+          warehouse_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warehouse_stock_item_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "warehouse_stock_item_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_stock_item_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "warehouse_stock_item_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "v_comprehensive_stock_status"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "warehouse_stock_item_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_stock_summary"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "warehouse_stock_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "warehouse_stock_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "warehouse_stock_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "v_comprehensive_stock_status"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "warehouse_stock_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vw_current_exchange_rates: {
         Row: {

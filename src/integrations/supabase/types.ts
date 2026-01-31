@@ -14081,6 +14081,136 @@ export type Database = {
           },
         ]
       }
+      v_valid_product_alternatives: {
+        Row: {
+          alternative_barcode: string | null
+          alternative_material_id: string | null
+          alternative_material_name: string | null
+          alternative_name: string | null
+          alternative_product_id: string | null
+          created_at: string | null
+          id: string | null
+          product_barcode: string | null
+          product_id: string | null
+          product_material_id: string | null
+          product_material_name: string | null
+          product_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_alternatives_alternative_product_id_fkey"
+            columns: ["alternative_product_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_alternatives_alternative_product_id_fkey"
+            columns: ["alternative_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_alternatives_alternative_product_id_fkey"
+            columns: ["alternative_product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_alternatives_alternative_product_id_fkey"
+            columns: ["alternative_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_comprehensive_stock_status"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_alternatives_alternative_product_id_fkey"
+            columns: ["alternative_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_stock_summary"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_alternatives_alternative_product_id_fkey"
+            columns: ["alternative_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_products_with_scientific_materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_alternatives_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_alternatives_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_alternatives_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_alternatives_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "v_comprehensive_stock_status"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_alternatives_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_stock_summary"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_alternatives_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "v_products_with_scientific_materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_scientific_material_id_fkey"
+            columns: ["product_material_id"]
+            isOneToOne: false
+            referencedRelation: "scientific_materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_scientific_material_id_fkey"
+            columns: ["alternative_material_id"]
+            isOneToOne: false
+            referencedRelation: "scientific_materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_scientific_material_id_fkey"
+            columns: ["product_material_id"]
+            isOneToOne: false
+            referencedRelation: "v_products_with_scientific_materials"
+            referencedColumns: ["scientific_material_id"]
+          },
+          {
+            foreignKeyName: "products_scientific_material_id_fkey"
+            columns: ["alternative_material_id"]
+            isOneToOne: false
+            referencedRelation: "v_products_with_scientific_materials"
+            referencedColumns: ["scientific_material_id"]
+          },
+        ]
+      }
       vw_current_exchange_rates: {
         Row: {
           effective_date: string | null
@@ -14783,6 +14913,19 @@ export type Database = {
       get_user_comprehensive_permissions: {
         Args: { p_user_id: string }
         Returns: Json
+      }
+      get_valid_alternatives: {
+        Args: { p_product_id: string }
+        Returns: {
+          barcode: string
+          id: string
+          is_active: boolean
+          name: string
+          name_en: string
+          price: number
+          scientific_material_id: string
+          scientific_material_name: string
+        }[]
       }
       has_any_role: {
         Args: {

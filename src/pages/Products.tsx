@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -16,9 +16,11 @@ import {
   Package,
   AlertTriangle,
   Upload,
+  FlaskConical,
 } from "lucide-react";
 import { ExcelImportDialog, ColumnMapping } from "@/components/import";
 import { ProductImageUpload, ProductImage } from "@/components/products";
+import ScientificMaterialsDialog from "@/components/products/ScientificMaterialsDialog";
 import {
   Dialog,
   DialogContent,
@@ -126,6 +128,7 @@ const Products = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedAlternatives, setSelectedAlternatives] = useState<string[]>([]);
+  const [isScientificMaterialsDialogOpen, setIsScientificMaterialsDialogOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -249,6 +252,22 @@ const Products = () => {
       });
     }
   };
+  
+  // Refresh only scientific materials (for inline dialog)
+  const refreshScientificMaterials = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("scientific_materials")
+        .select("*")
+        .eq("is_active", true)
+        .order("name", { ascending: true });
+      
+      if (error) throw error;
+      setScientificMaterials(data || []);
+    } catch (error) {
+      console.error("Error refreshing scientific materials:", error);
+    }
+  }, []);
   
   // Fetch alternatives when editing a product
   const fetchProductAlternatives = async (productId: string) => {
@@ -603,6 +622,14 @@ const Products = () => {
                     </Button>
                   }
                 />
+                <Button 
+                  variant="outline" 
+                  className="gap-2"
+                  onClick={() => setIsScientificMaterialsDialogOpen(true)}
+                >
+                  <FlaskConical className="w-4 h-4" />
+                  إدارة المواد العلمية
+                </Button>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="btn-medical gap-2" onClick={resetForm}>
@@ -725,9 +752,10 @@ const Products = () => {
                             type="button"
                             variant="link"
                             size="sm"
-                            className="h-auto p-0 text-xs"
-                            onClick={() => window.open('/product-settings/scientific-materials', '_blank')}
+                            className="h-auto p-0 text-xs gap-1"
+                            onClick={() => setIsScientificMaterialsDialogOpen(true)}
                           >
+                            <FlaskConical className="h-3 w-3" />
                             إدارة المواد العلمية
                           </Button>
                         </div>
@@ -1330,6 +1358,17 @@ const Products = () => {
           </div>
         </Card>
       </div>
+
+      {/* Inline Scientific Materials Management Dialog */}
+      <ScientificMaterialsDialog
+        open={isScientificMaterialsDialogOpen}
+        onOpenChange={setIsScientificMaterialsDialogOpen}
+        onMaterialsUpdated={refreshScientificMaterials}
+        onMaterialCreated={(materialId) => {
+          setFormData(prev => ({ ...prev, scientific_material_id: materialId }));
+          refreshScientificMaterials();
+        }}
+      />
     </div>
   );
 };

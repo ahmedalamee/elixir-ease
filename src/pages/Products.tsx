@@ -54,9 +54,17 @@ interface Product {
   category_id?: string;
   manufacturer_id?: string;
   scientific_material_id?: string;
+  preferred_supplier_id?: string;
   // Extended fields for display
   scientific_material_name?: string;
   alternatives_names?: string[];
+  supplier_name?: string;
+  // Stock summary fields
+  total_stock?: number;
+  locked_stock?: number;
+  available_stock?: number;
+  inbound_stock?: number;
+  reserved_stock?: number;
 }
 
 interface UOM {
@@ -112,6 +120,9 @@ const Products = () => {
   const [selectedManufacturer, setSelectedManufacturer] = useState("");
   const [selectedScientificMaterial, setSelectedScientificMaterial] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
+  const [selectedStockStatus, setSelectedStockStatus] = useState("");
+  const [suppliers, setSuppliers] = useState<{id: string; name: string}[]>([]);
+  const [selectedSupplier, setSelectedSupplier] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedAlternatives, setSelectedAlternatives] = useState<string[]>([]);
@@ -156,10 +167,11 @@ const Products = () => {
 
   const fetchData = async () => {
     try {
-      const [productsRes, uomsRes, categoriesRes, manufacturersRes, taxesRes, scientificMaterialsRes, alternativesRes] = await Promise.all([
+      const [productsRes, uomsRes, categoriesRes, manufacturersRes, taxesRes, scientificMaterialsRes, alternativesRes, stockSummaryRes, suppliersRes] = await Promise.all([
         supabase.from("products").select(`
           *,
-          scientific_materials (id, name, name_en)
+          scientific_materials (id, name, name_en),
+          suppliers:preferred_supplier_id (id, name)
         `).order("created_at", { ascending: false }),
         supabase.from("uoms").select("*").order("name", { ascending: true }),
         supabase.from("categories").select("*").order("name", { ascending: true }),
@@ -171,6 +183,8 @@ const Products = () => {
           alternative_product_id,
           products!product_alternatives_alternative_product_id_fkey (id, name)
         `),
+        supabase.from("v_product_stock_summary").select("*"),
+        supabase.from("suppliers").select("id, name").eq("is_active", true).order("name"),
       ]);
 
       if (productsRes.error) throw productsRes.error;
@@ -195,12 +209,29 @@ const Products = () => {
         });
       }
 
-      // Enrich products with scientific material name and alternatives
-      const enrichedProducts = (productsRes.data || []).map((p: any) => ({
-        ...p,
-        scientific_material_name: p.scientific_materials?.name || null,
-        alternatives_names: alternativesMap.get(p.id) || [],
-      }));
+      // Build stock summary map
+      const stockMap = new Map<string, any>();
+      if (stockSummaryRes.data) {
+        stockSummaryRes.data.forEach((stock: any) => {
+          stockMap.set(stock.product_id, stock);
+        });
+      }
+
+      // Enrich products with scientific material name, alternatives, and stock info
+      const enrichedProducts = (productsRes.data || []).map((p: any) => {
+        const stockInfo = stockMap.get(p.id);
+        return {
+          ...p,
+          scientific_material_name: p.scientific_materials?.name || null,
+          alternatives_names: alternativesMap.get(p.id) || [],
+          supplier_name: p.suppliers?.name || null,
+          total_stock: stockInfo?.total_stock || p.quantity || 0,
+          locked_stock: stockInfo?.locked_stock || 0,
+          available_stock: stockInfo?.available_stock || p.quantity || 0,
+          inbound_stock: stockInfo?.inbound_stock || 0,
+          reserved_stock: stockInfo?.reserved_stock || 0,
+        };
+      });
 
       setProducts(enrichedProducts);
       setUoms(uomsRes.data || []);
@@ -208,6 +239,7 @@ const Products = () => {
       setManufacturers(manufacturersRes.data || []);
       setTaxes(taxesRes.data || []);
       setScientificMaterials(scientificMaterialsRes.data || []);
+      setSuppliers(suppliersRes.data || []);
     } catch (error) {
       console.error("Error fetching data:", error);
       toast({
@@ -242,17 +274,27 @@ const Products = () => {
       p.name_en?.toLowerCase().includes(query) ||
       // Search by scientific material name
       p.scientific_material_name?.toLowerCase().includes(query) ||
+      // Search by supplier name
+      p.supplier_name?.toLowerCase().includes(query) ||
       // Search by alternatives names
       (p.alternatives_names && p.alternatives_names.some(alt => alt.toLowerCase().includes(query)));
     
     const matchesCategory = !selectedCategory || selectedCategory === "all" || p.category_id === selectedCategory;
     const matchesManufacturer = !selectedManufacturer || selectedManufacturer === "all" || p.manufacturer_id === selectedManufacturer;
     const matchesScientificMaterial = !selectedScientificMaterial || selectedScientificMaterial === "all" || p.scientific_material_id === selectedScientificMaterial;
+    const matchesSupplier = !selectedSupplier || selectedSupplier === "all" || p.preferred_supplier_id === selectedSupplier;
     const matchesStatus = !selectedStatus || selectedStatus === "all" ||
       (selectedStatus === "active" && p.is_active) ||
       (selectedStatus === "inactive" && !p.is_active);
+    
+    // Stock status filter
+    const matchesStockStatus = !selectedStockStatus || selectedStockStatus === "all" ||
+      (selectedStockStatus === "low" && (p.available_stock || 0) <= (p.min_quantity || 0)) ||
+      (selectedStockStatus === "locked" && (p.locked_stock || 0) > 0) ||
+      (selectedStockStatus === "inbound" && (p.inbound_stock || 0) > 0) ||
+      (selectedStockStatus === "out_of_stock" && (p.available_stock || 0) <= 0);
 
-    return matchesSearch && matchesCategory && matchesManufacturer && matchesScientificMaterial && matchesStatus;
+    return matchesSearch && matchesCategory && matchesManufacturer && matchesScientificMaterial && matchesSupplier && matchesStatus && matchesStockStatus;
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1030,7 +1072,7 @@ const Products = () => {
                 />
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 <div className="space-y-2">
                   <Label>التصنيف</Label>
                   <Select value={selectedCategory} onValueChange={setSelectedCategory}>
@@ -1066,6 +1108,23 @@ const Products = () => {
                 </div>
 
                 <div className="space-y-2">
+                  <Label>المورد</Label>
+                  <Select value={selectedSupplier} onValueChange={setSelectedSupplier}>
+                    <SelectTrigger className="input-medical">
+                      <SelectValue placeholder="[جميع الموردين]" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">جميع الموردين</SelectItem>
+                      {suppliers.map((sup) => (
+                        <SelectItem key={sup.id} value={sup.id}>
+                          {sup.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
                   <Label>المادة العلمية</Label>
                   <Select value={selectedScientificMaterial} onValueChange={setSelectedScientificMaterial}>
                     <SelectTrigger className="input-medical">
@@ -1078,6 +1137,22 @@ const Products = () => {
                           {mat.name}
                         </SelectItem>
                       ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>حالة المخزون</Label>
+                  <Select value={selectedStockStatus} onValueChange={setSelectedStockStatus}>
+                    <SelectTrigger className="input-medical">
+                      <SelectValue placeholder="[الكل]" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">الكل</SelectItem>
+                      <SelectItem value="low">مخزون منخفض</SelectItem>
+                      <SelectItem value="locked">مخزون محجوز</SelectItem>
+                      <SelectItem value="inbound">في الطريق</SelectItem>
+                      <SelectItem value="out_of_stock">نفذ المخزون</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1106,6 +1181,8 @@ const Products = () => {
                     setSelectedCategory("");
                     setSelectedManufacturer("");
                     setSelectedScientificMaterial("");
+                    setSelectedSupplier("");
+                    setSelectedStockStatus("");
                     setSelectedStatus("");
                   }}
                 >
@@ -1169,6 +1246,32 @@ const Products = () => {
                   </div>
                 )}
 
+                {/* Stock Summary Display */}
+                <div className="grid grid-cols-4 gap-2 text-center bg-muted/30 rounded-md p-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground">الإجمالي</p>
+                    <p className="font-bold text-foreground">{product.total_stock || 0}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">المتاح</p>
+                    <p className={`font-bold ${(product.available_stock || 0) <= product.min_quantity ? 'text-destructive' : 'text-green-600'}`}>
+                      {product.available_stock || 0}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">محجوز</p>
+                    <p className={`font-bold ${(product.locked_stock || 0) > 0 ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                      {product.locked_stock || 0}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">في الطريق</p>
+                    <p className={`font-bold ${(product.inbound_stock || 0) > 0 ? 'text-blue-600' : 'text-muted-foreground'}`}>
+                      {product.inbound_stock || 0}
+                    </p>
+                  </div>
+                </div>
+
                 <div className="flex justify-between items-center">
                   <div>
                     <p className="text-sm text-muted-foreground">سعر البيع</p>
@@ -1176,18 +1279,12 @@ const Products = () => {
                       {product.price.toFixed(2)} ر.س
                     </p>
                   </div>
-                  <div className="text-left">
-                    <p className="text-sm text-muted-foreground">المخزون</p>
-                    <p
-                      className={`text-lg font-bold ${
-                        product.quantity <= product.min_quantity
-                          ? "text-destructive"
-                          : "text-foreground"
-                      }`}
-                    >
-                      {product.quantity}
-                    </p>
-                  </div>
+                  {product.supplier_name && (
+                    <div className="text-left">
+                      <p className="text-xs text-muted-foreground">المورد</p>
+                      <p className="text-sm text-foreground">{product.supplier_name}</p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex gap-2 pt-2">

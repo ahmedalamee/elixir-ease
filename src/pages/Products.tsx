@@ -17,6 +17,8 @@ import {
   AlertTriangle,
   Upload,
   FlaskConical,
+  Power,
+  Ban,
 } from "lucide-react";
 import { ExcelImportDialog, ColumnMapping } from "@/components/import";
 import { ProductImageUpload, ProductImage } from "@/components/products";
@@ -39,6 +41,9 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { toast as sonnerToast } from "sonner";
 
 interface Product {
   id: string;
@@ -129,6 +134,8 @@ const Products = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedAlternatives, setSelectedAlternatives] = useState<string[]>([]);
   const [isScientificMaterialsDialogOpen, setIsScientificMaterialsDialogOpen] = useState(false);
+  const [canManageStatus, setCanManageStatus] = useState(false);
+  const [togglingProductId, setTogglingProductId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -159,12 +166,60 @@ const Products = () => {
   useEffect(() => {
     checkAuth();
     fetchData();
+    checkManageStatusPermission();
   }, []);
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate("/auth");
+    }
+  };
+
+  // Check if current user can manage product status
+  const checkManageStatusPermission = async () => {
+    try {
+      const { data, error } = await supabase.rpc("can_manage_product_status", {
+        user_id: (await supabase.auth.getUser()).data.user?.id,
+      });
+      if (!error && data) {
+        setCanManageStatus(true);
+      }
+    } catch (e) {
+      console.error("Error checking permissions:", e);
+    }
+  };
+
+  // Toggle product active status
+  const handleToggleProductStatus = async (productId: string, newStatus: boolean, productName: string) => {
+    if (!canManageStatus) {
+      sonnerToast.error("غير مصرح: مطلوب صلاحيات مدير أو مدير المخزون");
+      return;
+    }
+
+    setTogglingProductId(productId);
+    try {
+      const { data, error } = await supabase.rpc("toggle_product_status", {
+        p_product_id: productId,
+        p_is_active: newStatus,
+      });
+
+      if (error) throw error;
+
+      sonnerToast.success(
+        newStatus 
+          ? `تم تفعيل المنتج "${productName}"` 
+          : `تم تعطيل المنتج "${productName}"`
+      );
+      
+      // Update local state
+      setProducts(prev => prev.map(p => 
+        p.id === productId ? { ...p, is_active: newStatus } : p
+      ));
+    } catch (error: any) {
+      sonnerToast.error(error.message || "فشل في تغيير حالة المنتج");
+    } finally {
+      setTogglingProductId(null);
     }
   };
 
@@ -1304,7 +1359,20 @@ const Products = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProducts.map((product) => (
-            <Card key={product.id} className="card-elegant">
+            <Card 
+              key={product.id} 
+              className={`card-elegant relative ${!product.is_active ? 'opacity-60 bg-muted/30' : ''}`}
+            >
+              {/* Disabled Badge */}
+              {!product.is_active && (
+                <div className="absolute top-2 left-2 z-10">
+                  <Badge variant="destructive" className="gap-1">
+                    <Ban className="w-3 h-3" />
+                    معطّل
+                  </Badge>
+                </div>
+              )}
+              
               <div className="space-y-3">
                 <div className="flex gap-3 items-start">
                   <ProductImage 
@@ -1315,16 +1383,33 @@ const Products = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <h3 className="font-bold text-lg truncate">{product.name}</h3>
+                        <h3 className={`font-bold text-lg truncate ${!product.is_active ? 'line-through text-muted-foreground' : ''}`}>
+                          {product.name}
+                        </h3>
                         {product.name_en && (
                           <p className="text-sm text-muted-foreground truncate">
                             {product.name_en}
                           </p>
                         )}
                       </div>
-                      {product.quantity <= product.min_quantity && (
-                        <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0" />
-                      )}
+                      <div className="flex items-center gap-2">
+                        {product.quantity <= product.min_quantity && product.is_active && (
+                          <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0" />
+                        )}
+                        {/* Status Toggle - Only for authorized users */}
+                        {canManageStatus && (
+                          <div className="flex items-center gap-1">
+                            <Switch
+                              checked={product.is_active}
+                              onCheckedChange={(checked) => 
+                                handleToggleProductStatus(product.id, checked, product.name)
+                              }
+                              disabled={togglingProductId === product.id}
+                              className="scale-75"
+                            />
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -17,7 +17,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CustomerCombobox } from "@/components/customers/CustomerCombobox";
 import { CustomerInfoCard } from "@/components/customers/CustomerInfoCard";
 import { InvoiceCurrencyPanel, InvoiceTotalsSummary } from "@/components/currency";
-import { BarcodeScannerInput, ProductImage } from "@/components/products";
+import { BarcodeScannerInput, ProductImage, ProductSelectorDialog } from "@/components/products";
 import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
 import { updateCustomerBalance } from "@/lib/accounting";
 interface InvoiceItem {
@@ -944,63 +944,60 @@ const NewSalesInvoice = () => {
         </CardContent>
       </Card>
 
-      {/* Add Item Dialog */}
-      <Dialog open={isAddItemDialogOpen} onOpenChange={setIsAddItemDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>إضافة منتج</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>بحث عن المنتج (الاسم أو الباركود)</Label>
-              <div className="relative">
-                <Search className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="ابحث بالاسم أو الباركود..."
-                  value={productSearch}
-                  onChange={(e) => setProductSearch(e.target.value)}
-                  className="pr-10"
-                />
-              </div>
-            </div>
+      {/* Product Selector Dialog */}
+      <ProductSelectorDialog
+        open={isAddItemDialogOpen}
+        onOpenChange={setIsAddItemDialogOpen}
+        warehouseId={warehouseId}
+        currencyCode={currencyCode}
+        onSelect={(product) => {
+          // Check stock availability
+          const availableQty = product.available_stock || 0;
+          
+          if (availableQty <= 0) {
+            toast.error(`المنتج "${product.name}" غير متوفر في المخزون`);
+            return;
+          }
 
-            <div className="space-y-2">
-              <Label>المنتج</Label>
-              <Select value={selectedProductId} onValueChange={setSelectedProductId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر المنتج" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredProducts?.map((product) => {
-                    const stockLevel = stockLevels?.find((s) => s.item_id === product.id);
-                    const availableQty = stockLevel?.qty_on_hand || 0;
-                    return (
-                      <SelectItem key={product.id} value={product.id}>
-                        {product.name} - {product.price.toFixed(2)} {currencyCode} (متوفر: {availableQty})
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>الكمية</Label>
-              <Input
-                type="number"
-                min="1"
-                value={selectedQty}
-                onChange={(e) => setSelectedQty(Number(e.target.value))}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddItemDialogOpen(false)}>
-              إلغاء
-            </Button>
-            <Button onClick={handleAddItem}>إضافة</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          // Get default tax
+          const defaultTax = taxes?.[0];
+          const taxRate = defaultTax?.rate || 0;
+          const taxCode = defaultTax?.tax_code || "";
+
+          // Calculate item values
+          const unitPrice = product.price;
+          const discountPercentage = product.default_discount_percentage || 0;
+          const discountAmount = (1 * unitPrice * discountPercentage) / 100;
+          const lineSubtotal = 1 * unitPrice - discountAmount;
+          const taxAmount = lineSubtotal * (taxRate / 100);
+          const lineTotal = lineSubtotal + taxAmount;
+
+          // Check if product already in items
+          const existingIndex = items.findIndex((item) => item.item_id === product.id);
+          if (existingIndex >= 0) {
+            // Increment quantity
+            handleUpdateItemQty(existingIndex, items[existingIndex].qty + 1);
+            toast.success(`تمت زيادة كمية "${product.name}"`);
+          } else {
+            // Add new item
+            const newItem: InvoiceItem = {
+              item_id: product.id,
+              item_name: product.name,
+              uom_id: product.base_uom_id || null,
+              qty: 1,
+              unit_price: unitPrice,
+              discount_percentage: discountPercentage,
+              discount_amount: discountAmount,
+              tax_code: taxCode,
+              tax_percentage: taxRate,
+              tax_amount: taxAmount,
+              line_total: lineTotal,
+            };
+            setItems([...items, newItem]);
+            toast.success(`تمت إضافة "${product.name}"`);
+          }
+        }}
+      />
     </div>
   );
 };

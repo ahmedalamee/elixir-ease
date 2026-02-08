@@ -4863,6 +4863,54 @@ export type Database = {
           },
         ]
       }
+      free_stock_audit_log: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          item_id: string
+          notes: string | null
+          operation: string
+          quantity_after: number
+          quantity_before: number
+          quantity_change: number
+          source_document_id: string | null
+          source_document_number: string | null
+          source_document_type: string | null
+          warehouse_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_id: string
+          notes?: string | null
+          operation: string
+          quantity_after: number
+          quantity_before: number
+          quantity_change: number
+          source_document_id?: string | null
+          source_document_number?: string | null
+          source_document_type?: string | null
+          warehouse_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_id?: string
+          notes?: string | null
+          operation?: string
+          quantity_after?: number
+          quantity_before?: number
+          quantity_change?: number
+          source_document_id?: string | null
+          source_document_number?: string | null
+          source_document_type?: string | null
+          warehouse_id?: string
+        }
+        Relationships: []
+      }
       gl_accounts: {
         Row: {
           account_code: string
@@ -6858,6 +6906,7 @@ export type Database = {
         Row: {
           created_at: string | null
           discount: number | null
+          free_qty: number
           grn_item_id: string | null
           id: string
           item_id: string | null
@@ -6877,6 +6926,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           discount?: number | null
+          free_qty?: number
           grn_item_id?: string | null
           id?: string
           item_id?: string | null
@@ -6896,6 +6946,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           discount?: number | null
+          free_qty?: number
           grn_item_id?: string | null
           id?: string
           item_id?: string | null
@@ -12681,6 +12732,7 @@ export type Database = {
       }
       warehouse_stock: {
         Row: {
+          free_quantity: number
           item_id: string
           last_updated: string | null
           qty_inbound: number | null
@@ -12691,6 +12743,7 @@ export type Database = {
           warehouse_id: string
         }
         Insert: {
+          free_quantity?: number
           item_id: string
           last_updated?: string | null
           qty_inbound?: number | null
@@ -12701,6 +12754,7 @@ export type Database = {
           warehouse_id: string
         }
         Update: {
+          free_quantity?: number
           item_id?: string
           last_updated?: string | null
           qty_inbound?: number | null
@@ -13854,12 +13908,14 @@ export type Database = {
         Row: {
           available_quantity: number | null
           barcode: string | null
+          free_quantity: number | null
           inbound_quantity: number | null
           product_id: string | null
           product_name: string | null
           reserved_quantity: number | null
           stock_status: string | null
           total_quantity: number | null
+          total_stock_with_free: number | null
           warehouse_id: string | null
           warehouse_name: string | null
         }
@@ -13959,6 +14015,7 @@ export type Database = {
           available_stock: number | null
           barcode: string | null
           category_name: string | null
+          free_stock: number | null
           inbound_stock: number | null
           is_active: boolean | null
           locked_stock: number | null
@@ -13971,6 +14028,7 @@ export type Database = {
           supplier_id: string | null
           supplier_name: string | null
           total_stock: number | null
+          total_stock_with_free: number | null
         }
         Relationships: []
       }
@@ -13996,6 +14054,7 @@ export type Database = {
         Row: {
           available_quantity: number | null
           barcode: string | null
+          free_quantity: number | null
           inbound_quantity: number | null
           last_updated: string | null
           outbound_quantity: number | null
@@ -14005,6 +14064,7 @@ export type Database = {
           sku: string | null
           stock_status: string | null
           total_quantity: number | null
+          total_stock_with_free: number | null
           warehouse_id: string | null
           warehouse_name: string | null
         }
@@ -14183,13 +14243,6 @@ export type Database = {
           },
           {
             foreignKeyName: "products_scientific_material_id_fkey"
-            columns: ["product_material_id"]
-            isOneToOne: false
-            referencedRelation: "scientific_materials"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "products_scientific_material_id_fkey"
             columns: ["alternative_material_id"]
             isOneToOne: false
             referencedRelation: "scientific_materials"
@@ -14198,13 +14251,20 @@ export type Database = {
           {
             foreignKeyName: "products_scientific_material_id_fkey"
             columns: ["product_material_id"]
+            isOneToOne: false
+            referencedRelation: "scientific_materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_scientific_material_id_fkey"
+            columns: ["alternative_material_id"]
             isOneToOne: false
             referencedRelation: "v_products_with_scientific_materials"
             referencedColumns: ["scientific_material_id"]
           },
           {
             foreignKeyName: "products_scientific_material_id_fkey"
-            columns: ["alternative_material_id"]
+            columns: ["product_material_id"]
             isOneToOne: false
             referencedRelation: "v_products_with_scientific_materials"
             referencedColumns: ["scientific_material_id"]

@@ -332,3 +332,83 @@ export function formatCurrencyWithCode(
 
   return `${formatted} ${currencyCode}`;
 }
+
+// ============================================================================
+// RATE DEVIATION VALIDATION (Security Enhancement)
+// ============================================================================
+
+export interface RateDeviationWarning {
+  has_warning: boolean;
+  warning_message: string | null;
+  official_rate: number | null;
+  deviation_percentage: number | null;
+}
+
+/**
+ * Check if a rate deviates significantly from the official rate
+ * Uses database function for accurate validation
+ */
+export async function checkRateDeviation(
+  fromCurrency: string,
+  toCurrency: string,
+  rate: number,
+  date: string = new Date().toISOString().split("T")[0]
+): Promise<RateDeviationWarning> {
+  // Same currency always has rate 1
+  if (fromCurrency === toCurrency) {
+    if (rate !== 1) {
+      return {
+        has_warning: true,
+        warning_message: "سعر الصرف يجب أن يكون 1 عند استخدام نفس العملة",
+        official_rate: 1,
+        deviation_percentage: ((rate - 1) / 1) * 100,
+      };
+    }
+    return { has_warning: false, warning_message: null, official_rate: 1, deviation_percentage: 0 };
+  }
+
+  try {
+    const { data, error } = await supabase.rpc("get_rate_deviation_warning", {
+      p_from_currency: fromCurrency,
+      p_to_currency: toCurrency,
+      p_rate: rate,
+      p_date: date,
+    });
+
+    if (error) {
+      console.error("Error checking rate deviation:", error);
+      return { has_warning: false, warning_message: null, official_rate: null, deviation_percentage: null };
+    }
+
+    if (data && data.length > 0) {
+      return {
+        has_warning: data[0].has_warning,
+        warning_message: data[0].warning_message,
+        official_rate: data[0].official_rate,
+        deviation_percentage: data[0].deviation_percentage,
+      };
+    }
+
+    return { has_warning: false, warning_message: null, official_rate: null, deviation_percentage: null };
+  } catch (error) {
+    console.error("Error checking rate deviation:", error);
+    return { has_warning: false, warning_message: null, official_rate: null, deviation_percentage: null };
+  }
+}
+
+/**
+ * Validate exchange rate bounds (client-side pre-validation)
+ * Rate must be between 0.0001 and 100000 to pass database constraints
+ */
+export function validateExchangeRateBounds(rate: number): { valid: boolean; message?: string } {
+  if (rate <= 0) {
+    return { valid: false, message: "سعر الصرف يجب أن يكون أكبر من صفر" };
+  }
+  if (rate <= 0.0001) {
+    return { valid: false, message: "سعر الصرف منخفض جداً (الحد الأدنى 0.0001)" };
+  }
+  if (rate >= 100000) {
+    return { valid: false, message: "سعر الصرف مرتفع جداً (الحد الأقصى 100000)" };
+  }
+  return { valid: true };
+}

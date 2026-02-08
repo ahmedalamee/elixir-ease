@@ -58,6 +58,7 @@ import Currencies from "./pages/Currencies";
 import ExchangeRates from "./pages/ExchangeRates";
 import InventorySettings from "./pages/InventorySettings";
 import CustomerPayments from "./pages/CustomerPayments";
+import ReceiptVouchers from "./pages/ReceiptVouchers";
 import SalesInvoices from "./pages/SalesInvoices";
 import NewSalesInvoice from "./pages/NewSalesInvoice";
 import SalesInvoiceView from "./pages/SalesInvoiceView";
@@ -197,6 +198,7 @@ const AppContent = () => {
           <Route path="/products-advanced" element={<ProductsAdvanced />} />
           <Route path="/customers" element={<Customers />} />
           <Route path="/customers/:id" element={<CustomerProfile />} />
+          <Route path="/receipt-vouchers" element={<ReceiptVouchers />} />
           <Route path="/suppliers" element={<Suppliers />} />
           <Route path="/categories" element={<Categories />} />
           <Route path="/inventory" element={<Inventory />} />

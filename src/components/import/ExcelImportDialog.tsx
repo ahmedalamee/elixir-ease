@@ -20,7 +20,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { Upload, FileSpreadsheet, AlertTriangle, CheckCircle, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 
 export interface ColumnMapping {
   excelColumn: string;
@@ -80,96 +80,101 @@ export const ExcelImportDialog = ({
   };
 
   const readExcelFile = async (file: File): Promise<Record<string, any>[]> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      
-      reader.onload = (e) => {
-        try {
-          const data = new Uint8Array(e.target?.result as ArrayBuffer);
-          const workbook = XLSX.read(data, { type: "array" });
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
-          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
-          
-          if (jsonData.length < 2) {
-            reject(new Error("الملف فارغ أو لا يحتوي على بيانات"));
-            return;
-          }
+    const arrayBuffer = await file.arrayBuffer();
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(arrayBuffer);
+    
+    const worksheet = workbook.worksheets[0];
+    if (!worksheet || worksheet.rowCount < 2) {
+      throw new Error("الملف فارغ أو لا يحتوي على بيانات");
+    }
 
-          const headers = jsonData[0] as string[];
-          const rows = jsonData.slice(1);
-          
-          // Map Excel columns to database columns
-          const mappedData: Record<string, any>[] = [];
-          const validationErrors: string[] = [];
-
-          rows.forEach((row, rowIndex) => {
-            if (!row.some(cell => cell !== undefined && cell !== null && cell !== "")) {
-              return; // Skip empty rows
-            }
-
-            const mappedRow: Record<string, any> = {};
-            let rowHasError = false;
-
-            columns.forEach((col) => {
-              const excelIndex = headers.findIndex(
-                (h) => h?.toString().trim().toLowerCase() === col.excelColumn.toLowerCase()
-              );
-              
-              let value = excelIndex >= 0 ? row[excelIndex] : undefined;
-
-              // Type conversion
-              if (value !== undefined && value !== null && value !== "") {
-                if (col.type === "number") {
-                  value = parseFloat(value);
-                  if (isNaN(value)) {
-                    validationErrors.push(`صف ${rowIndex + 2}: قيمة غير صالحة في عمود "${col.label}"`);
-                    rowHasError = true;
-                    value = 0;
-                  }
-                } else if (col.type === "boolean") {
-                  value = value === true || value === "نعم" || value === "yes" || value === "1" || value === 1;
-                } else if (col.type === "date") {
-                  // Handle Excel date serial numbers
-                  if (typeof value === "number") {
-                    const date = XLSX.SSF.parse_date_code(value);
-                    value = `${date.y}-${String(date.m).padStart(2, "0")}-${String(date.d).padStart(2, "0")}`;
-                  }
-                } else {
-                  value = String(value).trim();
-                }
-              }
-
-              // Required validation
-              if (col.required && (value === undefined || value === null || value === "")) {
-                validationErrors.push(`صف ${rowIndex + 2}: الحقل "${col.label}" مطلوب`);
-                rowHasError = true;
-              }
-
-              mappedRow[col.dbColumn] = value;
-            });
-
-            if (!rowHasError) {
-              mappedData.push(mappedRow);
-            }
-          });
-
-          if (validationErrors.length > 0) {
-            setErrors(validationErrors.slice(0, 10)); // Show first 10 errors
-          }
-
-          resolve(mappedData);
-        } catch (error) {
-          reject(new Error("فشل قراءة ملف Excel. تأكد من صحة صيغة الملف"));
-        }
-      };
-
-      reader.onerror = () => {
-        reject(new Error("فشل قراءة الملف"));
-      };
-
-      reader.readAsArrayBuffer(file);
+    // Get headers from first row
+    const headerRow = worksheet.getRow(1);
+    const headers: string[] = [];
+    headerRow.eachCell((cell, colNumber) => {
+      headers[colNumber - 1] = String(cell.value || "").trim();
     });
+
+    const mappedData: Record<string, any>[] = [];
+    const validationErrors: string[] = [];
+
+    // Process data rows (starting from row 2)
+    for (let rowNumber = 2; rowNumber <= worksheet.rowCount; rowNumber++) {
+      const row = worksheet.getRow(rowNumber);
+      
+      // Skip empty rows
+      let hasValue = false;
+      row.eachCell(() => { hasValue = true; });
+      if (!hasValue) continue;
+
+      const mappedRow: Record<string, any> = {};
+      let rowHasError = false;
+
+      columns.forEach((col) => {
+        const excelIndex = headers.findIndex(
+          (h) => h.toLowerCase() === col.excelColumn.toLowerCase()
+        );
+        
+        let value: any = excelIndex >= 0 ? row.getCell(excelIndex + 1).value : undefined;
+
+        // Handle ExcelJS cell value types
+        if (value !== undefined && value !== null && value !== "") {
+          // Handle rich text
+          if (typeof value === "object" && "richText" in value) {
+            value = value.richText.map((t: any) => t.text).join("");
+          }
+          // Handle formula results
+          if (typeof value === "object" && "result" in value) {
+            value = value.result;
+          }
+          // Handle hyperlinks
+          if (typeof value === "object" && "text" in value) {
+            value = value.text;
+          }
+
+          if (col.type === "number") {
+            value = parseFloat(String(value));
+            if (isNaN(value)) {
+              validationErrors.push(`صف ${rowNumber}: قيمة غير صالحة في عمود "${col.label}"`);
+              rowHasError = true;
+              value = 0;
+            }
+          } else if (col.type === "boolean") {
+            value = value === true || value === "نعم" || value === "yes" || value === "1" || value === 1;
+          } else if (col.type === "date") {
+            // Handle Date objects from ExcelJS
+            if (value instanceof Date) {
+              value = value.toISOString().split("T")[0];
+            } else if (typeof value === "number") {
+              // Excel serial date number
+              const date = new Date((value - 25569) * 86400 * 1000);
+              value = date.toISOString().split("T")[0];
+            }
+          } else {
+            value = String(value).trim();
+          }
+        }
+
+        // Required validation
+        if (col.required && (value === undefined || value === null || value === "")) {
+          validationErrors.push(`صف ${rowNumber}: الحقل "${col.label}" مطلوب`);
+          rowHasError = true;
+        }
+
+        mappedRow[col.dbColumn] = value;
+      });
+
+      if (!rowHasError) {
+        mappedData.push(mappedRow);
+      }
+    }
+
+    if (validationErrors.length > 0) {
+      setErrors(validationErrors.slice(0, 10)); // Show first 10 errors
+    }
+
+    return mappedData;
   };
 
   const handleImport = async () => {
@@ -205,19 +210,46 @@ export const ExcelImportDialog = ({
     }
   };
 
-  const downloadTemplate = () => {
+  const downloadTemplate = async () => {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Template");
+
+    // Add headers
     const headers = columns.map((col) => col.excelColumn);
+    worksheet.addRow(headers);
+
+    // Style header row
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true };
+    headerRow.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FFE0E0E0" },
+    };
+
+    // Add sample row
     const sampleRow = columns.map((col) => {
-      if (col.type === "number") return "0";
+      if (col.type === "number") return 0;
       if (col.type === "boolean") return "نعم";
       if (col.type === "date") return "2025-01-01";
       return col.required ? "مطلوب" : "";
     });
+    worksheet.addRow(sampleRow);
 
-    const ws = XLSX.utils.aoa_to_sheet([headers, sampleRow]);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Template");
-    XLSX.writeFile(wb, templateFileName);
+    // Auto-width columns
+    worksheet.columns.forEach((column) => {
+      column.width = 15;
+    });
+
+    // Generate and download file
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { 
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" 
+    });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = templateFileName;
+    link.click();
   };
 
   const handleExport = async () => {
@@ -234,10 +266,25 @@ export const ExcelImportDialog = ({
         return;
       }
 
-      // Map data to Excel columns
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Data");
+
+      // Add headers
       const headers = columns.map((col) => col.excelColumn);
-      const rows = data.map((item) => 
-        columns.map((col) => {
+      worksheet.addRow(headers);
+
+      // Style header row
+      const headerRow = worksheet.getRow(1);
+      headerRow.font = { bold: true };
+      headerRow.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFE0E0E0" },
+      };
+
+      // Add data rows
+      data.forEach((item) => {
+        const row = columns.map((col) => {
           const value = item[col.dbColumn];
           if (value === null || value === undefined) return "";
           if (col.type === "boolean") return value ? "نعم" : "لا";
@@ -245,13 +292,24 @@ export const ExcelImportDialog = ({
             return new Date(value).toISOString().split("T")[0];
           }
           return value;
-        })
-      );
+        });
+        worksheet.addRow(row);
+      });
 
-      const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Data");
-      XLSX.writeFile(wb, templateFileName.replace("_template", "_export"));
+      // Auto-width columns
+      worksheet.columns.forEach((column) => {
+        column.width = 15;
+      });
+
+      // Generate and download file
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { 
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" 
+      });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = templateFileName.replace("_template", "_export");
+      link.click();
 
       toast({
         title: "تم التصدير بنجاح",

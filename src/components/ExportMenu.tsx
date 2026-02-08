@@ -78,11 +78,67 @@ export const ExportMenu = ({ data, fileName, disabled }: ExportMenuProps) => {
     }
   };
 
-  const exportToExcel = () => {
-    toast({
-      title: "قريباً",
-      description: "ميزة التصدير إلى Excel قيد التطوير",
-    });
+  const exportToExcel = async () => {
+    if (!data) {
+      toast({
+        title: "خطأ",
+        description: "لا توجد بيانات للتصدير",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const ExcelJS = await import("exceljs");
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Data");
+
+      if (Array.isArray(data) && data.length > 0) {
+        // Add headers
+        const headers = Object.keys(data[0] || {});
+        worksheet.addRow(headers);
+
+        // Style header row
+        const headerRow = worksheet.getRow(1);
+        headerRow.font = { bold: true };
+        headerRow.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFE0E0E0" },
+        };
+
+        // Add data rows
+        data.forEach((row) => {
+          worksheet.addRow(headers.map((h) => row[h] ?? ""));
+        });
+
+        // Auto-width columns
+        worksheet.columns.forEach((column) => {
+          column.width = 15;
+        });
+      }
+
+      // Generate and download file
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `${fileName}.xlsx`;
+      link.click();
+
+      toast({
+        title: "تم التصدير",
+        description: "تم تصدير البيانات إلى Excel بنجاح",
+      });
+    } catch (error) {
+      toast({
+        title: "خطأ",
+        description: "فشل تصدير البيانات إلى Excel",
+        variant: "destructive",
+      });
+    }
   };
 
   const exportToPDF = () => {
@@ -113,7 +169,7 @@ export const ExportMenu = ({ data, fileName, disabled }: ExportMenuProps) => {
         </DropdownMenuItem>
         <DropdownMenuItem onClick={exportToExcel}>
           <FileSpreadsheet className="ml-2 h-4 w-4" />
-          Excel (قريباً)
+          Excel
         </DropdownMenuItem>
         <DropdownMenuItem onClick={exportToPDF}>
           <FileText className="ml-2 h-4 w-4" />

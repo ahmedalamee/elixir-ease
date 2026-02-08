@@ -23,6 +23,7 @@ export default function PurchaseInvoices() {
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [taxes, setTaxes] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
@@ -57,6 +58,7 @@ export default function PurchaseInvoices() {
     fetchSuppliers();
     fetchWarehouses();
     fetchTaxes();
+    fetchProducts();
     loadBaseCurrency();
   }, []);
   
@@ -157,6 +159,15 @@ export default function PurchaseInvoices() {
     setSuppliers(data || []);
   };
 
+  const fetchProducts = async () => {
+    const { data } = await supabase
+      .from('products')
+      .select('id, name')
+      .eq('is_active', true)
+      .order('name');
+    setProducts(data || []);
+  };
+
   const fetchGRNItems = async (grnId: string) => {
     const { data: grn } = await supabase
       .from('goods_receipts')
@@ -180,6 +191,7 @@ export default function PurchaseInvoices() {
         item_id: item.item_id,
         uom_id: item.uom_id,
         qty: item.qty_received,
+        free_qty: 0,
         price: item.unit_cost,
         discount: 0,
         tax_id: item.products.default_tax_id || selectedTaxId,
@@ -211,6 +223,7 @@ export default function PurchaseInvoices() {
         item_id: item.item_id,
         uom_id: item.uom_id,
         qty: item.qty_ordered,
+        free_qty: 0,
         price: item.price,
         discount: item.discount || 0,
         tax_id: item.products?.default_tax_id || selectedTaxId,
@@ -677,15 +690,60 @@ export default function PurchaseInvoices() {
               </div>
 
               {items.length > 0 && (
-                <InvoiceTotalsSummary
-                  subtotalFC={items.reduce((sum, item) => sum + item.line_total, 0)}
-                  discountFC={0}
-                  taxFC={items.reduce((sum, item) => sum + item.line_total, 0) * 0.15}
-                  totalFC={items.reduce((sum, item) => sum + item.line_total, 0) * 1.15}
-                  exchangeRate={exchangeRate}
-                  currencyFC={currencyCode}
-                  currencyBC={baseCurrency}
-                />
+                <div className="space-y-4">
+                  <div className="border rounded-lg p-4">
+                    <h4 className="font-medium mb-4">البنود</h4>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>المنتج</TableHead>
+                          <TableHead>الكمية</TableHead>
+                          <TableHead className="text-primary">كمية مجانية</TableHead>
+                          <TableHead>السعر</TableHead>
+                          <TableHead>المجموع</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {items.map((item, index) => (
+                          <TableRow key={index}>
+                            <TableCell>
+                              {products.find(p => p.id === item.item_id)?.name || '-'}
+                            </TableCell>
+                            <TableCell>{item.qty}</TableCell>
+                            <TableCell>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={item.free_qty || 0}
+                                onChange={(e) => {
+                                  const newItems = [...items];
+                                  newItems[index] = {
+                                    ...newItems[index],
+                                    free_qty: Math.max(0, parseFloat(e.target.value) || 0)
+                                  };
+                                  setItems(newItems);
+                                }}
+                                className="w-24"
+                                placeholder="0"
+                              />
+                            </TableCell>
+                            <TableCell>{item.price?.toFixed(2)}</TableCell>
+                            <TableCell>{item.line_total?.toFixed(2)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  <InvoiceTotalsSummary
+                    subtotalFC={items.reduce((sum, item) => sum + item.line_total, 0)}
+                    discountFC={0}
+                    taxFC={items.reduce((sum, item) => sum + item.line_total, 0) * 0.15}
+                    totalFC={items.reduce((sum, item) => sum + item.line_total, 0) * 1.15}
+                    exchangeRate={exchangeRate}
+                    currencyFC={currencyCode}
+                    currencyBC={baseCurrency}
+                  />
+                </div>
               )}
             </div>
 
@@ -732,6 +790,7 @@ export default function PurchaseInvoices() {
                       <TableRow>
                         <TableHead>المنتج</TableHead>
                         <TableHead>الكمية</TableHead>
+                        <TableHead className="text-primary">كمية مجانية</TableHead>
                         <TableHead>السعر</TableHead>
                         <TableHead>المجموع</TableHead>
                       </TableRow>
@@ -741,6 +800,7 @@ export default function PurchaseInvoices() {
                         <TableRow key={index}>
                           <TableCell>{item.products?.name}</TableCell>
                           <TableCell>{item.qty}</TableCell>
+                          <TableCell className="text-primary font-medium">{item.free_qty || 0}</TableCell>
                           <TableCell>{item.price?.toFixed(2)} ر.س</TableCell>
                           <TableCell>{item.line_total?.toFixed(2)} ر.س</TableCell>
                         </TableRow>

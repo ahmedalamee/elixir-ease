@@ -21,6 +21,7 @@ interface ProductWarehouse {
   reserved_quantity: number;
   available_quantity: number;
   min_quantity: number;
+  free_quantity?: number;
   products?: { name: string; barcode?: string };
   warehouses?: { name: string; code: string };
 }
@@ -277,6 +278,7 @@ export default function WarehouseStock() {
                       <TableHead>الكمية</TableHead>
                       <TableHead>محجوز</TableHead>
                       <TableHead>متاح</TableHead>
+                      <TableHead className="text-primary">مجاني</TableHead>
                       <TableHead>الحد الأدنى</TableHead>
                       <TableHead>الحالة</TableHead>
                     </TableRow>
@@ -292,12 +294,13 @@ export default function WarehouseStock() {
                         <TableCell>{pw.quantity}</TableCell>
                         <TableCell>{pw.reserved_quantity || 0}</TableCell>
                         <TableCell className="font-bold">{pw.available_quantity}</TableCell>
+                        <TableCell className="text-primary font-medium">{pw.free_quantity || 0}</TableCell>
                         <TableCell>{pw.min_quantity || 0}</TableCell>
                         <TableCell>
                           {pw.available_quantity <= (pw.min_quantity || 0) ? (
                             <span className="text-destructive font-medium">منخفض</span>
                           ) : (
-                            <span className="text-green-600 font-medium">جيد</span>
+                            <span className="text-emerald-600 dark:text-emerald-400 font-medium">جيد</span>
                           )}
                         </TableCell>
                       </TableRow>

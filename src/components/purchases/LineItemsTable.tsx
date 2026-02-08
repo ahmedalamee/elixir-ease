@@ -12,6 +12,7 @@ export interface LineItem {
   product_id: string;
   uom_id?: string;
   quantity: number;
+  free_qty?: number;
   unit_price_fc: number;
   discount_percent?: number;
   line_total_fc: number;
@@ -72,6 +73,7 @@ export function LineItemsTable({
       product_id: "",
       uom_id: "",
       quantity: 1,
+      free_qty: 0,
       unit_price_fc: 0,
       discount_percent: 0,
       line_total_fc: 0,
@@ -130,6 +132,7 @@ export function LineItemsTable({
               <TableHead className="w-[200px]">المنتج</TableHead>
               <TableHead className="w-[120px]">الوحدة</TableHead>
               <TableHead className="w-[100px]">الكمية</TableHead>
+              <TableHead className="w-[100px] text-primary">كمية مجانية</TableHead>
               {showUnitCost && (
                 <TableHead className="w-[120px]">السعر ({currencyCode})</TableHead>
               )}
@@ -142,7 +145,7 @@ export function LineItemsTable({
           <TableBody>
             {items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={showUnitCost ? 8 : 7} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={showUnitCost ? 9 : 8} className="text-center text-muted-foreground py-8">
                   لا توجد بنود. اضغط "إضافة بند" لإضافة منتج.
                 </TableCell>
               </TableRow>
@@ -193,6 +196,17 @@ export function LineItemsTable({
                       onChange={(e) => updateItem(index, "quantity", parseFloat(e.target.value) || 0)}
                       disabled={disabled}
                       className="w-full"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={item.free_qty || 0}
+                      onChange={(e) => updateItem(index, "free_qty", Math.max(0, parseFloat(e.target.value) || 0))}
+                      disabled={disabled}
+                      className="w-full"
+                      placeholder="0"
                     />
                   </TableCell>
                   {showUnitCost && (

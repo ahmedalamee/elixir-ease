@@ -4,7 +4,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import { CurrencySelect } from "@/components/CurrencySelect";
 import { ExchangeRateDisplay } from "./ExchangeRateDisplay";
-import { getExchangeRate, getBaseCurrencyCode } from "@/lib/currency";
+import { getExchangeRate, getBaseCurrencyCode, validateExchangeRateBounds } from "@/lib/currency";
 
 interface InvoiceCurrencyPanelProps {
   currencyCode: string;
@@ -26,6 +26,7 @@ export function InvoiceCurrencyPanel({
   const [baseCurrency, setBaseCurrency] = useState<string>("YER");
   const [exchangeRate, setExchangeRate] = useState<number>(1);
   const [rateError, setRateError] = useState<string | null>(null);
+  const [rateWarning, setRateWarning] = useState<string | null>(null);
   const [isLoadingRate, setIsLoadingRate] = useState(false);
 
   useEffect(() => {
@@ -54,16 +55,25 @@ export function InvoiceCurrencyPanel({
     if (currencyCode === baseCurrency) {
       setExchangeRate(1);
       setRateError(null);
+      setRateWarning(null);
       onCurrencyChange(currencyCode, 1);
       return;
     }
 
     setIsLoadingRate(true);
     setRateError(null);
+    setRateWarning(null);
 
     try {
       const rate = await getExchangeRate(currencyCode, baseCurrency, invoiceDate);
       setExchangeRate(rate);
+      
+      // Validate rate bounds
+      const boundsCheck = validateExchangeRateBounds(rate);
+      if (!boundsCheck.valid) {
+        setRateWarning(boundsCheck.message || null);
+      }
+      
       onCurrencyChange(currencyCode, rate);
     } catch (error: any) {
       setRateError("سعر الصرف غير متوفر لهذا التاريخ");
@@ -116,6 +126,15 @@ export function InvoiceCurrencyPanel({
             <AlertTriangle className="h-4 w-4 text-yellow-600" />
             <AlertDescription className="text-yellow-800">
               تنبيه: عملة الفاتورة ({currencyCode}) مختلفة عن العملة الافتراضية للعميل ({customerCurrency})
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {rateWarning && !rateError && (
+          <Alert variant="default" className="bg-orange-50 border-orange-200">
+            <AlertTriangle className="h-4 w-4 text-orange-600" />
+            <AlertDescription className="text-orange-800">
+              {rateWarning}
             </AlertDescription>
           </Alert>
         )}

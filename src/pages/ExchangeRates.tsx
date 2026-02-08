@@ -37,10 +37,13 @@ import {
   fetchLatestExchangeRates,
   createExchangeRate,
   deleteExchangeRate,
+  validateExchangeRateBounds,
   type Currency,
   type ExchangeRate,
   type ExchangeRateInsert,
 } from "@/lib/currency";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
 
 export default function ExchangeRates() {
   const navigate = useNavigate();
@@ -120,8 +123,10 @@ export default function ExchangeRates() {
       return;
     }
 
-    if (newRate.rate <= 0) {
-      toast.error("سعر الصرف يجب أن يكون أكبر من صفر");
+    // Validate rate bounds before submission
+    const boundsCheck = validateExchangeRateBounds(newRate.rate);
+    if (!boundsCheck.valid) {
+      toast.error(boundsCheck.message);
       return;
     }
 
@@ -238,8 +243,10 @@ export default function ExchangeRates() {
                   const rate = parseFloat(rateInput?.value || "0");
                   const date = dateInput?.value || new Date().toISOString().split("T")[0];
                   
-                  if (!rate || rate <= 0) {
-                    toast.error("الرجاء إدخال سعر صرف صحيح");
+                  // Validate rate bounds
+                  const boundsCheck = validateExchangeRateBounds(rate);
+                  if (!boundsCheck.valid) {
+                    toast.error(boundsCheck.message);
                     return;
                   }
                   
@@ -435,9 +442,23 @@ export default function ExchangeRates() {
                   placeholder="مثال: 66.50"
                 />
                 {newRate.from_currency && newRate.rate > 0 && (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    1 {newRate.from_currency} = {newRate.rate} {baseCurrency?.code || "YER"}
-                  </p>
+                  <>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      1 {newRate.from_currency} = {newRate.rate} {baseCurrency?.code || "YER"}
+                    </p>
+                    {(() => {
+                      const boundsCheck = validateExchangeRateBounds(newRate.rate);
+                      if (!boundsCheck.valid) {
+                        return (
+                          <Alert variant="destructive" className="mt-2">
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertDescription>{boundsCheck.message}</AlertDescription>
+                          </Alert>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </>
                 )}
               </div>
 

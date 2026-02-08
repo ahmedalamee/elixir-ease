@@ -15524,6 +15524,20 @@ export type Database = {
           warehouse_name: string
         }[]
       }
+      get_rate_deviation_warning: {
+        Args: {
+          p_date?: string
+          p_from_currency: string
+          p_rate: number
+          p_to_currency: string
+        }
+        Returns: {
+          deviation_percentage: number
+          has_warning: boolean
+          official_rate: number
+          warning_message: string
+        }[]
+      }
       get_returnable_invoice_items: {
         Args: { p_invoice_id: string }
         Returns: {
@@ -15785,6 +15799,16 @@ export type Database = {
         Returns: boolean
       }
       validate_admin_action: { Args: never; Returns: boolean }
+      validate_exchange_rate: {
+        Args: {
+          p_date?: string
+          p_from_currency: string
+          p_rate: number
+          p_to_currency: string
+          p_tolerance?: number
+        }
+        Returns: boolean
+      }
       validate_po_status_transition: {
         Args: { p_current_status: string; p_new_status: string }
         Returns: boolean

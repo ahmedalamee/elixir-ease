@@ -1,10 +1,11 @@
 import { useEffect, useState, useCallback } from "react";
-import { RefreshCw, Lock } from "lucide-react";
+import { RefreshCw, Lock, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { fetchCurrencies, getExchangeRate, getBaseCurrencyCode, Currency } from "@/lib/currency";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { fetchCurrencies, getExchangeRate, getBaseCurrencyCode, validateExchangeRateBounds, Currency } from "@/lib/currency";
 import { cn } from "@/lib/utils";
 
 interface CurrencyPanelProps {
@@ -28,6 +29,7 @@ export function CurrencyPanel({
   const [baseCurrency, setBaseCurrency] = useState<string>("YER");
   const [isLoading, setIsLoading] = useState(false);
   const [localRate, setLocalRate] = useState(exchangeRate);
+  const [rateWarning, setRateWarning] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -88,6 +90,15 @@ export function CurrencyPanel({
   const handleRateChange = (value: string) => {
     const rate = parseFloat(value) || 1;
     setLocalRate(rate);
+    
+    // Validate rate bounds
+    const boundsCheck = validateExchangeRateBounds(rate);
+    if (!boundsCheck.valid) {
+      setRateWarning(boundsCheck.message || null);
+    } else {
+      setRateWarning(null);
+    }
+    
     onCurrencyChange(currencyCode, rate);
   };
 
@@ -148,6 +159,13 @@ export function CurrencyPanel({
         <p className="text-xs text-muted-foreground">
           1 {currencyCode} = {localRate.toFixed(4)} {baseCurrency}
         </p>
+      )}
+
+      {rateWarning && (
+        <Alert variant="destructive" className="mt-2">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>{rateWarning}</AlertDescription>
+        </Alert>
       )}
     </div>
   );

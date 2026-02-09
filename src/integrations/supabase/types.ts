@@ -5695,6 +5695,8 @@ export type Database = {
       }
       health_record_access_log: {
         Row: {
+          access_justified: boolean | null
+          access_reason: string | null
           access_type: string
           accessed_at: string | null
           accessed_by: string
@@ -5704,6 +5706,8 @@ export type Database = {
           prescription_id: string | null
         }
         Insert: {
+          access_justified?: boolean | null
+          access_reason?: string | null
           access_type: string
           accessed_at?: string | null
           accessed_by: string
@@ -5713,6 +5717,8 @@ export type Database = {
           prescription_id?: string | null
         }
         Update: {
+          access_justified?: boolean | null
+          access_reason?: string | null
           access_type?: string
           accessed_at?: string | null
           accessed_by?: string
@@ -12841,6 +12847,45 @@ export type Database = {
         }
         Relationships: []
       }
+      suspicious_access_attempts: {
+        Row: {
+          access_type: string
+          customer_id: string | null
+          detected_at: string | null
+          id: string
+          notes: string | null
+          reason: string | null
+          resolved: boolean | null
+          resolved_at: string | null
+          resolved_by: string | null
+          user_id: string
+        }
+        Insert: {
+          access_type: string
+          customer_id?: string | null
+          detected_at?: string | null
+          id?: string
+          notes?: string | null
+          reason?: string | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          user_id: string
+        }
+        Update: {
+          access_type?: string
+          customer_id?: string | null
+          detected_at?: string | null
+          id?: string
+          notes?: string | null
+          reason?: string | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       system_events: {
         Row: {
           error_message: string | null
@@ -15883,6 +15928,21 @@ export type Database = {
           phone: string
         }[]
       }
+      get_customer_health_record: {
+        Args: { p_access_reason?: string; p_customer_id: string }
+        Returns: {
+          allergies: string[]
+          blood_type: string
+          chronic_diseases: string[]
+          current_medications: string[]
+          customer_id: string
+          emergency_contact_name: string
+          emergency_contact_phone: string
+          id: string
+          medical_history: string
+          notes: string
+        }[]
+      }
       get_customer_limited: {
         Args: { p_customer_id: string }
         Returns: {
@@ -16316,6 +16376,10 @@ export type Database = {
           p_to_currency: string
           p_tolerance?: number
         }
+        Returns: boolean
+      }
+      validate_health_record_access: {
+        Args: { p_access_reason?: string; p_customer_id: string }
         Returns: boolean
       }
       validate_po_status_transition: {

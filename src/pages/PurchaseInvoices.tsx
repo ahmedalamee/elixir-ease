@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Plus, FileText, Eye, Check, Search, Filter } from 'lucide-react';
+import { Plus, FileText, Eye, Check, Search, Filter, Gift } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { InvoiceCurrencyPanel, InvoiceTotalsSummary } from '@/components/currency';
 import { getExchangeRate, getBaseCurrencyCode } from '@/lib/currency';
@@ -698,7 +699,12 @@ export default function PurchaseInvoices() {
                         <TableRow>
                           <TableHead>المنتج</TableHead>
                           <TableHead>الكمية</TableHead>
-                          <TableHead className="text-primary">كمية مجانية</TableHead>
+                          <TableHead>
+                            <span className="flex items-center gap-1 text-primary">
+                              <Gift className="h-3.5 w-3.5" />
+                              كمية مجانية
+                            </span>
+                          </TableHead>
                           <TableHead>السعر</TableHead>
                           <TableHead>المجموع</TableHead>
                         </TableRow>
@@ -711,21 +717,29 @@ export default function PurchaseInvoices() {
                             </TableCell>
                             <TableCell>{item.qty}</TableCell>
                             <TableCell>
-                              <Input
-                                type="number"
-                                min="0"
-                                value={item.free_qty || 0}
-                                onChange={(e) => {
-                                  const newItems = [...items];
-                                  newItems[index] = {
-                                    ...newItems[index],
-                                    free_qty: Math.max(0, parseFloat(e.target.value) || 0)
-                                  };
-                                  setItems(newItems);
-                                }}
-                                className="w-24"
-                                placeholder="0"
-                              />
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  value={item.free_qty || 0}
+                                  onChange={(e) => {
+                                    const newItems = [...items];
+                                    newItems[index] = {
+                                      ...newItems[index],
+                                      free_qty: Math.max(0, parseFloat(e.target.value) || 0)
+                                    };
+                                    setItems(newItems);
+                                  }}
+                                  className="w-24"
+                                  placeholder="0"
+                                />
+                                {(item.free_qty || 0) > 0 && (
+                                  <Badge variant="secondary" className="bg-primary/10 text-primary text-xs whitespace-nowrap">
+                                    <Gift className="h-3 w-3 ml-1" />
+                                    مجاني
+                                  </Badge>
+                                )}
+                              </div>
                             </TableCell>
                             <TableCell>{item.price?.toFixed(2)}</TableCell>
                             <TableCell>{item.line_total?.toFixed(2)}</TableCell>
@@ -790,7 +804,12 @@ export default function PurchaseInvoices() {
                       <TableRow>
                         <TableHead>المنتج</TableHead>
                         <TableHead>الكمية</TableHead>
-                        <TableHead className="text-primary">كمية مجانية</TableHead>
+                        <TableHead>
+                          <span className="flex items-center gap-1 text-primary">
+                            <Gift className="h-3.5 w-3.5" />
+                            كمية مجانية
+                          </span>
+                        </TableHead>
                         <TableHead>السعر</TableHead>
                         <TableHead>المجموع</TableHead>
                       </TableRow>
@@ -800,7 +819,17 @@ export default function PurchaseInvoices() {
                         <TableRow key={index}>
                           <TableCell>{item.products?.name}</TableCell>
                           <TableCell>{item.qty}</TableCell>
-                          <TableCell className="text-primary font-medium">{item.free_qty || 0}</TableCell>
+                          <TableCell>
+                            <span className="flex items-center gap-1">
+                              <span className="text-primary font-medium">{item.free_qty || 0}</span>
+                              {(item.free_qty || 0) > 0 && (
+                                <Badge variant="secondary" className="bg-primary/10 text-primary text-xs">
+                                  <Gift className="h-3 w-3 ml-1" />
+                                  مجاني
+                                </Badge>
+                              )}
+                            </span>
+                          </TableCell>
                           <TableCell>{item.price?.toFixed(2)} ر.س</TableCell>
                           <TableCell>{item.line_total?.toFixed(2)} ر.س</TableCell>
                         </TableRow>

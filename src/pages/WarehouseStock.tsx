@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Plus, ArrowRightLeft, Package, TrendingUp, Edit, Trash2 } from 'lucide-react';
+import { Plus, ArrowRightLeft, Package, TrendingUp, Edit, Trash2, Gift, RefreshCw } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface ProductWarehouse {
   id: string;
@@ -56,6 +57,9 @@ export default function WarehouseStock() {
   const [selectedWarehouse, setSelectedWarehouse] = useState<string>('all');
   const [isTransferDialogOpen, setIsTransferDialogOpen] = useState(false);
   const [isAdjustmentDialogOpen, setIsAdjustmentDialogOpen] = useState(false);
+  const [isConvertDialogOpen, setIsConvertDialogOpen] = useState(false);
+  const [convertForm, setConvertForm] = useState({ product_id: '', warehouse_id: '', quantity: 0, notes: '' });
+  const [convertingItem, setConvertingItem] = useState<ProductWarehouse | null>(null);
 
   const [transferForm, setTransferForm] = useState({
     from_warehouse_id: '',
@@ -278,9 +282,15 @@ export default function WarehouseStock() {
                       <TableHead>الكمية</TableHead>
                       <TableHead>محجوز</TableHead>
                       <TableHead>متاح</TableHead>
-                      <TableHead className="text-primary">مجاني</TableHead>
+                      <TableHead>
+                        <span className="flex items-center gap-1 text-primary">
+                          <Gift className="h-3.5 w-3.5" />
+                          مجاني
+                        </span>
+                      </TableHead>
                       <TableHead>الحد الأدنى</TableHead>
                       <TableHead>الحالة</TableHead>
+                      <TableHead>إجراء</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -294,13 +304,44 @@ export default function WarehouseStock() {
                         <TableCell>{pw.quantity}</TableCell>
                         <TableCell>{pw.reserved_quantity || 0}</TableCell>
                         <TableCell className="font-bold">{pw.available_quantity}</TableCell>
-                        <TableCell className="text-primary font-medium">{pw.free_quantity || 0}</TableCell>
+                        <TableCell>
+                          <span className="flex items-center gap-1">
+                            <span className="text-primary font-medium">{pw.free_quantity || 0}</span>
+                            {(pw.free_quantity || 0) > 0 && (
+                              <Badge variant="secondary" className="bg-primary/10 text-primary text-xs">
+                                <Gift className="h-3 w-3" />
+                              </Badge>
+                            )}
+                          </span>
+                        </TableCell>
                         <TableCell>{pw.min_quantity || 0}</TableCell>
                         <TableCell>
                           {pw.available_quantity <= (pw.min_quantity || 0) ? (
                             <span className="text-destructive font-medium">منخفض</span>
                           ) : (
-                            <span className="text-emerald-600 dark:text-emerald-400 font-medium">جيد</span>
+                            <span className="text-green-600 dark:text-green-500 font-medium">جيد</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {(pw.free_quantity || 0) > 0 && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-xs"
+                              onClick={() => {
+                                setConvertingItem(pw);
+                                setConvertForm({
+                                  product_id: pw.product_id,
+                                  warehouse_id: pw.warehouse_id,
+                                  quantity: 0,
+                                  notes: '',
+                                });
+                                setIsConvertDialogOpen(true);
+                              }}
+                            >
+                              <RefreshCw className="h-3 w-3 ml-1" />
+                              تحويل
+                            </Button>
                           )}
                         </TableCell>
                       </TableRow>
@@ -565,6 +606,78 @@ export default function WarehouseStock() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Convert Free Stock Dialog */}
+        <Dialog open={isConvertDialogOpen} onOpenChange={setIsConvertDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <RefreshCw className="h-5 w-5 text-primary" />
+                تحويل مخزون مجاني إلى عادي
+              </DialogTitle>
+            </DialogHeader>
+            {convertingItem && (
+              <div className="space-y-4">
+                <div className="bg-muted/50 rounded-lg p-3 space-y-1 text-sm">
+                  <p><strong>المنتج:</strong> {convertingItem.products?.name}</p>
+                  <p><strong>المستودع:</strong> {convertingItem.warehouses?.name}</p>
+                  <p><strong>المخزون المجاني المتاح:</strong> <span className="text-primary font-bold">{convertingItem.free_quantity || 0}</span></p>
+                </div>
+                <div>
+                  <Label>الكمية المراد تحويلها *</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max={convertingItem.free_quantity || 0}
+                    value={convertForm.quantity || ''}
+                    onChange={(e) => setConvertForm({ ...convertForm, quantity: Math.max(0, parseFloat(e.target.value) || 0) })}
+                    placeholder="أدخل الكمية"
+                  />
+                </div>
+                <div>
+                  <Label>ملاحظات</Label>
+                  <Input
+                    value={convertForm.notes}
+                    onChange={(e) => setConvertForm({ ...convertForm, notes: e.target.value })}
+                    placeholder="سبب التحويل (اختياري)"
+                  />
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <Button variant="outline" onClick={() => setIsConvertDialogOpen(false)}>إلغاء</Button>
+                  <Button
+                    onClick={async () => {
+                      if (convertForm.quantity <= 0) {
+                        toast.error('يرجى إدخال كمية صحيحة');
+                        return;
+                      }
+                      if (convertForm.quantity > (convertingItem.free_quantity || 0)) {
+                        toast.error('الكمية أكبر من المخزون المجاني المتاح');
+                        return;
+                      }
+                      try {
+                        const { data, error } = await supabase.rpc('convert_free_stock_to_regular', {
+                          p_product_id: convertForm.product_id,
+                          p_warehouse_id: convertForm.warehouse_id,
+                          p_quantity: convertForm.quantity,
+                          p_notes: convertForm.notes || null,
+                        });
+                        if (error) throw error;
+                        toast.success('تم تحويل المخزون المجاني بنجاح');
+                        setIsConvertDialogOpen(false);
+                        fetchData();
+                      } catch (error: any) {
+                        toast.error(`خطأ: ${error.message}`);
+                      }
+                    }}
+                  >
+                    <RefreshCw className="h-4 w-4 ml-1" />
+                    تحويل
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

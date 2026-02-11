@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 export interface LineItem {
   id?: string;
@@ -132,7 +133,12 @@ export function LineItemsTable({
               <TableHead className="w-[200px]">المنتج</TableHead>
               <TableHead className="w-[120px]">الوحدة</TableHead>
               <TableHead className="w-[100px]">الكمية</TableHead>
-              <TableHead className="w-[100px] text-primary">كمية مجانية</TableHead>
+              <TableHead className="w-[100px]">
+                <span className="flex items-center gap-1 text-primary">
+                  <Gift className="h-3.5 w-3.5" />
+                  كمية مجانية
+                </span>
+              </TableHead>
               {showUnitCost && (
                 <TableHead className="w-[120px]">السعر ({currencyCode})</TableHead>
               )}

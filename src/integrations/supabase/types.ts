@@ -15777,6 +15777,15 @@ export type Database = {
         }
         Returns: number
       }
+      convert_free_stock_to_regular: {
+        Args: {
+          p_notes?: string
+          p_product_id: string
+          p_quantity: number
+          p_warehouse_id: string
+        }
+        Returns: Json
+      }
       convert_pr_to_po: {
         Args: { p_pr_id: string; p_supplier_id: string }
         Returns: Json

@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Plus, Package, Eye, Check } from 'lucide-react';
+import { Plus, Package, Eye, Check, Gift } from 'lucide-react';
 import { format } from 'date-fns';
 import { InvoiceCurrencyPanel } from '@/components/currency';
 import { getExchangeRate, getBaseCurrencyCode } from '@/lib/currency';
@@ -41,6 +41,7 @@ interface GRNItem {
   item_id: string;
   uom_id: string;
   qty_received: number;
+  free_qty: number;
   unit_cost: number;
   unit_cost_fc?: number;
   unit_cost_bc?: number;
@@ -172,7 +173,8 @@ export default function GoodsReceipts() {
         po_item_id: item.id,
         item_id: item.item_id,
         uom_id: item.uom_id,
-        qty_received: item.qty_ordered - (item.qty_received || 0), // Remaining quantity
+        qty_received: item.qty_ordered - (item.qty_received || 0),
+        free_qty: item.free_qty || 0,
         unit_cost: item.price,
         unit_cost_fc: item.price,
         unit_cost_bc: item.price * effectiveRate,
@@ -271,6 +273,7 @@ export default function GoodsReceipts() {
       item_id: item.item_id,
       uom_id: item.uom_id,
       qty_received: item.qty_received,
+      free_qty: item.free_qty || 0,
       unit_cost: item.unit_cost,
       unit_cost_fc: item.unit_cost,
       unit_cost_bc: item.unit_cost * effectiveRateForItems,
@@ -491,7 +494,7 @@ export default function GoodsReceipts() {
                   <h3 className="font-medium mb-4">البنود المستلمة</h3>
                   <div className="space-y-3">
                     {items.map((item, index) => (
-                      <div key={index} className="grid grid-cols-6 gap-2 items-end p-3 border rounded">
+                      <div key={index} className="grid grid-cols-7 gap-2 items-end p-3 border rounded">
                         <div>
                           <Label className="text-xs">الكمية المستلمة</Label>
                           <Input
@@ -499,6 +502,21 @@ export default function GoodsReceipts() {
                             className="h-8"
                             value={item.qty_received}
                             onChange={(e) => updateItem(index, 'qty_received', parseFloat(e.target.value) || 0)}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs flex items-center gap-1 text-primary">
+                            <Gift className="h-3 w-3" />
+                            مجانية
+                          </Label>
+                          <Input
+                            type="number"
+                            className="h-8 border-primary/30 bg-primary/5"
+                            value={item.free_qty}
+                            min="0"
+                            step="1"
+                            onChange={(e) => updateItem(index, 'free_qty', Math.max(0, parseFloat(e.target.value) || 0))}
+                            placeholder="0"
                           />
                         </div>
                         <div>
@@ -628,9 +646,15 @@ export default function GoodsReceipts() {
                 <div className="border rounded">
                   <Table>
                     <TableHeader>
-                      <TableRow>
+                     <TableRow>
                         <TableHead>المنتج</TableHead>
                         <TableHead>الكمية</TableHead>
+                        <TableHead>
+                          <span className="flex items-center gap-1 text-primary">
+                            <Gift className="h-3.5 w-3.5" />
+                            مجانية
+                          </span>
+                        </TableHead>
                         <TableHead>التكلفة</TableHead>
                         <TableHead>رقم الدفعة</TableHead>
                         <TableHead>تاريخ الانتهاء</TableHead>
@@ -641,6 +665,16 @@ export default function GoodsReceipts() {
                         <TableRow key={item.id}>
                           <TableCell>{item.products?.name}</TableCell>
                           <TableCell>{item.qty_received}</TableCell>
+                          <TableCell>
+                            {(item.free_qty || 0) > 0 ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                                <Gift className="h-3 w-3" />
+                                {item.free_qty}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">0</span>
+                            )}
+                          </TableCell>
                           <TableCell>{item.unit_cost?.toFixed(2)} ر.س</TableCell>
                           <TableCell>{item.lot_no}</TableCell>
                           <TableCell>

@@ -5559,6 +5559,7 @@ export type Database = {
         Row: {
           created_at: string | null
           expiry_date: string
+          free_qty: number
           grn_id: string | null
           id: string
           item_id: string | null
@@ -5578,6 +5579,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           expiry_date: string
+          free_qty?: number
           grn_id?: string | null
           id?: string
           item_id?: string | null
@@ -5597,6 +5599,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           expiry_date?: string
+          free_qty?: number
           grn_id?: string | null
           id?: string
           item_id?: string | null
@@ -7524,6 +7527,7 @@ export type Database = {
           created_at: string | null
           discount: number | null
           expected_date: string | null
+          free_qty: number
           id: string
           item_id: string
           line_no: number
@@ -7549,6 +7553,7 @@ export type Database = {
           created_at?: string | null
           discount?: number | null
           expected_date?: string | null
+          free_qty?: number
           id?: string
           item_id: string
           line_no: number
@@ -7574,6 +7579,7 @@ export type Database = {
           created_at?: string | null
           discount?: number | null
           expected_date?: string | null
+          free_qty?: number
           id?: string
           item_id?: string
           line_no?: number

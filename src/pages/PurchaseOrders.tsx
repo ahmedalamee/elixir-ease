@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Plus, FileText, Eye, Trash2, Check, X, Search, Filter } from 'lucide-react';
+import { Plus, FileText, Eye, Trash2, Check, X, Search, Filter, Gift } from 'lucide-react';
 import { format } from 'date-fns';
 import { InvoiceCurrencyPanel, InvoiceTotalsSummary } from '@/components/currency';
 import { getExchangeRate, getBaseCurrencyCode } from '@/lib/currency';
@@ -38,6 +38,7 @@ interface POItem {
   item_id: string;
   uom_id: string;
   qty_ordered: number;
+  free_qty: number;
   price: number;
   discount: number;
   tax_code: string;
@@ -262,6 +263,7 @@ export default function PurchaseOrders() {
         item_id: '',
         uom_id: '',
         qty_ordered: 1,
+        free_qty: 0,
         price: 0,
         discount: 0,
         tax_code: null,
@@ -397,7 +399,8 @@ export default function PurchaseOrders() {
       po_id: po.id,
       line_no: index + 1,
       ...item,
-      tax_code: item.tax_code || null, // Convert empty string to null
+      free_qty: item.free_qty || 0,
+      tax_code: item.tax_code || null,
     }));
 
     const { error: itemsError } = await supabase
@@ -740,7 +743,7 @@ export default function PurchaseOrders() {
 
                 <div className="space-y-3">
                   {items.map((item, index) => (
-                    <div key={index} className="grid grid-cols-7 gap-2 items-end p-3 border rounded bg-card">
+                    <div key={index} className="grid grid-cols-8 gap-2 items-end p-3 border rounded bg-card">
                       <div>
                         <Label className="text-xs">المنتج *</Label>
                         <Select
@@ -789,6 +792,21 @@ export default function PurchaseOrders() {
                           step="0.01"
                           onChange={(e) => updateItem(index, 'qty_ordered', parseFloat(e.target.value) || 0)}
                           required
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs flex items-center gap-1 text-primary">
+                          <Gift className="h-3 w-3" />
+                          مجانية
+                        </Label>
+                        <Input
+                          type="number"
+                          className="h-8 border-primary/30 bg-primary/5"
+                          value={item.free_qty}
+                          min="0"
+                          step="1"
+                          onChange={(e) => updateItem(index, 'free_qty', Math.max(0, parseFloat(e.target.value) || 0))}
+                          placeholder="0"
                         />
                       </div>
                       <div>
@@ -925,9 +943,15 @@ export default function PurchaseOrders() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>المنتج</TableHead>
+                         <TableHead>المنتج</TableHead>
                         <TableHead>الوحدة</TableHead>
                         <TableHead>الكمية</TableHead>
+                        <TableHead>
+                          <span className="flex items-center gap-1 text-primary">
+                            <Gift className="h-3.5 w-3.5" />
+                            مجانية
+                          </span>
+                        </TableHead>
                         <TableHead>السعر</TableHead>
                         <TableHead>الخصم</TableHead>
                         <TableHead>الصافي</TableHead>
@@ -939,6 +963,16 @@ export default function PurchaseOrders() {
                           <TableCell>{item.products?.name}</TableCell>
                           <TableCell>{item.uoms?.name}</TableCell>
                           <TableCell>{item.qty_ordered}</TableCell>
+                          <TableCell>
+                            {(item.free_qty || 0) > 0 ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                                <Gift className="h-3 w-3" />
+                                {item.free_qty}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">0</span>
+                            )}
+                          </TableCell>
                           <TableCell>{item.price.toFixed(2)}</TableCell>
                           <TableCell>{item.discount}%</TableCell>
                           <TableCell>{item.net_amount.toFixed(2)} ر.س</TableCell>

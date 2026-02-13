@@ -78,9 +78,9 @@ const FreeSamples = () => {
 
   const fetchLookups = async () => {
     const [suppRes, whRes, prodRes] = await Promise.all([
-      supabase.from("suppliers").select("id, supplier_name").eq("is_active", true),
+      supabase.from("suppliers").select("id, name").eq("is_active", true),
       supabase.from("warehouses").select("id, name").eq("is_active", true),
-      supabase.from("products").select("id, name, unit_of_measure").eq("is_active", true),
+      supabase.from("products").select("id, name").eq("is_active", true),
     ]);
     setSuppliers(suppRes.data || []);
     setWarehouses(whRes.data || []);
@@ -91,14 +91,14 @@ const FreeSamples = () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("free_samples")
-      .select("*, suppliers(supplier_name), warehouses(name)")
+      .select("*, suppliers(name), warehouses(name)")
       .order("created_at", { ascending: false });
 
     if (!error && data) {
       setSamples(
         data.map((s: any) => ({
           ...s,
-          supplier_name: s.suppliers?.supplier_name || "—",
+          supplier_name: s.suppliers?.name || "—",
           warehouse_name: s.warehouses?.name || "—",
         }))
       );
@@ -183,7 +183,7 @@ const FreeSamples = () => {
     setSelectedSample(sample);
     const { data } = await supabase
       .from("free_sample_items")
-      .select("*, products(name, unit_of_measure)")
+      .select("*, products(name)")
       .eq("free_sample_id", sample.id);
     setViewItems(data || []);
     setShowView(true);
@@ -230,8 +230,6 @@ const FreeSamples = () => {
     const updated = [...formItems];
     (updated[index] as any)[field] = value;
     if (field === "product_id") {
-      const prod = products.find((p: any) => p.id === value);
-      if (prod) updated[index].unit = prod.unit_of_measure || "حبة";
     }
     setFormItems(updated);
   };
@@ -363,7 +361,7 @@ const FreeSamples = () => {
                 <SelectTrigger><SelectValue placeholder="اختر المورد (اختياري)" /></SelectTrigger>
                 <SelectContent>
                   {suppliers.map((s: any) => (
-                    <SelectItem key={s.id} value={s.id}>{s.supplier_name}</SelectItem>
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -518,7 +516,7 @@ const FreeSamples = () => {
                       🎁 {item.free_qty}
                     </Badge>
                   </TableCell>
-                  <TableCell>{item.unit || item.products?.unit_of_measure}</TableCell>
+                  <TableCell>{item.unit || "حبة"}</TableCell>
                   <TableCell>{item.expiry_date || "—"}</TableCell>
                   {selectedSample?.status === "posted" && (
                     <TableCell>

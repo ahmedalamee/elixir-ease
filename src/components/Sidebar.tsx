@@ -114,6 +114,7 @@ const menuItems: MenuItem[] = [
       { title: "طلبات الشراء", path: "/purchase-orders" },
       { title: "فواتير الشراء", path: "/purchase-invoices" },
       { title: "مرتجعات المشتريات", path: "/purchases/returns" },
+      { title: "العينات المجانية", path: "/purchases/free-samples" },
       { title: "إدارة الموردين", path: "/suppliers" },
     ],
   },

@@ -279,6 +279,11 @@ export const menuTree: TreeMenuItem[] = [
         label: "سير عمل الموافقات",
         route: "/approvals/workflows",
       },
+      {
+        id: "purchases-free-samples",
+        label: "العينات المجانية",
+        route: "/purchases/free-samples",
+      },
     ],
   },
   {

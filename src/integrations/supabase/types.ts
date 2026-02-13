@@ -5193,6 +5193,198 @@ export type Database = {
           },
         ]
       }
+      free_sample_items: {
+        Row: {
+          created_at: string | null
+          expiry_date: string | null
+          free_qty: number
+          free_sample_id: string
+          id: string
+          product_id: string
+          qty: number
+          unit: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          expiry_date?: string | null
+          free_qty: number
+          free_sample_id: string
+          id?: string
+          product_id: string
+          qty?: number
+          unit?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          expiry_date?: string | null
+          free_qty?: number
+          free_sample_id?: string
+          id?: string
+          product_id?: string
+          qty?: number
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "free_sample_items_free_sample_id_fkey"
+            columns: ["free_sample_id"]
+            isOneToOne: false
+            referencedRelation: "free_samples"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "free_sample_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "free_sample_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "free_sample_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "free_sample_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "v_comprehensive_stock_status"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "free_sample_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_selector"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "free_sample_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_stock_summary"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "free_sample_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "v_products_with_scientific_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      free_samples: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          date_received: string
+          id: string
+          notes: string | null
+          posted_at: string | null
+          posted_by: string | null
+          sample_number: string
+          status: string
+          supplier_id: string | null
+          updated_at: string | null
+          warehouse_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          date_received?: string
+          id?: string
+          notes?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
+          sample_number: string
+          status?: string
+          supplier_id?: string | null
+          updated_at?: string | null
+          warehouse_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          date_received?: string
+          id?: string
+          notes?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
+          sample_number?: string
+          status?: string
+          supplier_id?: string | null
+          updated_at?: string | null
+          warehouse_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "free_samples_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "safe_suppliers_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "free_samples_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "free_samples_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers_safe_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "free_samples_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_stock_summary"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "free_samples_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_summary_view"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "free_samples_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "stock_alerts"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "free_samples_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "v_comprehensive_stock_status"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "free_samples_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       free_stock_audit_log: {
         Row: {
           created_at: string
@@ -16268,6 +16460,7 @@ export type Database = {
       post_cash_receipt: { Args: { p_receipt_id: string }; Returns: Json }
       post_customer_payment: { Args: { p_payment_id: string }; Returns: Json }
       post_customer_receipt: { Args: { p_payment_id: string }; Returns: Json }
+      post_free_sample: { Args: { p_sample_id: string }; Returns: Json }
       post_goods_receipt: { Args: { p_grn_id: string }; Returns: Json }
       post_goods_receipt_v2: { Args: { p_grn_id: string }; Returns: Json }
       post_inventory_adjustment: {

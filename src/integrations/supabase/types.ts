@@ -16543,6 +16543,7 @@ export type Database = {
         Returns: Json
       }
       reopen_accounting_period: { Args: { p_period_id: string }; Returns: Json }
+      reverse_free_sample: { Args: { p_sample_id: string }; Returns: Json }
       search_customers_for_pos: {
         Args: { p_limit?: number; p_search: string }
         Returns: {

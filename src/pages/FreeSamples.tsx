@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -16,15 +16,13 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Gift, Plus, Send, Search, Trash2, ArrowRightLeft, Eye } from "lucide-react";
+import { Gift, Plus, Send, Search, Trash2, ArrowRightLeft, Eye, Pencil, XCircle } from "lucide-react";
 import { ExportMenu } from "@/components/ExportMenu";
 
 interface FreeSampleItem {
   id?: string;
   product_id: string;
-  product_name?: string;
   qty: number;
-  free_qty: number;
   unit: string;
   expiry_date: string;
 }
@@ -55,13 +53,15 @@ const FreeSamples = () => {
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
 
-  // Create form state
+  // Create/Edit form state
+  const [editMode, setEditMode] = useState(false);
+  const [editSampleId, setEditSampleId] = useState<string | null>(null);
   const [formSupplier, setFormSupplier] = useState("");
   const [formWarehouse, setFormWarehouse] = useState("");
   const [formDate, setFormDate] = useState(new Date().toISOString().split("T")[0]);
   const [formNotes, setFormNotes] = useState("");
   const [formItems, setFormItems] = useState<FreeSampleItem[]>([
-    { product_id: "", qty: 0, free_qty: 1, unit: "حبة", expiry_date: "" },
+    { product_id: "", qty: 1, unit: "حبة", expiry_date: "" },
   ]);
   const [saving, setSaving] = useState(false);
   const [posting, setPosting] = useState(false);
@@ -70,6 +70,10 @@ const FreeSamples = () => {
   const [showConvert, setShowConvert] = useState(false);
   const [convertItem, setConvertItem] = useState<any>(null);
   const [convertQty, setConvertQty] = useState(0);
+
+  // Delete confirm
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteSample, setDeleteSample] = useState<FreeSample | null>(null);
 
   useEffect(() => {
     fetchSamples();
@@ -116,45 +120,75 @@ const FreeSamples = () => {
       toast({ title: "خطأ", description: "يجب اختيار المستودع", variant: "destructive" });
       return;
     }
-    const validItems = formItems.filter((i) => i.product_id && i.free_qty > 0);
+    const validItems = formItems.filter((i) => i.product_id && i.qty > 0);
     if (validItems.length === 0) {
-      toast({ title: "خطأ", description: "يجب إضافة منتج واحد على الأقل بكمية مجانية", variant: "destructive" });
+      toast({ title: "خطأ", description: "يجب إضافة منتج واحد على الأقل بكمية", variant: "destructive" });
       return;
     }
 
     setSaving(true);
     try {
-      const sampleNumber = generateSampleNumber();
       const { data: user } = await supabase.auth.getUser();
 
-      const { data: sample, error: sErr } = await supabase
-        .from("free_samples")
-        .insert({
-          sample_number: sampleNumber,
-          supplier_id: formSupplier || null,
-          warehouse_id: formWarehouse,
-          date_received: formDate,
-          notes: formNotes || null,
-          created_by: user.user?.id,
-        })
-        .select()
-        .single();
+      if (editMode && editSampleId) {
+        // Update existing sample
+        const { error: uErr } = await supabase
+          .from("free_samples")
+          .update({
+            supplier_id: formSupplier || null,
+            warehouse_id: formWarehouse,
+            date_received: formDate,
+            notes: formNotes || null,
+          })
+          .eq("id", editSampleId);
+        if (uErr) throw uErr;
 
-      if (sErr) throw sErr;
+        // Delete old items and re-insert
+        await supabase.from("free_sample_items").delete().eq("free_sample_id", editSampleId);
 
-      const items = validItems.map((i) => ({
-        free_sample_id: sample.id,
-        product_id: i.product_id,
-        qty: i.qty || 0,
-        free_qty: i.free_qty,
-        unit: i.unit || "حبة",
-        expiry_date: i.expiry_date || null,
-      }));
+        const items = validItems.map((i) => ({
+          free_sample_id: editSampleId,
+          product_id: i.product_id,
+          qty: i.qty,
+          free_qty: i.qty,
+          unit: i.unit || "حبة",
+          expiry_date: i.expiry_date || null,
+        }));
+        const { error: iErr } = await supabase.from("free_sample_items").insert(items);
+        if (iErr) throw iErr;
 
-      const { error: iErr } = await supabase.from("free_sample_items").insert(items);
-      if (iErr) throw iErr;
+        toast({ title: "تم التحديث", description: "تم تحديث العينة المجانية بنجاح" });
+      } else {
+        // Create new
+        const sampleNumber = generateSampleNumber();
+        const { data: sample, error: sErr } = await supabase
+          .from("free_samples")
+          .insert({
+            sample_number: sampleNumber,
+            supplier_id: formSupplier || null,
+            warehouse_id: formWarehouse,
+            date_received: formDate,
+            notes: formNotes || null,
+            created_by: user.user?.id,
+          })
+          .select()
+          .single();
+        if (sErr) throw sErr;
 
-      toast({ title: "تم الحفظ", description: `تم إنشاء العينة المجانية ${sampleNumber}` });
+        const items = validItems.map((i) => ({
+          free_sample_id: sample.id,
+          product_id: i.product_id,
+          qty: i.qty,
+          free_qty: i.qty,
+          unit: i.unit || "حبة",
+          expiry_date: i.expiry_date || null,
+        }));
+        const { error: iErr } = await supabase.from("free_sample_items").insert(items);
+        if (iErr) throw iErr;
+
+        toast({ title: "تم الحفظ", description: `تم إنشاء العينة المجانية ${sampleNumber}` });
+      }
+
       setShowCreate(false);
       resetForm();
       fetchSamples();
@@ -162,6 +196,55 @@ const FreeSamples = () => {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleEdit = async (sample: FreeSample) => {
+    setEditMode(true);
+    setEditSampleId(sample.id);
+    setFormSupplier(sample.supplier_id || "");
+    setFormWarehouse(sample.warehouse_id);
+    setFormDate(sample.date_received);
+    setFormNotes(sample.notes || "");
+
+    const { data } = await supabase
+      .from("free_sample_items")
+      .select("*")
+      .eq("free_sample_id", sample.id);
+
+    setFormItems(
+      (data || []).map((i: any) => ({
+        id: i.id,
+        product_id: i.product_id,
+        qty: i.qty,
+        unit: i.unit || "حبة",
+        expiry_date: i.expiry_date || "",
+      }))
+    );
+    setShowCreate(true);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteSample) return;
+    try {
+      if (deleteSample.status === "posted") {
+        // Reverse posted sample
+        const { error } = await supabase.rpc("reverse_free_sample", { p_sample_id: deleteSample.id });
+        if (error) throw error;
+        toast({ title: "تم العكس", description: "تم عكس العينة المجانية وإلغاؤها" });
+      } else {
+        // Delete draft
+        await supabase.from("free_sample_items").delete().eq("free_sample_id", deleteSample.id);
+        const { error } = await supabase.from("free_samples").delete().eq("id", deleteSample.id);
+        if (error) throw error;
+        toast({ title: "تم الحذف", description: "تم حذف العينة المجانية" });
+      }
+      setShowDeleteConfirm(false);
+      setDeleteSample(null);
+      setShowView(false);
+      fetchSamples();
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
     }
   };
 
@@ -209,15 +292,17 @@ const FreeSamples = () => {
   };
 
   const resetForm = () => {
+    setEditMode(false);
+    setEditSampleId(null);
     setFormSupplier("");
     setFormWarehouse("");
     setFormDate(new Date().toISOString().split("T")[0]);
     setFormNotes("");
-    setFormItems([{ product_id: "", qty: 0, free_qty: 1, unit: "حبة", expiry_date: "" }]);
+    setFormItems([{ product_id: "", qty: 1, unit: "حبة", expiry_date: "" }]);
   };
 
   const addItem = () => {
-    setFormItems([...formItems, { product_id: "", qty: 0, free_qty: 1, unit: "حبة", expiry_date: "" }]);
+    setFormItems([...formItems, { product_id: "", qty: 1, unit: "حبة", expiry_date: "" }]);
   };
 
   const removeItem = (index: number) => {
@@ -229,8 +314,6 @@ const FreeSamples = () => {
   const updateItem = (index: number, field: keyof FreeSampleItem, value: any) => {
     const updated = [...formItems];
     (updated[index] as any)[field] = value;
-    if (field === "product_id") {
-    }
     setFormItems(updated);
   };
 
@@ -330,11 +413,24 @@ const FreeSamples = () => {
                           <Eye className="w-4 h-4" />
                         </Button>
                         {s.status === "draft" && (
-                          <Button size="sm" variant="default" onClick={() => handlePost(s.id)} disabled={posting}>
-                            <Send className="w-4 h-4 ml-1" />
-                            ترحيل
-                          </Button>
+                          <>
+                            <Button size="sm" variant="ghost" onClick={() => handleEdit(s)}>
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button size="sm" variant="default" onClick={() => handlePost(s.id)} disabled={posting}>
+                              <Send className="w-4 h-4 ml-1" />
+                              ترحيل
+                            </Button>
+                          </>
                         )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive"
+                          onClick={() => { setDeleteSample(s); setShowDeleteConfirm(true); }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -345,13 +441,13 @@ const FreeSamples = () => {
         </CardContent>
       </Card>
 
-      {/* Create Dialog */}
+      {/* Create/Edit Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Gift className="w-5 h-5 text-primary" />
-              إنشاء عينة مجانية جديدة
+              {editMode ? "تعديل العينة المجانية" : "إنشاء عينة مجانية جديدة"}
             </DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4">
@@ -399,11 +495,9 @@ const FreeSamples = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>المنتج</TableHead>
-                  <TableHead>الكمية</TableHead>
                   <TableHead>
                     <span className="flex items-center gap-1">
-                      <Gift className="w-4 h-4 text-blue-500" />
-                      الكمية المجانية *
+                      🎁 الكمية
                     </span>
                   </TableHead>
                   <TableHead>الوحدة</TableHead>
@@ -427,25 +521,11 @@ const FreeSamples = () => {
                     <TableCell>
                       <Input
                         type="number"
-                        min={0}
+                        min={1}
                         value={item.qty}
-                        onChange={(e) => updateItem(idx, "qty", Number(e.target.value))}
-                        className="w-20"
+                        onChange={(e) => updateItem(idx, "qty", Math.max(0, Number(e.target.value)))}
+                        className="w-24 border-primary/30 bg-primary/5 font-semibold"
                       />
-                    </TableCell>
-                    <TableCell>
-                      <div className="relative">
-                        <Input
-                          type="number"
-                          min={0}
-                          value={item.free_qty}
-                          onChange={(e) => updateItem(idx, "free_qty", Math.max(0, Number(e.target.value)))}
-                          className="w-24 border-blue-300 bg-blue-50 dark:bg-blue-950/30 font-semibold"
-                        />
-                        <Badge variant="secondary" className="absolute -top-2 -left-2 text-[10px] px-1 py-0">
-                          🎁 مجاني
-                        </Badge>
-                      </div>
                     </TableCell>
                     <TableCell>
                       <Input value={item.unit} onChange={(e) => updateItem(idx, "unit", e.target.value)} className="w-20" />
@@ -467,7 +547,7 @@ const FreeSamples = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreate(false)}>إلغاء</Button>
             <Button onClick={handleCreate} disabled={saving}>
-              {saving ? "جاري الحفظ..." : "حفظ العينة"}
+              {saving ? "جاري الحفظ..." : editMode ? "تحديث" : "حفظ العينة"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -497,9 +577,8 @@ const FreeSamples = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>المنتج</TableHead>
-                <TableHead>الكمية</TableHead>
                 <TableHead>
-                  <span className="flex items-center gap-1"><Gift className="w-4 h-4 text-blue-500" /> المجاني</span>
+                  <span className="flex items-center gap-1">🎁 الكمية</span>
                 </TableHead>
                 <TableHead>الوحدة</TableHead>
                 <TableHead>تاريخ الانتهاء</TableHead>
@@ -510,10 +589,9 @@ const FreeSamples = () => {
               {viewItems.map((item: any) => (
                 <TableRow key={item.id}>
                   <TableCell>{item.products?.name || "—"}</TableCell>
-                  <TableCell>{item.qty}</TableCell>
                   <TableCell>
                     <Badge variant="secondary" className="gap-1">
-                      🎁 {item.free_qty}
+                      🎁 {item.qty}
                     </Badge>
                   </TableCell>
                   <TableCell>{item.unit || "حبة"}</TableCell>
@@ -525,7 +603,7 @@ const FreeSamples = () => {
                         variant="outline"
                         onClick={() => {
                           setConvertItem(item);
-                          setConvertQty(item.free_qty);
+                          setConvertQty(item.qty);
                           setShowConvert(true);
                         }}
                       >
@@ -541,11 +619,47 @@ const FreeSamples = () => {
 
           <DialogFooter>
             {selectedSample?.status === "draft" && (
-              <Button onClick={() => { handlePost(selectedSample.id); setShowView(false); }} disabled={posting}>
-                <Send className="w-4 h-4 ml-1" /> ترحيل
-              </Button>
+              <>
+                <Button variant="outline" onClick={() => { handleEdit(selectedSample); setShowView(false); }}>
+                  <Pencil className="w-4 h-4 ml-1" /> تعديل
+                </Button>
+                <Button onClick={() => { handlePost(selectedSample.id); setShowView(false); }} disabled={posting}>
+                  <Send className="w-4 h-4 ml-1" /> ترحيل
+                </Button>
+              </>
             )}
+            <Button
+              variant="destructive"
+              onClick={() => { setDeleteSample(selectedSample); setShowDeleteConfirm(true); }}
+            >
+              <Trash2 className="w-4 h-4 ml-1" />
+              {selectedSample?.status === "posted" ? "عكس وإلغاء" : "حذف"}
+            </Button>
             <Button variant="outline" onClick={() => setShowView(false)}>إغلاق</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirm Dialog */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <XCircle className="w-5 h-5" />
+              {deleteSample?.status === "posted" ? "عكس وإلغاء العينة" : "حذف العينة"}
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            {deleteSample?.status === "posted"
+              ? "سيتم عكس الكميات المجانية من المخزون وإلغاء هذه العينة. هل أنت متأكد؟"
+              : "سيتم حذف هذه العينة نهائياً. هل أنت متأكد؟"}
+          </p>
+          <p className="font-mono text-sm font-medium">{deleteSample?.sample_number}</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>إلغاء</Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              {deleteSample?.status === "posted" ? "عكس وإلغاء" : "حذف نهائياً"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -568,11 +682,11 @@ const FreeSamples = () => {
               <Input
                 type="number"
                 min={1}
-                max={convertItem?.free_qty || 0}
+                max={convertItem?.qty || 0}
                 value={convertQty}
                 onChange={(e) => setConvertQty(Number(e.target.value))}
               />
-              <p className="text-xs text-muted-foreground mt-1">الحد الأقصى: {convertItem?.free_qty}</p>
+              <p className="text-xs text-muted-foreground mt-1">الحد الأقصى: {convertItem?.qty}</p>
             </div>
           </div>
           <DialogFooter>
